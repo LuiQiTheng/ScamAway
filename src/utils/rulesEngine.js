@@ -168,45 +168,100 @@ export function analyzeScamRisk(text, metadata = {}) {
   // 2. RULE LAYER & SOCIAL ENGINEERING KEYWORDS
   let ruleContribution = 0;
   
-  const urgencyKeywords = ['urgent', 'urgently', '30 minutes', 'within 24 hours', 'immediately', 'expire', 'fast', 'secrecy', 'secret', 'dont tell', 'don\'t call', 'segera', 'cepat'];
+  const urgencyKeywords = ['urgent', 'urgently', '30 minutes', 'within 24 hours', 'immediately', 'expire', 'fast', 'segera', 'cepat'];
+  const secrecyKeywords = ['secret', 'secrecy', 'dont tell', 'don\'t tell', 'dont let', 'don\'t let', 'rahsia', 'jangan beritahu', 'keep it secret', 'keep this secret', 'between us', 'don\'t call'];
   const credentialKeywords = ['otp', 'login', 'verify password', 'username', 'click here to update', 'update account', 'suspended', 'tac code'];
-  const baitKeywords = ['congratulations', 'won RM', 'free gift', 'earn daily', 'part-time job', 'bonus', 'rewards claim', 'komisen', 'gaji'];
+  const baitKeywords = ['congratulations', 'won rm', 'free gift', 'earn daily', 'part-time job', 'bonus', 'rewards', 'reward', 'komisen', 'gaji', 'untung', '100% true', '100% safe', 'guarantee', 'guaranteed'];
+  const fearThreatKeywords = ['fined', 'fine', 'denda', 'jail', 'penjara', 'arrest', 'arrested', 'warrant', 'warant', 'saman', 'blacklisted', 'tax debt', 'cukai', 'lhdn penalty', 'lock account', 'account frozen', 'court action', 'legal action'];
   
   // Family impersonation keywords (lost phone scams)
   const familyEmergencyKeywords = ['mum', 'dad', 'mak', 'ayah', 'fell into water', 'rosak', 'damaged phone', 'new number', 'friend\'s account', 'friend\'s phone', 'tukar nombor', 'telefon rosak'];
   // Authority impersonation
-  const authorityKeywords = ['police', 'court', 'lhdn', 'jpj', 'saman', 'arrest warrant', 'pos laju', 'poslaju', 'courier tax', 'customs'];
+  const authorityKeywords = ['police', 'polis', 'court', 'mahkamah', 'lhdn', 'jpj', 'saman', 'arrest warrant', 'pos laju', 'poslaju', 'courier tax', 'customs', 'kastam'];
 
-  const hasUrgency = urgencyKeywords.some(kw => text.toLowerCase().includes(kw));
-  const hasCreds = credentialKeywords.some(kw => text.toLowerCase().includes(kw));
-  const hasBait = baitKeywords.some(kw => text.toLowerCase().includes(kw));
-  const hasFamilyEmergency = familyEmergencyKeywords.some(kw => text.toLowerCase().includes(kw));
-  const hasAuthority = authorityKeywords.some(kw => text.toLowerCase().includes(kw));
+  const lowerText = text.toLowerCase();
+
+  const hasUrgency = urgencyKeywords.some(kw => lowerText.includes(kw));
+  const hasSecrecy = secrecyKeywords.some(kw => lowerText.includes(kw));
+  const hasCreds = credentialKeywords.some(kw => lowerText.includes(kw));
+  const hasBait = baitKeywords.some(kw => lowerText.includes(kw));
+  const hasFearThreat = fearThreatKeywords.some(kw => lowerText.includes(kw));
+  const hasFamilyEmergency = familyEmergencyKeywords.some(kw => lowerText.includes(kw));
+  const hasAuthority = authorityKeywords.some(kw => lowerText.includes(kw));
+
+  // Advanced heuristic: Impossible ROI / Investment Multiplier Detection
+  // e.g. "Transfer me RM1000, I give u rewards RM10000000000000000" or "give RM100 receive RM10000"
+  let hasImpossibleRoi = false;
+  const numbersInText = (text.match(/rm\s*[\d,]+|\b\d+,\d+|\b\d{3,}\b/gi) || [])
+    .map(n => parseFloat(n.replace(/rm\s*|,/gi, '')))
+    .filter(n => !isNaN(n));
+
+  if (numbersInText.length >= 2) {
+    const minVal = Math.min(...numbersInText);
+    const maxVal = Math.max(...numbersInText);
+    if (minVal > 0 && maxVal / minVal >= 5) {
+      hasImpossibleRoi = true;
+    }
+  } else if ((lowerText.includes('transfer') || lowerText.includes('lend') || lowerText.includes('give') || lowerText.includes('pay') || lowerText.includes('deposit')) &&
+             (lowerText.includes('reward') || lowerText.includes('return') || lowerText.includes('profit') || lowerText.includes('receive')) &&
+             (lowerText.includes('100%') || lowerText.includes('guarantee') || lowerText.includes('rm'))) {
+    hasImpossibleRoi = true;
+  }
+
+  if (hasImpossibleRoi) {
+    ruleContribution += 45;
+    explanations.push({
+      category: "bait",
+      label: "Impossible Investment Payout / Money Multiplier Scam",
+      text: "Prompts unrealistic return ratios or guaranteed financial multipliers (e.g. pay small deposit, get astronomical rewards/returns). This is a textbook Advance-Fee / Investment Scam tactic.",
+      weight: 45
+    });
+  }
+
+  if (hasFearThreat) {
+    ruleContribution += 40;
+    explanations.push({
+      category: "threat",
+      label: "Fear & Extortion Pressure (Fines / Jail / Arrest)",
+      text: "Uses legal threats, jail sentences, heavy fines, or account freezing to terrify victims into immediate compliance.",
+      weight: 40
+    });
+  }
+
+  if (hasSecrecy) {
+    ruleContribution += 25;
+    explanations.push({
+      category: "urgency",
+      label: "Secrecy & Social Isolation Tactics",
+      text: "Instructs you to keep the request secret ('don't tell anyone', 'don't call'), deliberately isolating you from advice of family or authorities.",
+      weight: 25
+    });
+  }
 
   if (hasUrgency) {
     ruleContribution += 18;
     explanations.push({
       category: "urgency",
       label: "Urgency Pressure Detected",
-      text: "The sender pressures you to act immediately (e.g. 'urgently', 'don't call', 'within 24 hours') to bypass safety validation.",
+      text: "The sender pressures you to act immediately (e.g. 'urgently', 'within 30 mins') to bypass rational safety checks.",
       weight: 18
     });
   }
   if (hasCreds) {
-    ruleContribution += 18;
+    ruleContribution += 20;
     explanations.push({
       category: "credentials",
-      label: "Credential Harvesting Pattern",
+      label: "Credential / OTP Harvesting Pattern",
       text: "Asks for sensitive credentials, PINs, OTP/TAC verification codes, or login overrides.",
-      weight: 18
+      weight: 20
     });
   }
-  if (hasBait) {
+  if (hasBait && !hasImpossibleRoi) {
     ruleContribution += 15;
     explanations.push({
       category: "bait",
-      label: "Financial Reward baiting",
-      text: "Features rewards or online job payouts designed to entice users into registration fees.",
+      label: "Financial Payout & Task Bait",
+      text: "Offers unverified cash prizes, daily commission tasks, or free rewards designed to lure upfront deposits.",
       weight: 15
     });
   }
@@ -215,7 +270,7 @@ export function analyzeScamRisk(text, metadata = {}) {
     explanations.push({
       category: "impersonation",
       label: "Family Impersonation Bait",
-      text: "Matches a common 'damaged phone / new number / hospital emergency' scam targeting parents.",
+      text: "Matches a common 'damaged phone / new number / hospital emergency' scam targeting family members.",
       weight: 25
     });
   }
@@ -223,34 +278,33 @@ export function analyzeScamRisk(text, metadata = {}) {
     ruleContribution += 20;
     explanations.push({
       category: "impersonation",
-      label: "Authority Impersonation Marker",
-      text: "Uses official government agencies (LHDN, JPJ, police) or delivery groups to establish trust.",
+      label: "Authority / Government Impersonation",
+      text: "Impersonates official agencies (LHDN, JPJ, Royal Malaysia Police) or courier platforms to establish fake authority.",
       weight: 20
     });
   }
 
   // 3. PAYMENT TRIGGER WORDS (if not already handled by blacklist account)
   let paymentContribution = 0;
-  if (analysis.hasPaymentKeywords || analysis.extractedPayment) {
+  if (analysis.hasPaymentKeywords || analysis.extractedPayment || lowerText.includes('transfer') || lowerText.includes('pay') || lowerText.includes('lend')) {
     paymentContribution += 15;
     explanations.push({
       category: "payment",
       label: "Direct Money Transfer Request",
-      text: `Requests financial payment (${analysis.extractedPayment || 'unspecified amount'}) through peer messages rather than secure company apps.`,
+      text: `Requests financial transfer (${analysis.extractedPayment || 'unspecified amount'}) through peer messaging rather than official corporate portals.`,
       weight: 15
     });
   }
 
   // 4. COMBINATION PENALTY (Multipliers for high-risk co-occurrences)
   let combinationContribution = 0;
-  // If payment request + urgency + family impersonation all occur together, it's 99% a scam!
-  if ((analysis.hasPaymentKeywords || analysis.extractedPayment) && hasUrgency) {
-    combinationContribution += 15;
+  if ((analysis.hasPaymentKeywords || analysis.extractedPayment || lowerText.includes('transfer')) && (hasUrgency || hasSecrecy || hasFearThreat || hasImpossibleRoi)) {
+    combinationContribution += 20;
     explanations.push({
       category: "rule_fusion",
-      label: "High-Risk Vector Combination",
-      text: "Co-occurrence of financial requests and urgency spikes the probability of active social-engineering.",
-      weight: 15
+      label: "Critical Risk Co-occurrence",
+      text: "Combining direct money transfer demands with secrecy, fear of arrest, or impossible rewards indicates extreme scam probability.",
+      weight: 20
     });
   }
 
