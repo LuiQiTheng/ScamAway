@@ -511,24 +511,6 @@ export default function UserChecker({ isElderlyMode, onToggleElderlyMode, report
               </div>
             </div>
 
-            {/* Assessment Statement & Wording (8.2 Risk-band wording) */}
-            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1.25rem', borderRadius: '10px', marginBottom: '1.5rem', borderLeft: `4px solid var(--color-${scanResult.bandColor})` }}>
-              <p style={{ 
-                fontWeight: 500, 
-                color: '#fff',
-                fontSize: isElderlyMode ? '1.35rem' : '1rem',
-                lineHeight: '1.5'
-              }}>
-                {scanResult.score >= 80 ? 'Strong combined evidence or verified local matches are present. Block, preserve evidence and report through approved channels.' : ''}
-                {scanResult.score >= 60 && scanResult.score < 80 ? 'Multiple scam indicators are present. Do not pay or share credentials until independently verified.' : ''}
-                {scanResult.score >= 30 && scanResult.score < 60 ? 'Suspicious elements were found. Pause and verify using an official channel.' : ''}
-                {scanResult.score < 30 ? 'No strong indicators detected from the submitted evidence. Verify independently before acting.' : ''}
-              </p>
-              <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                Evidence Confidence Index: <strong>{scanResult.confidence}</strong> | Model rules: v1.0.2
-              </div>
-            </div>
-
             {/* Explainable evidence indicators (8.3 Explainability) */}
             <div style={{ marginBottom: '1.5rem' }}>
               <h4 style={{ fontSize: isElderlyMode ? '1.3rem' : '1.05rem', color: '#fff', marginBottom: '0.75rem' }}>
@@ -561,36 +543,33 @@ export default function UserChecker({ isElderlyMode, onToggleElderlyMode, report
               </div>
             </div>
 
-            {/* Safe Action Checklist */}
+            {/* Recommended Safety Action Guidance */}
             <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem', marginBottom: '2rem' }}>
               <h4 style={{ fontSize: isElderlyMode ? '1.3rem' : '1.05rem', color: '#fff', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <CheckSquare size={18} color="var(--primary)" />
-                Recommended Verification Checklist (Pause Before You Click)
+                <ShieldCheck size={18} color="var(--primary)" />
+                Recommended Safety Guidance:
               </h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {scanResult.recommendedActions.map((action, idx) => (
                   <div 
                     key={idx} 
-                    onClick={() => toggleCheckAction(idx)}
                     style={{ 
                       display: 'flex', 
                       alignItems: 'start', 
                       gap: '0.75rem', 
-                      cursor: 'pointer',
                       padding: '0.75rem 1rem',
-                      background: checkedActions[idx] ? 'rgba(16, 185, 129, 0.05)' : 'rgba(255,255,255,0.01)',
-                      border: `1px solid ${checkedActions[idx] ? 'rgba(16, 185, 129, 0.2)' : 'var(--border-color)'}`,
-                      borderRadius: '8px',
-                      transition: 'all var(--transition-fast)'
+                      background: 'rgba(255,255,255,0.01)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '8px'
                     }}
                   >
-                    <span style={{ marginTop: '2px', color: checkedActions[idx] ? 'var(--color-low)' : 'var(--text-muted)' }}>
-                      {checkedActions[idx] ? <ShieldCheck size={20} /> : <Square size={20} />}
+                    <span style={{ marginTop: '2px', color: 'var(--primary)' }}>
+                      •
                     </span>
                     <span style={{ 
                       fontSize: isElderlyMode ? '1.25rem' : '0.9rem', 
-                      color: checkedActions[idx] ? 'var(--text-muted)' : 'var(--text-primary)',
-                      textDecoration: checkedActions[idx] ? 'line-through' : 'none'
+                      color: 'var(--text-primary)',
+                      lineHeight: '1.4'
                     }}>
                       {action}
                     </span>
