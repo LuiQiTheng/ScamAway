@@ -100,7 +100,7 @@ export default function App() {
                 color: userRole === 'user' ? '#fff' : 'var(--text-muted)'
               }}
             >
-              👤 User
+              {t('app.role_user')}
             </button>
             <button 
               onClick={() => handleRoleChange('admin')}
@@ -115,7 +115,7 @@ export default function App() {
                 color: userRole === 'admin' ? '#fff' : 'var(--text-muted)'
               }}
             >
-              👮 Admin
+              {t('app.role_admin')}
             </button>
           </div>
         </div>
@@ -156,9 +156,9 @@ export default function App() {
       }}>
         <div className="flex-row items-center justify-center gap-sm" style={{ marginBottom: '0.5rem' }}>
           <Sparkles size={14} color="var(--primary)" />
-          <strong>ScamShield — Explainable Digital Safety Platform</strong>
+          <strong>{t('app.footer_title')}</strong>
         </div>
-        <p>Prepared for UCRIX Innovation 2026 Competition. Aligning with UN Sustainable Development Goals (SDG 16, 9, 10, 4).</p>
+        <p>{t('app.footer_desc')}</p>
       </footer>
     </div>
   );

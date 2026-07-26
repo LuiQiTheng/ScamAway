@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Award, BookOpen, ShieldAlert, CheckCircle, XCircle, RefreshCw, ChevronRight, Filter, AlertTriangle, Eye, Layers, Flame, Search, ExternalLink } from 'lucide-react';
 import { getDailyQuestions } from '../utils/quizDatabase';
 import { useLanguage } from '../context/LanguageContext';
@@ -144,10 +144,41 @@ export default function KnowledgeCentre({ isElderlyMode }) {
 
   const getRank = () => {
     const pct = score / dailyQuestions.length;
-    if (pct === 1) return "🥇 Digital Safety Master";
-    if (pct >= 0.7) return "🥈 Scam Defense Specialist";
-    return "🥉 Safety Guardian Cadet";
+    if (pct === 1) return `🥇 ${t('knowledge.rank_1')}`;
+    if (pct >= 0.7) return `🥈 ${t('knowledge.rank_2')}`;
+    return `🥉 ${t('knowledge.rank_3')}`;
   };
+
+  const modalRef = useRef(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && activeModalCard) setActiveModalCard(null);
+      if (e.key === 'Tab' && activeModalCard && modalRef.current) {
+        const focusableElements = modalRef.current.querySelectorAll(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusableElements.length === 0) return;
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === firstElement) {
+            lastElement.focus();
+            e.preventDefault();
+          }
+        } else {
+          if (document.activeElement === lastElement) {
+            firstElement.focus();
+            e.preventDefault();
+          }
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [activeModalCard]);
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2rem', maxWidth: '1100px', margin: '0 auto', padding: '1rem' }} className={isElderlyMode ? 'elderly-mode' : ''}>
@@ -163,21 +194,21 @@ export default function KnowledgeCentre({ isElderlyMode }) {
           <div className="fade-in" style={{ textAlign: 'center', padding: '2rem 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem' }}>
             <CheckCircle size={64} color="var(--color-low)" />
             <div>
-              <h3 style={{ fontSize: '1.8rem', color: '#fff', marginBottom: '0.5rem' }}>Challenge Completed!</h3>
+              <h3 style={{ fontSize: '1.8rem', color: '#fff', marginBottom: '0.5rem' }}>{t('knowledge.challenge_completed')}</h3>
               <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem' }}>
-                You scored <strong>{score} out of {dailyQuestions.length}</strong> correctly on the first try.
+                {t('knowledge.score_msg')} <strong>{score} {t('knowledge.out_of')} {dailyQuestions.length}</strong> {t('knowledge.score_msg2')}
               </p>
             </div>
             
             <div style={{ display: 'flex', gap: '2rem', margin: '1rem 0' }}>
               <div style={{ background: 'rgba(255,255,255,0.05)', padding: '1rem 1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)', minWidth: '150px' }}>
-                <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Longest Streak</div>
+                <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>{t('knowledge.longest_streak')}</div>
                 <div style={{ fontSize: '1.8rem', color: '#f59e0b', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
                   <Flame size={24} /> {longestStreak}
                 </div>
               </div>
               <div style={{ background: 'rgba(255,255,255,0.05)', padding: '1rem 1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)', minWidth: '150px' }}>
-                <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Final Rank</div>
+                <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>{t('knowledge.final_rank')}</div>
                 <div style={{ fontSize: '1.2rem', color: 'var(--primary)', fontWeight: 'bold', marginTop: '0.5rem' }}>
                   {getRank()}
                 </div>
@@ -185,7 +216,7 @@ export default function KnowledgeCentre({ isElderlyMode }) {
             </div>
 
             <button onClick={handleRestart} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1rem' }}>
-              <RefreshCw size={16} /> Play Another Round
+              <RefreshCw size={16} /> {t('knowledge.play_another')}
             </button>
           </div>
         ) : currentQ ? (
@@ -197,7 +228,7 @@ export default function KnowledgeCentre({ isElderlyMode }) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.85rem' }}>
                   <span style={{ color: 'var(--text-secondary)' }}>
                     {isCorrectionPhase ? (
-                      <strong style={{ color: 'var(--color-caution)' }}>Correction Phase: {wrongQuestions.length} remaining</strong>
+                      <strong style={{ color: 'var(--color-caution)' }}>{t('knowledge.correction_phase').replace('{count}', wrongQuestions.length)}</strong>
                     ) : (
                       t('knowledge.question_count').replace('{current}', currentQuestionIdx + 1).replace('{total}', dailyQuestions.length)
                     )}
@@ -241,7 +272,7 @@ export default function KnowledgeCentre({ isElderlyMode }) {
               color: '#f8fafc',
               lineHeight: '1.5'
             }}>
-              "{currentQ.text}"
+              "{getCardText(currentQ, 'text')}"
             </div>
 
             {!showExplanation ? (
@@ -251,14 +282,14 @@ export default function KnowledgeCentre({ isElderlyMode }) {
                   className="btn-primary"
                   style={{ flex: 1, background: 'linear-gradient(135deg, var(--color-high), #b91c1c)', color: '#fff', boxShadow: 'none' }}
                 >
-                  🔴 It's a Scam / Phishing
+                  {t('knowledge.quiz_scam_btn')}
                 </button>
                 <button 
                   onClick={() => handleAnswer(false)} 
                   className="btn-primary"
                   style={{ flex: 1, background: 'linear-gradient(135deg, var(--color-low), #047857)', color: '#fff', boxShadow: 'none' }}
                 >
-                  🟢 It's Legitimate / Safe
+                  {t('knowledge.quiz_safe_btn')}
                 </button>
               </div>
             ) : (
@@ -279,10 +310,10 @@ export default function KnowledgeCentre({ isElderlyMode }) {
                   )}
                   <div>
                     <strong style={{ color: '#fff', fontSize: '1rem' }}>
-                      {selectedAnswer === currentQ.isScam ? 'Correct Decision!' : 'Incorrect Decision!'}
+                      {selectedAnswer === currentQ.isScam ? t('knowledge.correct_decision') : t('knowledge.incorrect_decision')}
                     </strong>
                     <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.25rem' }}>
-                      {currentQ.explanation}
+                      {getCardText(currentQ, 'explanation')}
                     </p>
                   </div>
                 </div>
@@ -293,9 +324,9 @@ export default function KnowledgeCentre({ isElderlyMode }) {
                   style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
                 >
                   {isCorrectionPhase && selectedAnswer !== currentQ.isScam ? (
-                    "Got it, next correction"
+                    t('knowledge.next_correction')
                   ) : (
-                    <>Next Question <ChevronRight size={16} /></>
+                    <>{t('knowledge.next_question')} <ChevronRight size={16} /></>
                   )}
                 </button>
               </div>
@@ -325,7 +356,7 @@ export default function KnowledgeCentre({ isElderlyMode }) {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search scam library by keyword (e.g. LHDN, Pos Laju, RM1,000, Telegram, QR code)..."
+            placeholder={t('knowledge.search_placeholder')}
             className="input-field"
             style={{ paddingLeft: '2.5rem', fontSize: '0.85rem' }}
           />
@@ -371,7 +402,7 @@ export default function KnowledgeCentre({ isElderlyMode }) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                   <span className="badge badge-caution" style={{ fontSize: '0.65rem' }}>{translateCategory(card.category)}</span>
                   {card.isDailyFeatured && (
-                    <span style={{ fontSize: '0.65rem', color: 'var(--primary)', fontWeight: 600 }}>★ Highlight</span>
+                    <span style={{ fontSize: '0.65rem', color: 'var(--primary)', fontWeight: 600 }}>{t('knowledge.highlight')}</span>
                   )}
                 </div>
                 
@@ -418,7 +449,11 @@ export default function KnowledgeCentre({ isElderlyMode }) {
           zIndex: 9999,
           padding: '1rem'
         }}>
-          <div style={{
+          <div 
+            ref={modalRef}
+            role="dialog"
+            aria-modal="true"
+            style={{
             background: '#0d1322',
             border: '1px solid var(--primary)',
             borderRadius: '16px',
@@ -430,7 +465,7 @@ export default function KnowledgeCentre({ isElderlyMode }) {
             overflowY: 'auto'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <span className="badge badge-caution">{activeModalCard.category}</span>
+              <span className="badge badge-caution">{translateCategory(activeModalCard.category)}</span>
               <button 
                 onClick={() => setActiveModalCard(null)}
                 style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1.5rem', cursor: 'pointer' }}
@@ -475,7 +510,7 @@ export default function KnowledgeCentre({ isElderlyMode }) {
 
             <div style={{ marginTop: '1.75rem', textAlign: 'right' }}>
               <button onClick={() => setActiveModalCard(null)} className="btn-primary" style={{ padding: '0.5rem 1.5rem' }}>
-                Close Case Study
+                {t('knowledge.close_case')}
               </button>
             </div>
           </div>

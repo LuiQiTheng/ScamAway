@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Shield, Eye, EyeOff, X, CheckCircle } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function ReportModal({ isOpen, onClose, scanResult, originalText, onSubmitReport }) {
+  const { t } = useLanguage();
   if (!isOpen) return null;
 
   const [category, setCategory] = useState('phishing');
@@ -40,6 +42,39 @@ export default function ReportModal({ isOpen, onClose, scanResult, originalText,
     }, 2000);
   };
 
+  const modalRef = useRef(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+      if (e.key === 'Tab' && modalRef.current) {
+        const focusableElements = modalRef.current.querySelectorAll(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === firstElement) {
+            lastElement.focus();
+            e.preventDefault();
+          }
+        } else {
+          if (document.activeElement === lastElement) {
+            firstElement.focus();
+            e.preventDefault();
+          }
+        }
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+      // Optional: focus first element when opened
+    }
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   return (
     <div style={{
       position: 'fixed',
@@ -54,7 +89,13 @@ export default function ReportModal({ isOpen, onClose, scanResult, originalText,
       padding: '1rem',
       background: 'rgba(7, 10, 19, 0.8)'
     }}>
-      <div className="glass-panel" style={{
+      <div 
+        className="glass-panel" 
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+        style={{
         width: '100%',
         maxWidth: '550px',
         background: 'var(--bg-dark)',
@@ -85,43 +126,43 @@ export default function ReportModal({ isOpen, onClose, scanResult, originalText,
             gap: '1rem'
           }}>
             <CheckCircle size={56} color="var(--color-low)" />
-            <h2 style={{ fontSize: '1.75rem', color: '#fff' }}>Report Submitted</h2>
+            <h2 id="modal-title" style={{ fontSize: '1.75rem', color: '#fff' }}>{t('report.submitted')}</h2>
             <p style={{ color: 'var(--text-secondary)' }}>
-              Thank you! The report is now added to the queue for moderator verification. Your community contribution helps make our campus safer.
+              {t('report.thank_you')}
             </p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <Shield size={28} color="var(--primary)" />
-              <h2 style={{ fontSize: '1.5rem', color: '#fff' }}>Submit Community Report</h2>
+              <h2 id="modal-title" style={{ fontSize: '1.5rem', color: '#fff' }}>{t('report.title')}</h2>
             </div>
             
             <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-              Your report will update local campus indicators and dashboards once approved. All personally identifiable details are masked automatically.
+              {t('report.desc')}
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Scam Category</label>
+              <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>{t('report.category')}</label>
               <select 
                 value={category} 
                 onChange={(e) => setCategory(e.target.value)} 
                 className="input-field"
                 style={{ background: '#111827', cursor: 'pointer' }}
               >
-                <option value="phishing">Phishing / Suspicious Link</option>
-                <option value="parcel">Courier / Parcel scam</option>
-                <option value="job">Part-time Job offer</option>
-                <option value="emergency">Family emergency impersonation</option>
-                <option value="marketplace">Off-platform trading / Marketplace scam</option>
-                <option value="finance">Mule Bank accounts / Finance bait</option>
+                <option value="phishing">{t('report.cat_phishing')}</option>
+                <option value="parcel">{t('report.cat_parcel')}</option>
+                <option value="job">{t('report.cat_job')}</option>
+                <option value="emergency">{t('report.cat_emergency')}</option>
+                <option value="marketplace">{t('report.cat_marketplace')}</option>
+                <option value="finance">{t('report.cat_finance')}</option>
               </select>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                  Redacted Evidence Preview
+                  {t('report.redacted_preview')}
                 </label>
                 <button
                   type="button"
@@ -138,7 +179,7 @@ export default function ReportModal({ isOpen, onClose, scanResult, originalText,
                   }}
                 >
                   {showRaw ? <EyeOff size={14} /> : <Eye size={14} />}
-                  {showRaw ? 'Show Masked' : 'Show Original'}
+                  {showRaw ? t('report.show_masked') : t('report.show_original')}
                 </button>
               </div>
               
@@ -156,7 +197,7 @@ export default function ReportModal({ isOpen, onClose, scanResult, originalText,
                 {showRaw ? originalText : redactedText}
               </div>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                * Verified database filters match indicators while preserving your anonymity.
+                {t('report.verified_filters')}
               </span>
             </div>
 
@@ -170,7 +211,7 @@ export default function ReportModal({ isOpen, onClose, scanResult, originalText,
                 required
               />
               <label htmlFor="consent-check" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>
-                I consent to upload this anonymized evidence. I verify that this represents suspicious or unsolicited content.
+                {t('report.consent')}
               </label>
             </div>
 
@@ -181,7 +222,7 @@ export default function ReportModal({ isOpen, onClose, scanResult, originalText,
                 className="btn-secondary" 
                 style={{ flex: 1 }}
               >
-                Cancel
+                {t('report.cancel')}
               </button>
               <button 
                 type="submit" 
@@ -193,7 +234,7 @@ export default function ReportModal({ isOpen, onClose, scanResult, originalText,
                   cursor: consent ? 'pointer' : 'not-allowed'
                 }}
               >
-                Submit Report
+                {t('report.submit_btn')}
               </button>
             </div>
           </form>

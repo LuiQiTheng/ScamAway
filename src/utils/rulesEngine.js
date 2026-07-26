@@ -80,6 +80,7 @@ export function analyzeScamRisk(text, metadata = {}) {
   const indicatorsMatched = [];
   const analysis = extractIndicators(text);
   const qrDestination = metadata.qrCode || null;
+  const lang = metadata.lang || 'en';
 
   // Track if we hit a critical blacklist match that forces base high-risk
   let matchedBlacklistIndicator = false;
@@ -96,8 +97,8 @@ export function analyzeScamRisk(text, metadata = {}) {
       matchedBlacklistIndicator = true;
       explanations.push({
         category: "reputation",
-        label: "Blacklisted Phone Number",
-        text: "The phone number matches reported local/national phishing dispatchers.",
+        label: lang === 'ms' ? "Nombor Telefon Disenarai Hitam" : "Blacklisted Phone Number",
+        text: lang === 'ms' ? "Nombor telefon ini sepadan dengan penghantar pancingan data tempatan/nasional yang dilaporkan." : "The phone number matches reported local/national phishing dispatchers.",
         weight: 35
       });
       indicatorsMatched.push(...analysis.phones);
@@ -110,8 +111,8 @@ export function analyzeScamRisk(text, metadata = {}) {
     matchedBlacklistIndicator = true;
     explanations.push({
       category: "payment",
-      label: "Blacklisted Bank Account",
-      text: `The bank account listed (${matchedBlacklistAccount}) is flagged in the official mule bank account database.`,
+      label: lang === 'ms' ? "Akaun Bank Disenarai Hitam" : "Blacklisted Bank Account",
+      text: lang === 'ms' ? `Akaun bank yang disenaraikan (${matchedBlacklistAccount}) ditandakan dalam pangkalan data akaun keldai rasmi.` : `The bank account listed (${matchedBlacklistAccount}) is flagged in the official mule bank account database.`,
       weight: 45
     });
     indicatorsMatched.push(matchedBlacklistAccount);
@@ -128,8 +129,8 @@ export function analyzeScamRisk(text, metadata = {}) {
       matchedBlacklistIndicator = true;
       explanations.push({
         category: "technical",
-        label: "Malicious Blacklisted Domain",
-        text: `The link (${matchedBadDomain}) points to a verified scam/phishing site in our directory.`,
+        label: lang === 'ms' ? "Domain Disenarai Hitam" : "Malicious Blacklisted Domain",
+        text: lang === 'ms' ? `Pautan (${matchedBadDomain}) menghala ke laman web penipuan/phishing yang disahkan dalam direktori kami.` : `The link (${matchedBadDomain}) points to a verified scam/phishing site in our directory.`,
         weight: 40
       });
       indicatorsMatched.push(matchedBadDomain);
@@ -143,8 +144,8 @@ export function analyzeScamRisk(text, metadata = {}) {
       matchedBlacklistIndicator = true;
       explanations.push({
         category: "technical",
-        label: "Scam QR Destination Link",
-        text: `Scanned QR code points to a blacklisted domain: ${qrDestination}.`,
+        label: lang === 'ms' ? "Pautan Destinasi QR Penipuan" : "Scam QR Destination Link",
+        text: lang === 'ms' ? `Kod QR yang diimbas menghala ke domain yang disenarai hitam: ${qrDestination}.` : `Scanned QR code points to a blacklisted domain: ${qrDestination}.`,
         weight: 35
       });
       indicatorsMatched.push(qrDestination);
@@ -205,8 +206,8 @@ export function analyzeScamRisk(text, metadata = {}) {
     ruleContribution += 50;
     explanations.push({
       category: "bait",
-      label: "Impossible Investment Payout / Money Multiplier Scam",
-      text: "Prompts unrealistic return ratios or guaranteed financial multipliers (e.g. pay small deposit, get astronomical rewards/returns). This is a textbook Advance-Fee / Investment Scam tactic.",
+      label: lang === 'ms' ? "Bayaran Pelaburan Mustahil / Penipuan Pengganda Wang" : "Impossible Investment Payout / Money Multiplier Scam",
+      text: lang === 'ms' ? "Menjanjikan nisbah pulangan yang tidak realistik atau pengganda kewangan terjamin (cth. bayar deposit kecil, dapat ganjaran astronomi). Ini ialah taktik Penipuan Pelaburan yang biasa." : "Prompts unrealistic return ratios or guaranteed financial multipliers (e.g. pay small deposit, get astronomical rewards/returns). This is a textbook Advance-Fee / Investment Scam tactic.",
       weight: 50
     });
   }
@@ -215,8 +216,8 @@ export function analyzeScamRisk(text, metadata = {}) {
     ruleContribution += 25;
     explanations.push({
       category: "bait",
-      label: "False 'Zero-Risk / 100% Guaranteed' Claim",
-      text: "Uses false assurances ('100% true', 'no risk', 'guaranteed payout') to trick victims into dropping their guard.",
+      label: lang === 'ms' ? "Tuntutan Palsu 'Sifar-Risiko / 100% Terjamin'" : "False 'Zero-Risk / 100% Guaranteed' Claim",
+      text: lang === 'ms' ? "Menggunakan jaminan palsu ('100% benar', 'tiada risiko', 'bayaran terjamin') untuk menipu mangsa." : "Uses false assurances ('100% true', 'no risk', 'guaranteed payout') to trick victims into dropping their guard.",
       weight: 25
     });
   }
@@ -225,8 +226,8 @@ export function analyzeScamRisk(text, metadata = {}) {
     ruleContribution += 45;
     explanations.push({
       category: "threat",
-      label: "Fear & Extortion Pressure (Fines / Jail / Arrest)",
-      text: "Uses legal threats, jail sentences, heavy fines, or account freezing to terrify victims into immediate compliance.",
+      label: lang === 'ms' ? "Tekanan Ketakutan & Peras Ugut (Denda / Penjara)" : "Fear & Extortion Pressure (Fines / Jail / Arrest)",
+      text: lang === 'ms' ? "Menggunakan ancaman undang-undang, hukuman penjara, denda berat, atau pembekuan akaun untuk menakutkan mangsa supaya mematuhi arahan serta-merta." : "Uses legal threats, jail sentences, heavy fines, or account freezing to terrify victims into immediate compliance.",
       weight: 45
     });
   }
@@ -235,8 +236,8 @@ export function analyzeScamRisk(text, metadata = {}) {
     ruleContribution += 25;
     explanations.push({
       category: "urgency",
-      label: "Secrecy & Social Isolation Tactics",
-      text: "Instructs you to keep the request secret ('don't tell anyone', 'don't call'), deliberately isolating you from advice of family or authorities.",
+      label: lang === 'ms' ? "Taktik Rahsia & Pengasingan Sosial" : "Secrecy & Social Isolation Tactics",
+      text: lang === 'ms' ? "Mengarahkan anda untuk merahsiakan permintaan tersebut, sengaja mengasingkan anda daripada nasihat keluarga atau pihak berkuasa." : "Instructs you to keep the request secret ('don't tell anyone', 'don't call'), deliberately isolating you from advice of family or authorities.",
       weight: 25
     });
   }
@@ -245,8 +246,8 @@ export function analyzeScamRisk(text, metadata = {}) {
     ruleContribution += 20;
     explanations.push({
       category: "urgency",
-      label: "Urgency Pressure Detected",
-      text: "The sender pressures you to act immediately (e.g. 'now', 'within 2 hours') to bypass rational safety checks.",
+      label: lang === 'ms' ? "Tekanan Kedesakan Dikesan" : "Urgency Pressure Detected",
+      text: lang === 'ms' ? "Penghantar menekan anda untuk bertindak serta-merta (cth. 'sekarang', 'dalam 2 jam') untuk memintas semakan keselamatan yang rasional." : "The sender pressures you to act immediately (e.g. 'now', 'within 2 hours') to bypass rational safety checks.",
       weight: 20
     });
   }
@@ -254,8 +255,8 @@ export function analyzeScamRisk(text, metadata = {}) {
     ruleContribution += 20;
     explanations.push({
       category: "credentials",
-      label: "Credential / OTP Harvesting Pattern",
-      text: "Asks for sensitive credentials, PINs, OTP/TAC verification codes, or login overrides.",
+      label: lang === 'ms' ? "Pola Penuaian Kredensial / OTP" : "Credential / OTP Harvesting Pattern",
+      text: lang === 'ms' ? "Meminta kredensial sensitif, PIN, kod pengesahan OTP/TAC, atau ganti log masuk." : "Asks for sensitive credentials, PINs, OTP/TAC verification codes, or login overrides.",
       weight: 20
     });
   }
@@ -263,8 +264,8 @@ export function analyzeScamRisk(text, metadata = {}) {
     ruleContribution += 15;
     explanations.push({
       category: "bait",
-      label: "Financial Payout & Task Bait",
-      text: "Offers unverified cash prizes, daily commission tasks, or free rewards designed to lure upfront deposits.",
+      label: lang === 'ms' ? "Bayaran Kewangan & Umpan Tugasan" : "Financial Payout & Task Bait",
+      text: lang === 'ms' ? "Menawarkan hadiah wang tunai yang tidak disahkan, tugas komisen harian, atau ganjaran percuma yang direka untuk memikat deposit pendahuluan." : "Offers unverified cash prizes, daily commission tasks, or free rewards designed to lure upfront deposits.",
       weight: 15
     });
   }
@@ -272,8 +273,8 @@ export function analyzeScamRisk(text, metadata = {}) {
     ruleContribution += 25;
     explanations.push({
       category: "impersonation",
-      label: "Family Impersonation Bait",
-      text: "Matches a common 'damaged phone / new number / hospital emergency' scam targeting family members.",
+      label: lang === 'ms' ? "Umpan Penyamaran Keluarga" : "Family Impersonation Bait",
+      text: lang === 'ms' ? "Sepadan dengan penipuan 'telefon rosak / nombor baharu / kecemasan hospital' yang biasa menyasarkan ahli keluarga." : "Matches a common 'damaged phone / new number / hospital emergency' scam targeting family members.",
       weight: 25
     });
   }
@@ -281,8 +282,8 @@ export function analyzeScamRisk(text, metadata = {}) {
     ruleContribution += 20;
     explanations.push({
       category: "impersonation",
-      label: "Authority / Government Impersonation",
-      text: "Impersonates official agencies (LHDN, JPJ, Royal Malaysia Police) or courier platforms to establish fake authority.",
+      label: lang === 'ms' ? "Penyamaran Pihak Berkuasa / Kerajaan" : "Authority / Government Impersonation",
+      text: lang === 'ms' ? "Menyamar sebagai agensi rasmi (LHDN, JPJ, Polis Diraja Malaysia) atau platform kurier untuk mewujudkan kuasa palsu." : "Impersonates official agencies (LHDN, JPJ, Royal Malaysia Police) or courier platforms to establish fake authority.",
       weight: 20
     });
   }
@@ -293,8 +294,8 @@ export function analyzeScamRisk(text, metadata = {}) {
     paymentContribution += 15;
     explanations.push({
       category: "payment",
-      label: "Direct Money Transfer Request",
-      text: `Requests financial transfer (${analysis.extractedPayment || 'unspecified amount'}) through peer messaging rather than official corporate portals.`,
+      label: lang === 'ms' ? "Permintaan Pindahan Wang Terus" : "Direct Money Transfer Request",
+      text: lang === 'ms' ? `Meminta pindahan kewangan (${analysis.extractedPayment || 'jumlah tidak dinyatakan'}) melalui pemesejan rakan setara dan bukannya portal korporat rasmi.` : `Requests financial transfer (${analysis.extractedPayment || 'unspecified amount'}) through peer messaging rather than official corporate portals.`,
       weight: 15
     });
   }
@@ -305,8 +306,8 @@ export function analyzeScamRisk(text, metadata = {}) {
     combinationContribution += 20;
     explanations.push({
       category: "rule_fusion",
-      label: "Critical Risk Co-occurrence",
-      text: "Combining direct money transfer demands with urgency, secrecy, false guarantees, or impossible rewards indicates extreme scam probability.",
+      label: lang === 'ms' ? "Kewujudan Bersama Risiko Kritikal" : "Critical Risk Co-occurrence",
+      text: lang === 'ms' ? "Menggabungkan tuntutan pindahan wang terus dengan kedesakan, kerahsiaan, jaminan palsu, atau ganjaran mustahil menunjukkan kebarangkalian penipuan yang melampau." : "Combining direct money transfer demands with urgency, secrecy, false guarantees, or impossible rewards indicates extreme scam probability.",
       weight: 20
     });
   }
@@ -320,8 +321,8 @@ export function analyzeScamRisk(text, metadata = {}) {
       score += 10;
       explanations.push({
         category: "technical",
-        label: "Clickable Link Contained",
-        text: "Contains external link destinations which should only be verified through official site domains.",
+        label: lang === 'ms' ? "Pautan Boleh Klik Terkandung" : "Clickable Link Contained",
+        text: lang === 'ms' ? "Mengandungi destinasi pautan luaran yang hanya perlu disahkan melalui domain laman web rasmi." : "Contains external link destinations which should only be verified through official site domains.",
         weight: 10
       });
     }
@@ -329,8 +330,8 @@ export function analyzeScamRisk(text, metadata = {}) {
       score += 8;
       explanations.push({
         category: "reputation",
-        label: "Unregistered Sender Details",
-        text: "Sender phone number requires independent validation.",
+        label: lang === 'ms' ? "Butiran Penghantar Tidak Berdaftar" : "Unregistered Sender Details",
+        text: lang === 'ms' ? "Nombor telefon penghantar memerlukan pengesahan bebas." : "Sender phone number requires independent validation.",
         weight: 8
       });
     }
@@ -343,8 +344,8 @@ export function analyzeScamRisk(text, metadata = {}) {
     score += commBonus;
     explanations.push({
       category: "community",
-      label: "Active Community Alerts",
-      text: `Matches ${verifiedReports} reports confirmed by local citizen moderators.`,
+      label: lang === 'ms' ? "Makluman Komuniti Aktif" : "Active Community Alerts",
+      text: lang === 'ms' ? `Sepadan dengan ${verifiedReports} laporan yang disahkan oleh moderator warga tempatan.` : `Matches ${verifiedReports} reports confirmed by local citizen moderators.`,
       weight: commBonus
     });
   }
@@ -353,49 +354,64 @@ export function analyzeScamRisk(text, metadata = {}) {
   score = Math.min(100, Math.max(0, score));
 
   // Determine risk band
-  let riskBand = "Low evidence";
+  let riskBand = lang === 'ms' ? "Bukti Rendah" : "Low evidence";
   let bandColor = "low";
-  let recommendedActions = [
+  let recommendedActions = lang === 'ms' ? [
+    "Sahkan identiti pengirim secara bebas.",
+    "Jangan muat turun sebarang lampiran atau klik pada pautan yang bersarang."
+  ] : [
     "Verify the sender identity independently.",
     "Do not download any attachments or click on nested links."
   ];
 
   if (score >= 80) {
-    riskBand = "Critical";
+    riskBand = lang === 'ms' ? "Kritikal" : "Critical";
     bandColor = "critical";
-    recommendedActions = [
+    recommendedActions = lang === 'ms' ? [
+      "JANGAN pindahkan wang atau serahkan kod log masuk.",
+      "Sekat pengirim serta-merta dan padam mesej tersebut.",
+      "Ambil tangkapan skrin, padamkan butiran peribadi, dan serahkan laporan untuk memberi amaran kepada orang lain.",
+      "Hubungi talian bantuan bank anda (997 Pusat Respons Scam Kebangsaan jika di Malaysia) jika wang telah dipindahkan."
+    ] : [
       "DO NOT transfer money or submit login codes.",
       "Block the sender immediately and delete the message.",
       "Take a screenshot, redact personal details, and submit a report to alert others.",
       "Contact your bank helpline (997 National Scam Response Centre if in Malaysia) if money was moved."
     ];
   } else if (score >= 60) {
-    riskBand = "High risk";
+    riskBand = lang === 'ms' ? "Berisiko tinggi" : "High risk";
     bandColor = "high";
-    recommendedActions = [
+    recommendedActions = lang === 'ms' ? [
+      "Jangan bayar atau kongsi kelayakan dalam apa jua keadaan.",
+      "Hubungi syarikat rasmi atau ahli keluarga menggunakan saluran yang disahkan.",
+      "Kongsi keputusan ini dengan penjaga yang dipercayai atau bulatan sokongan."
+    ] : [
       "Do not pay or share credentials under any circumstance.",
       "Contact the official company or family member using a verified channel.",
       "Share this result with a trusted guardian or support circle."
     ];
   } else if (score >= 30) {
-    riskBand = "Caution";
+    riskBand = lang === 'ms' ? "Awas" : "Caution";
     bandColor = "caution";
-    recommendedActions = [
+    recommendedActions = lang === 'ms' ? [
+      "Berhenti seketika sebelum klik. Mesej ini menggunakan taktik tekanan.",
+      "Periksa sama ada mesej menggunakan saluran komunikasi tidak rasmi (cth. Gmail dan bukannya domain korporat)."
+    ] : [
       "Pause before clicking. The message utilizes pressure tactics.",
       "Check if the message uses unofficial communication channels (e.g. Gmail instead of corporate domain)."
     ];
   }
 
   // Calculate confidence score based on the amount of evidence provided
-  let confidence = "Low";
+  let confidence = lang === 'ms' ? "Rendah" : "Low";
   let evidenceCount = (analysis.urls.length > 0 ? 1 : 0) + 
                       (analysis.phones.length > 0 ? 1 : 0) + 
                       (qrDestination ? 1 : 0) +
                       (verifiedReports > 0 ? 1 : 0) +
                       (matchedBlacklistIndicator ? 1 : 0);
   
-  if (evidenceCount >= 3) confidence = "High";
-  else if (evidenceCount >= 1) confidence = "Medium";
+  if (evidenceCount >= 3) confidence = lang === 'ms' ? "Tinggi" : "High";
+  else if (evidenceCount >= 1) confidence = lang === 'ms' ? "Sederhana" : "Medium";
 
   return {
     score,

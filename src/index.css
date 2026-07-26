@@ -294,6 +294,15 @@ h1, h2, h3, h4, h5, h6 {
   animation: fadeIn 0.4s ease-out forwards;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -302,5 +311,45 @@ h1, h2, h3, h4, h5, h6 {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* Responsive Media Queries */
+@media (max-width: 768px) {
+  .app-header {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+  }
+  
+  .nav-links {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .elderly-mode {
+    font-size: 1.1rem !important; 
+  }
+  .elderly-mode h1 {
+    font-size: 2rem !important;
+  }
+  .elderly-mode h2 {
+    font-size: 1.75rem !important;
+  }
+  .elderly-mode h3 {
+    font-size: 1.4rem !important;
+  }
+  .elderly-mode p, .elderly-mode span, .elderly-mode li, .elderly-mode button, .elderly-mode input, .elderly-mode textarea {
+    font-size: 1.15rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .btn-primary, .btn-secondary {
+    width: 100%;
+  }
+  
+  .glass-panel {
+    padding: 1rem !important;
   }
 }

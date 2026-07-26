@@ -36,4 +36,13 @@ describe('Bilingual Scam Detection Engine', () => {
     expect(analysis.phones).toContain('011-8762512');
   });
 
+  it('should output BM strings when lang is ms', () => {
+    const text = 'Mak, telefon saya rosak. Ini nombor baru. Tolong bank in duit ke akaun kawan saya segera untuk bayar bil hospital.';
+    const result = analyzeScamRisk(text, { lang: 'ms' });
+
+    expect(result.riskBand).toBe('Berisiko tinggi');
+    expect(result.explanations.some(e => e.label === 'Umpan Penyamaran Keluarga')).toBe(true);
+    expect(result.recommendedActions[0]).toBe('Jangan bayar atau kongsi kelayakan dalam apa jua keadaan.');
+  });
+
 });

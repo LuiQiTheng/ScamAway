@@ -13,6 +13,7 @@ export default function ModeratorDashboard() {
   const [selectedReport, setSelectedReport] = useState(null);
   const [alertText, setAlertText] = useState('');
   const [alertSuccess, setAlertSuccess] = useState(false);
+  const [showConfirmBroadcast, setShowConfirmBroadcast] = useState(false);
   const [rationale, setRationale] = useState('');
 
   // New features state
@@ -72,7 +73,10 @@ export default function ModeratorDashboard() {
   const handlePublishAlert = (e) => {
     e.preventDefault();
     if (!alertText.trim()) return;
+    setShowConfirmBroadcast(true);
+  };
 
+  const confirmBroadcast = () => {
     addAlert({
       id: Date.now(),
       message: alertText,
@@ -80,6 +84,7 @@ export default function ModeratorDashboard() {
     });
 
     setAlertText('');
+    setShowConfirmBroadcast(false);
     setAlertSuccess(true);
     setTimeout(() => setAlertSuccess(false), 3000);
   };
@@ -115,13 +120,13 @@ export default function ModeratorDashboard() {
         <div className="glass-panel" style={{ padding: '1.5rem', borderLeft: '4px solid var(--primary)' }}>
           <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{t('admin.pending_queue')}</span>
           <h2 style={{ fontSize: '2rem', color: '#fff', marginTop: '0.5rem' }}>
-            {reportsList.filter(r => r.status === 'unverified' || r.status === 'under_review').length} cases
+            {reportsList.filter(r => r.status === 'unverified' || r.status === 'under_review').length} {t('admin.cases')}
           </h2>
         </div>
         <div className="glass-panel" style={{ padding: '1.5rem', borderLeft: '4px solid var(--color-low)' }}>
           <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{t('admin.confirmed_scams')}</span>
           <h2 style={{ fontSize: '2rem', color: '#fff', marginTop: '0.5rem' }}>
-            {reportsList.filter(r => r.status === 'confirmed').length} items
+            {reportsList.filter(r => r.status === 'confirmed').length} {t('admin.items')}
           </h2>
         </div>
         <div className="glass-panel" style={{ padding: '1.5rem', borderLeft: '4px solid var(--color-caution)' }}>
@@ -171,10 +176,10 @@ export default function ModeratorDashboard() {
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
                 >
-                  <option value="all">All Cases</option>
-                  <option value="pending">Pending Review</option>
-                  <option value="confirmed">Confirmed Scams</option>
-                  <option value="rejected">Rejected</option>
+                  <option value="all">{t('admin.filter_all')}</option>
+                  <option value="pending">{t('admin.filter_pending')}</option>
+                  <option value="confirmed">{t('admin.filter_confirmed')}</option>
+                  <option value="rejected">{t('admin.filter_rejected')}</option>
                 </select>
               )}
             </div>
@@ -183,7 +188,7 @@ export default function ModeratorDashboard() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {filteredReports.length === 0 ? (
                   <div style={{ padding: '2rem 0', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                    No active reports match this filter.
+                    {t('admin.no_reports')}
                   </div>
                 ) : (
                   filteredReports.slice(0, 10).map(report => ( // Basic Pagination / Limiting for MVP
@@ -226,7 +231,7 @@ export default function ModeratorDashboard() {
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                       <div>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', textAlign: 'right' }}>AI Risk Score</span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', textAlign: 'right' }}>{t('admin.ai_score')}</span>
                         <strong style={{ 
                           color: report.score >= 80 ? 'var(--color-high)' : report.score >= 30 ? 'var(--color-caution)' : 'var(--color-low)', 
                           fontSize: '1rem', 
@@ -252,7 +257,7 @@ export default function ModeratorDashboard() {
             {activeSubTab === 'blacklist' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
-                  <h3 style={{ fontSize: '1.1rem', color: '#fff', marginBottom: '1rem' }}>Add to Blacklist</h3>
+                  <h3 style={{ fontSize: '1.1rem', color: '#fff', marginBottom: '1rem' }}>{t('admin.add_blacklist')}</h3>
                   <form onSubmit={handleAddManualBlacklist} style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                     <select 
                       value={newBlacklistType} 
@@ -260,9 +265,9 @@ export default function ModeratorDashboard() {
                       className="input-field" 
                       style={{ flex: 1, minWidth: '150px' }}
                     >
-                      <option value="urls">Domain / URL</option>
-                      <option value="phoneNumbers">Phone Number</option>
-                      <option value="bankAccounts">Bank Account</option>
+                      <option value="urls">{t('admin.domain_url')}</option>
+                      <option value="phoneNumbers">{t('admin.phone_number')}</option>
+                      <option value="bankAccounts">{t('admin.bank_account')}</option>
                     </select>
                     <input 
                       type="text"
@@ -272,13 +277,13 @@ export default function ModeratorDashboard() {
                       placeholder="e.g. scam-site.com"
                       style={{ flex: 2, minWidth: '200px' }}
                     />
-                    <button type="submit" className="btn-primary" style={{ whiteSpace: 'nowrap' }}>Add to List</button>
+                    <button type="submit" className="btn-primary" style={{ whiteSpace: 'nowrap' }}>{t('admin.add_btn')}</button>
                   </form>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
                   <div>
-                    <h4 style={{ color: 'var(--color-caution)', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Blocked Domains</h4>
+                    <h4 style={{ color: 'var(--color-caution)', marginBottom: '0.5rem', fontSize: '0.9rem' }}>{t('admin.blocked_domains')}</h4>
                     <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                       {blacklist.urls.map(url => (
                         <li key={url} style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.01)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border-color)' }}>{url}</li>
@@ -286,7 +291,7 @@ export default function ModeratorDashboard() {
                     </ul>
                   </div>
                   <div>
-                    <h4 style={{ color: 'var(--color-caution)', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Blocked Phones</h4>
+                    <h4 style={{ color: 'var(--color-caution)', marginBottom: '0.5rem', fontSize: '0.9rem' }}>{t('admin.blocked_phones')}</h4>
                     <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                       {blacklist.phoneNumbers.map(phone => (
                         <li key={phone} style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.01)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border-color)' }}>{phone}</li>
@@ -301,16 +306,16 @@ export default function ModeratorDashboard() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {auditLogs.length === 0 ? (
                   <div style={{ padding: '2rem 0', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                    No moderation actions logged yet.
+                    {t('admin.no_audit')}
                   </div>
                 ) : (
                   auditLogs.map(log => (
                     <div key={log.id} style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                        <span style={{ fontSize: '0.85rem', color: '#fff' }}>Action: <strong style={{ color: 'var(--primary)', textTransform: 'capitalize' }}>{log.action}</strong> on Report #{log.reportId.toString().slice(-6)}</span>
+                        <span style={{ fontSize: '0.85rem', color: '#fff' }}>{t('admin.action')} <strong style={{ color: 'var(--primary)', textTransform: 'capitalize' }}>{log.action}</strong> {t('admin.on_report')}{log.reportId.toString().slice(-6)}</span>
                         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{new Date(log.timestamp).toLocaleString()}</span>
                       </div>
-                      <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Note: {log.rationale || 'N/A'}</span>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{t('admin.note')} {log.rationale || 'N/A'}</span>
                     </div>
                   ))
                 )}
@@ -342,7 +347,7 @@ export default function ModeratorDashboard() {
               return (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                   <div style={{ height: '300px', background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                    <h3 style={{ fontSize: '1rem', color: '#fff', marginBottom: '1rem', textAlign: 'center' }}>Scam Category Breakdown</h3>
+                    <h3 style={{ fontSize: '1rem', color: '#fff', marginBottom: '1rem', textAlign: 'center' }}>{t('admin.category_breakdown')}</h3>
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={barData} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
                         <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={12} />
@@ -354,7 +359,7 @@ export default function ModeratorDashboard() {
                   </div>
 
                   <div style={{ height: '300px', background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                    <h3 style={{ fontSize: '1rem', color: '#fff', marginBottom: '1rem', textAlign: 'center' }}>Platform Resolution Status</h3>
+                    <h3 style={{ fontSize: '1rem', color: '#fff', marginBottom: '1rem', textAlign: 'center' }}>{t('admin.resolution_status')}</h3>
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} fill="#8884d8" label>
@@ -378,7 +383,7 @@ export default function ModeratorDashboard() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
                 <div>
                   <h3 style={{ fontSize: '1.25rem', color: '#fff' }}>{t('admin.reviewing')} #{selectedReport.id.toString().slice(-6)}</h3>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Category: <strong style={{color: 'var(--primary)'}}>{selectedReport.category}</strong></span>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{t('admin.category_label')} <strong style={{color: 'var(--primary)'}}>{selectedReport.category}</strong></span>
                 </div>
                 <button 
                   onClick={() => setSelectedReport(null)}
@@ -393,7 +398,7 @@ export default function ModeratorDashboard() {
                 {/* Text evidence content */}
                 <div>
                   <strong style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.5rem' }}>
-                    Anonymized Text Evidence:
+                    {t('admin.text_evidence')}
                   </strong>
                   <div style={{ background: '#090d16', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.9rem', fontFamily: 'monospace', color: '#f8fafc', whiteSpace: 'pre-wrap' }}>
                     {selectedReport.text}
@@ -403,25 +408,25 @@ export default function ModeratorDashboard() {
                 {/* Technical duplicate audit */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
                   <div style={{ background: 'rgba(255,255,255,0.01)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>AI Risk Evaluation</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{t('admin.ai_eval')}</span>
                     <h4 style={{ fontSize: '1.2rem', color: '#fff', marginTop: '0.25rem' }}>{selectedReport.score}% ({selectedReport.riskBand})</h4>
                   </div>
                   <div style={{ background: 'rgba(255,255,255,0.01)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Duplicate Incidents Matched</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{t('admin.dup_incidents')}</span>
                     <h4 style={{ fontSize: '1.2rem', color: 'var(--primary)', marginTop: '0.25rem' }}>
-                      {getDuplicateReportsCount(selectedReport)} matching cases
+                      {getDuplicateReportsCount(selectedReport)} {t('admin.matching_cases')}
                     </h4>
                   </div>
                 </div>
 
                 {/* Rationale input */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Moderation Note / Rationale</label>
+                  <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>{t('admin.mod_note')}</label>
                   <input 
                     type="text" 
                     value={rationale}
                     onChange={(e) => setRationale(e.target.value)}
-                    placeholder="e.g., Matches verified POS Laju SMS phishing URL format. Added pos-laju.info to blocklist."
+                    placeholder={t('admin.mod_note_placeholder')}
                     className="input-field"
                   />
                 </div>
@@ -486,13 +491,23 @@ export default function ModeratorDashboard() {
                 ✓ Alert published to public view screens.
               </div>
             )}
+
+            {showConfirmBroadcast && (
+              <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid var(--color-high)', borderRadius: '8px' }}>
+                <strong style={{ fontSize: '0.9rem', color: '#fff', display: 'block', marginBottom: '0.5rem' }}>Are you sure you want to broadcast this alert to all users?</strong>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button onClick={confirmBroadcast} className="btn-primary" style={{ flex: 1, padding: '0.4rem', fontSize: '0.85rem' }}>Yes, Publish</button>
+                  <button onClick={() => setShowConfirmBroadcast(false)} className="btn-secondary" style={{ flex: 1, padding: '0.4rem', fontSize: '0.85rem' }}>Cancel</button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Reputation Lists (9.2 Reporter and reviewer reputation) */}
           <div className="glass-panel" style={{ padding: '1.5rem' }}>
             <h3 style={{ fontSize: '1.1rem', color: '#fff', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <UserCheck size={20} color="var(--primary)" />
-              Community Reporters
+              {t('admin.community_reporters')}
             </h3>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
@@ -511,11 +526,11 @@ export default function ModeratorDashboard() {
                 >
                   <div>
                     <strong style={{ fontSize: '0.85rem', color: '#fff', display: 'block' }}>{rep.userName}</strong>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Role: {rep.role} | level {rep.identityLevel}</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{t('admin.role')} {rep.role} | {t('admin.level')} {rep.identityLevel}</span>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--color-low)', fontWeight: 600 }}>{rep.agreementRate}% Agree</span>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'block' }}>{rep.verifiedReports} verified</span>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--color-low)', fontWeight: 600 }}>{rep.agreementRate}% {t('admin.agree')}</span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'block' }}>{rep.verifiedReports} {t('admin.verified')}</span>
                   </div>
                 </div>
               ))}

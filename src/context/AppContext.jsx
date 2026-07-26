@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 
 const AppContext = createContext();
 
@@ -62,44 +62,76 @@ const INITIAL_BLACKLIST = {
 
 export const AppProvider = ({ children }) => {
   const [reportsList, setReportsList] = useState(() => {
-    const saved = localStorage.getItem('scamshield_reports');
-    return saved ? JSON.parse(saved) : INITIAL_REPORTS;
+    try {
+      const saved = localStorage.getItem('scamshield_reports');
+      return saved ? JSON.parse(saved) : INITIAL_REPORTS;
+    } catch (e) {
+      console.error(e);
+      return INITIAL_REPORTS;
+    }
   });
 
   const [reputationProfiles, setReputationProfiles] = useState(() => {
-    const saved = localStorage.getItem('scamshield_reputations');
-    return saved ? JSON.parse(saved) : INITIAL_REPUTATIONS;
+    try {
+      const saved = localStorage.getItem('scamshield_reputations');
+      return saved ? JSON.parse(saved) : INITIAL_REPUTATIONS;
+    } catch (e) {
+      console.error(e);
+      return INITIAL_REPUTATIONS;
+    }
   });
 
   const [blacklist, setBlacklist] = useState(() => {
-    const saved = localStorage.getItem('scamshield_blacklist');
-    return saved ? JSON.parse(saved) : INITIAL_BLACKLIST;
+    try {
+      const saved = localStorage.getItem('scamshield_blacklist');
+      return saved ? JSON.parse(saved) : INITIAL_BLACKLIST;
+    } catch (e) {
+      console.error(e);
+      return INITIAL_BLACKLIST;
+    }
   });
 
   const [activeAlert, setActiveAlert] = useState(() => {
-    const saved = localStorage.getItem('scamshield_alert');
-    return saved ? JSON.parse(saved) : {
-      id: 1,
-      message: "Urgent: A wave of parcel cash-on-delivery (COD) SMS impersonating Pos Laju links (pos-laju.info) has been targeting Selangor and Klang Valley regions. Do not pay or open the links.",
-      timestamp: new Date().toISOString()
-    };
+    try {
+      const saved = localStorage.getItem('scamshield_alert');
+      return saved ? JSON.parse(saved) : {
+        id: 1,
+        message: "Urgent: A wave of parcel cash-on-delivery (COD) SMS impersonating Pos Laju links (pos-laju.info) has been targeting Selangor and Klang Valley regions. Do not pay or open the links.",
+        timestamp: new Date().toISOString()
+      };
+    } catch (e) {
+      console.error(e);
+      return {
+        id: 1,
+        message: "Urgent: A wave of parcel cash-on-delivery (COD) SMS impersonating Pos Laju links (pos-laju.info) has been targeting Selangor and Klang Valley regions. Do not pay or open the links.",
+        timestamp: new Date().toISOString()
+      };
+    }
   });
 
-  // Sync to localStorage
-  useEffect(() => localStorage.setItem('scamshield_reports', JSON.stringify(reportsList)), [reportsList]);
-  useEffect(() => localStorage.setItem('scamshield_reputations', JSON.stringify(reputationProfiles)), [reputationProfiles]);
-  useEffect(() => localStorage.setItem('scamshield_blacklist', JSON.stringify(blacklist)), [blacklist]);
-  useEffect(() => localStorage.setItem('scamshield_alert', JSON.stringify(activeAlert)), [activeAlert]);
+  // Sync to localStorage safely
+  const safeSetItem = (key, value) => {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch (e) {
+      console.error("Storage error:", e);
+    }
+  };
 
-  const addReport = (newReport) => {
+  useEffect(() => safeSetItem('scamshield_reports', reportsList), [reportsList]);
+  useEffect(() => safeSetItem('scamshield_reputations', reputationProfiles), [reputationProfiles]);
+  useEffect(() => safeSetItem('scamshield_blacklist', blacklist), [blacklist]);
+  useEffect(() => safeSetItem('scamshield_alert', activeAlert), [activeAlert]);
+
+  const addReport = useCallback((newReport) => {
     setReportsList(prev => [{ ...newReport, id: Date.now(), reporterId: 'rep_103' }, ...prev]);
-  };
+  }, []);
 
-  const updateReportStatus = (id, newStatus, rationale) => {
+  const updateReportStatus = useCallback((id, newStatus, rationale) => {
     setReportsList(prev => prev.map(r => r.id === id ? { ...r, status: newStatus, rationale } : r));
-  };
+  }, []);
 
-  const updateReputation = (profileId, wasCorrect) => {
+  const updateReputation = useCallback((profileId, wasCorrect) => {
     setReputationProfiles(prev => prev.map(p => {
       if (p.profileId === profileId) {
         const newVerified = wasCorrect ? p.verifiedReports + 1 : p.verifiedReports;
@@ -108,24 +140,27 @@ export const AppProvider = ({ children }) => {
       }
       return p;
     }));
-  };
+  }, []);
 
-  const addAlert = (alert) => setActiveAlert(alert);
+  const addAlert = useCallback((alert) => setActiveAlert(alert), []);
 
-  const addBlacklistItem = (type, value) => {
+  const addBlacklistItem = useCallback((type, value) => {
+    if (!['phoneNumbers', 'urls', 'bankAccounts'].includes(type)) return;
     setBlacklist(prev => ({
       ...prev,
       [type]: Array.from(new Set([...prev[type], value]))
     }));
-  };
+  }, []);
+
+  const contextValue = useMemo(() => ({
+    reportsList, addReport, updateReportStatus,
+    reputationProfiles, updateReputation,
+    blacklist, addBlacklistItem,
+    activeAlert, addAlert
+  }), [reportsList, reputationProfiles, blacklist, activeAlert, addReport, updateReportStatus, updateReputation, addBlacklistItem, addAlert]);
 
   return (
-    <AppContext.Provider value={{
-      reportsList, addReport, updateReportStatus,
-      reputationProfiles, updateReputation,
-      blacklist, addBlacklistItem,
-      activeAlert, addAlert
-    }}>
+    <AppContext.Provider value={contextValue}>
       {children}
     </AppContext.Provider>
   );
