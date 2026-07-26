@@ -5,7 +5,7 @@
 
 Developed for the **3rd UPM Computer Science Research & International Innovation Exhibition (UCRIX 2026)**, in conjunction with **CIC ASIA 2026**.
 
-This repository contains the complete prototype source code for **ScamShield MY**, which integrates **ScamShield AI** (automated multi-format parsing, explainable scoring, action checklists) and **ScamRadar** (moderated community reports, reporter reputation tracking, local trend dashboards).
+This repository contains the complete prototype source code for **ScamShield MY**, which integrates automated multi-format parsing, explainable scoring, action checklists, moderated community reports, reporter reputation tracking and local trend dashboards.
 
 ---
 
