@@ -1,20 +1,36 @@
 import React, { useState } from 'react';
-import { Shield, Check, X, AlertTriangle, MessageSquare, ShieldAlert, Award, FileText, Send, UserCheck } from 'lucide-react';
-import { LOCAL_BLACK_LIST } from '../utils/rulesEngine';
+import { Shield, Check, X, AlertTriangle, MessageSquare, ShieldAlert, Award, FileText, Send, UserCheck, Search, Filter, BarChart2 } from 'lucide-react';
+import { useAppContext } from '../context/AppContext';
+import { useLanguage } from '../context/LanguageContext';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-export default function ModeratorDashboard({ reportsList, onUpdateReportStatus, onAddAlert, reputationProfiles, onUpdateReputation }) {
+export default function ModeratorDashboard() {
+  const { 
+    reportsList, updateReportStatus, addAlert, 
+    reputationProfiles, updateReputation, addBlacklistItem, blacklist 
+  } = useAppContext();
+  const { t } = useLanguage();
   const [selectedReport, setSelectedReport] = useState(null);
   const [alertText, setAlertText] = useState('');
   const [alertSuccess, setAlertSuccess] = useState(false);
   const [rationale, setRationale] = useState('');
 
+  // New features state
+  const [activeSubTab, setActiveSubTab] = useState('queue'); // queue, blacklist, audit
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [auditLogs, setAuditLogs] = useState([]);
+  
+  // Blacklist Management State
+  const [newBlacklistItem, setNewBlacklistItem] = useState('');
+  const [newBlacklistType, setNewBlacklistType] = useState('urls');
+
   const handleAction = (id, decision) => {
-    onUpdateReportStatus(id, decision, rationale);
+    updateReportStatus(id, decision, rationale);
     
     // Auto-update reputation profile if reporter is listed
     const report = reportsList.find(r => r.id === id);
     if (report && report.reporterId) {
-      onUpdateReputation(report.reporterId, decision === 'confirmed');
+      updateReputation(report.reporterId, decision === 'confirmed');
     }
 
     // Add indicators to blacklists if confirmed
@@ -24,8 +40,8 @@ export default function ModeratorDashboard({ reportsList, onUpdateReportStatus, 
       const urls = report.text.match(urlRegex);
       if (urls) {
         urls.forEach(url => {
-          if (!LOCAL_BLACK_LIST.urls.includes(url.toLowerCase())) {
-            LOCAL_BLACK_LIST.urls.push(url.toLowerCase());
+          if (!blacklist.urls.includes(url.toLowerCase())) {
+            addBlacklistItem('urls', url.toLowerCase());
           }
         });
       }
@@ -33,12 +49,21 @@ export default function ModeratorDashboard({ reportsList, onUpdateReportStatus, 
       const phones = report.text.match(phoneRegex);
       if (phones) {
         phones.forEach(p => {
-          if (!LOCAL_BLACK_LIST.phoneNumbers.includes(p)) {
-            LOCAL_BLACK_LIST.phoneNumbers.push(p);
+          if (!blacklist.phoneNumbers.includes(p)) {
+            addBlacklistItem('phoneNumbers', p);
           }
         });
       }
     }
+
+    // Log action to audit trail
+    setAuditLogs(prev => [{
+      id: Date.now(),
+      reportId: id,
+      action: decision,
+      rationale,
+      timestamp: new Date().toISOString()
+    }, ...prev]);
 
     setSelectedReport(null);
     setRationale('');
@@ -48,7 +73,7 @@ export default function ModeratorDashboard({ reportsList, onUpdateReportStatus, 
     e.preventDefault();
     if (!alertText.trim()) return;
 
-    onAddAlert({
+    addAlert({
       id: Date.now(),
       message: alertText,
       timestamp: new Date().toISOString()
@@ -69,25 +94,38 @@ export default function ModeratorDashboard({ reportsList, onUpdateReportStatus, 
     ).length;
   };
 
+  const filteredReports = reportsList.filter(r => {
+    if (filterStatus === 'all') return true;
+    if (filterStatus === 'pending') return r.status === 'unverified' || r.status === 'under_review';
+    return r.status === filterStatus;
+  });
+
+  const handleAddManualBlacklist = (e) => {
+    e.preventDefault();
+    if (!newBlacklistItem.trim()) return;
+    addBlacklistItem(newBlacklistType, newBlacklistItem.trim().toLowerCase());
+    setNewBlacklistItem('');
+  };
+
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2rem', maxWidth: '1200px', margin: '0 auto', padding: '1rem' }}>
       
       {/* Overview stats header */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
         <div className="glass-panel" style={{ padding: '1.5rem', borderLeft: '4px solid var(--primary)' }}>
-          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Pending Verification Queue</span>
+          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{t('admin.pending_queue')}</span>
           <h2 style={{ fontSize: '2rem', color: '#fff', marginTop: '0.5rem' }}>
             {reportsList.filter(r => r.status === 'unverified' || r.status === 'under_review').length} cases
           </h2>
         </div>
         <div className="glass-panel" style={{ padding: '1.5rem', borderLeft: '4px solid var(--color-low)' }}>
-          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Confirmed Local Scams</span>
+          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{t('admin.confirmed_scams')}</span>
           <h2 style={{ fontSize: '2rem', color: '#fff', marginTop: '0.5rem' }}>
             {reportsList.filter(r => r.status === 'confirmed').length} items
           </h2>
         </div>
         <div className="glass-panel" style={{ padding: '1.5rem', borderLeft: '4px solid var(--color-caution)' }}>
-          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Reputation Accuracy Index</span>
+          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{t('admin.rep_index')}</span>
           <h2 style={{ fontSize: '2rem', color: '#fff', marginTop: '0.5rem' }}>92.8%</h2>
         </div>
       </div>
@@ -98,18 +136,57 @@ export default function ModeratorDashboard({ reportsList, onUpdateReportStatus, 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           
           <div className="glass-panel" style={{ padding: '2rem' }}>
-            <h2 style={{ fontSize: '1.35rem', color: '#fff', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Shield size={22} color="var(--primary)" />
-              Moderation Case Queue
-            </h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <button 
+                  onClick={() => setActiveSubTab('queue')}
+                  className={`nav-link ${activeSubTab === 'queue' ? 'active' : ''}`}
+                >
+                  <Shield size={18} /> {t('admin.queue')}
+                </button>
+                <button 
+                  onClick={() => setActiveSubTab('blacklist')}
+                  className={`nav-link ${activeSubTab === 'blacklist' ? 'active' : ''}`}
+                >
+                  <Filter size={18} /> {t('admin.blacklists')}
+                </button>
+                <button 
+                  onClick={() => setActiveSubTab('audit')}
+                  className={`nav-link ${activeSubTab === 'audit' ? 'active' : ''}`}
+                >
+                  <FileText size={18} /> {t('admin.audit')}
+                </button>
+                <button 
+                  onClick={() => setActiveSubTab('analytics')}
+                  className={`nav-link ${activeSubTab === 'analytics' ? 'active' : ''}`}
+                >
+                  <BarChart2 size={18} /> {t('admin.analytics')}
+                </button>
+              </div>
+              
+              {activeSubTab === 'queue' && (
+                <select 
+                  className="input-field" 
+                  style={{ width: 'auto', padding: '0.5rem 1rem' }}
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                >
+                  <option value="all">All Cases</option>
+                  <option value="pending">Pending Review</option>
+                  <option value="confirmed">Confirmed Scams</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+              )}
+            </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {reportsList.length === 0 ? (
-                <div style={{ padding: '2rem 0', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                  No active reports in queue. Everything is reviewed!
-                </div>
-              ) : (
-                reportsList.map(report => (
+            {activeSubTab === 'queue' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {filteredReports.length === 0 ? (
+                  <div style={{ padding: '2rem 0', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                    No active reports match this filter.
+                  </div>
+                ) : (
+                  filteredReports.slice(0, 10).map(report => ( // Basic Pagination / Limiting for MVP
                   <div 
                     key={report.id}
                     onClick={() => setSelectedReport(report)}
@@ -169,7 +246,130 @@ export default function ModeratorDashboard({ reportsList, onUpdateReportStatus, 
                   </div>
                 ))
               )}
-            </div>
+              </div>
+            )}
+
+            {activeSubTab === 'blacklist' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
+                  <h3 style={{ fontSize: '1.1rem', color: '#fff', marginBottom: '1rem' }}>Add to Blacklist</h3>
+                  <form onSubmit={handleAddManualBlacklist} style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                    <select 
+                      value={newBlacklistType} 
+                      onChange={(e) => setNewBlacklistType(e.target.value)}
+                      className="input-field" 
+                      style={{ flex: 1, minWidth: '150px' }}
+                    >
+                      <option value="urls">Domain / URL</option>
+                      <option value="phoneNumbers">Phone Number</option>
+                      <option value="bankAccounts">Bank Account</option>
+                    </select>
+                    <input 
+                      type="text"
+                      value={newBlacklistItem}
+                      onChange={(e) => setNewBlacklistItem(e.target.value)}
+                      className="input-field"
+                      placeholder="e.g. scam-site.com"
+                      style={{ flex: 2, minWidth: '200px' }}
+                    />
+                    <button type="submit" className="btn-primary" style={{ whiteSpace: 'nowrap' }}>Add to List</button>
+                  </form>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
+                  <div>
+                    <h4 style={{ color: 'var(--color-caution)', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Blocked Domains</h4>
+                    <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      {blacklist.urls.map(url => (
+                        <li key={url} style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.01)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border-color)' }}>{url}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 style={{ color: 'var(--color-caution)', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Blocked Phones</h4>
+                    <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      {blacklist.phoneNumbers.map(phone => (
+                        <li key={phone} style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.01)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border-color)' }}>{phone}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeSubTab === 'audit' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {auditLogs.length === 0 ? (
+                  <div style={{ padding: '2rem 0', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                    No moderation actions logged yet.
+                  </div>
+                ) : (
+                  auditLogs.map(log => (
+                    <div key={log.id} style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                        <span style={{ fontSize: '0.85rem', color: '#fff' }}>Action: <strong style={{ color: 'var(--primary)', textTransform: 'capitalize' }}>{log.action}</strong> on Report #{log.reportId.toString().slice(-6)}</span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{new Date(log.timestamp).toLocaleString()}</span>
+                      </div>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Note: {log.rationale || 'N/A'}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+
+            {activeSubTab === 'analytics' && (() => {
+              // Prepare data for Pie Chart (Status Distribution)
+              const statusCounts = reportsList.reduce((acc, report) => {
+                acc[report.status] = (acc[report.status] || 0) + 1;
+                return acc;
+              }, {});
+              const pieData = [
+                { name: 'Confirmed', value: statusCounts['confirmed'] || 0, color: '#10b981' },
+                { name: 'Rejected', value: statusCounts['rejected'] || 0, color: '#ef4444' },
+                { name: 'Pending', value: (statusCounts['unverified'] || 0) + (statusCounts['under_review'] || 0), color: '#f59e0b' },
+              ].filter(d => d.value > 0);
+
+              // Prepare data for Bar Chart (Category Distribution)
+              const categoryCounts = reportsList.reduce((acc, report) => {
+                acc[report.category] = (acc[report.category] || 0) + 1;
+                return acc;
+              }, {});
+              const barData = Object.keys(categoryCounts).map(key => ({
+                name: key.charAt(0).toUpperCase() + key.slice(1),
+                count: categoryCounts[key]
+              }));
+
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                  <div style={{ height: '300px', background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                    <h3 style={{ fontSize: '1rem', color: '#fff', marginBottom: '1rem', textAlign: 'center' }}>Scam Category Breakdown</h3>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={barData} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
+                        <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={12} />
+                        <YAxis stroke="var(--text-muted)" fontSize={12} allowDecimals={false} />
+                        <Tooltip contentStyle={{ background: '#0f172a', border: '1px solid var(--border-color)', borderRadius: '8px' }} />
+                        <Bar dataKey="count" fill="var(--primary)" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  <div style={{ height: '300px', background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                    <h3 style={{ fontSize: '1rem', color: '#fff', marginBottom: '1rem', textAlign: 'center' }}>Platform Resolution Status</h3>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} fill="#8884d8" label>
+                          {pieData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip contentStyle={{ background: '#0f172a', border: '1px solid var(--border-color)', borderRadius: '8px' }} />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Expanded Selected Report Details */}
@@ -177,14 +377,14 @@ export default function ModeratorDashboard({ reportsList, onUpdateReportStatus, 
             <div className="glass-panel fade-in" style={{ padding: '2rem', border: '1px solid var(--primary)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
                 <div>
-                  <h3 style={{ fontSize: '1.25rem', color: '#fff' }}>Reviewing Report #{selectedReport.id.toString().slice(-6)}</h3>
+                  <h3 style={{ fontSize: '1.25rem', color: '#fff' }}>{t('admin.reviewing')} #{selectedReport.id.toString().slice(-6)}</h3>
                   <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Category: <strong style={{color: 'var(--primary)'}}>{selectedReport.category}</strong></span>
                 </div>
                 <button 
                   onClick={() => setSelectedReport(null)}
                   style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.9rem' }}
                 >
-                  Close Details
+                  {t('common.close')}
                 </button>
               </div>
 
@@ -233,21 +433,21 @@ export default function ModeratorDashboard({ reportsList, onUpdateReportStatus, 
                     className="btn-primary"
                     style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', background: 'linear-gradient(135deg, var(--color-low), #065f46)', color: '#fff', border: 'none', boxShadow: 'none' }}
                   >
-                    <Check size={18} /> Confirm Scam Case
+                    <Check size={18} /> {t('admin.confirm_btn')}
                   </button>
                   <button 
                     onClick={() => handleAction(selectedReport.id, 'rejected')}
                     className="btn-primary"
                     style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', background: 'linear-gradient(135deg, var(--color-high), #7f1d1d)', color: '#fff', border: 'none', boxShadow: 'none' }}
                   >
-                    <X size={18} /> Reject / Dismiss Report
+                    <X size={18} /> {t('admin.reject_btn')}
                   </button>
                   <button 
                     onClick={() => handleAction(selectedReport.id, 'under_review')}
                     className="btn-secondary"
                     style={{ flex: 1 }}
                   >
-                    Flag Under Review
+                    {t('admin.flag_btn')}
                   </button>
                 </div>
 
@@ -264,7 +464,7 @@ export default function ModeratorDashboard({ reportsList, onUpdateReportStatus, 
           <div className="glass-panel" style={{ padding: '1.5rem' }}>
             <h3 style={{ fontSize: '1.1rem', color: '#fff', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <ShieldAlert size={20} color="var(--color-high)" />
-              Broadcast Community Alert
+              {t('admin.broadcast_title')}
             </h3>
             
             <form onSubmit={handlePublishAlert} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -277,7 +477,7 @@ export default function ModeratorDashboard({ reportsList, onUpdateReportStatus, 
                 style={{ fontSize: '0.85rem' }}
               />
               <button type="submit" className="btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                <Send size={14} /> Publish Threat Alert
+                <Send size={14} /> {t('admin.broadcast_btn')}
               </button>
             </form>
 

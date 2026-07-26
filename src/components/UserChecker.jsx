@@ -7,13 +7,20 @@ import {
 } from 'lucide-react';
 import { analyzeScamRisk, DEMO_SCREENSHOTS } from '../utils/rulesEngine';
 import ReportModal from './ReportModal';
+import { useAppContext } from '../context/AppContext';
+import { useLanguage } from '../context/LanguageContext';
+import Tesseract from 'tesseract.js';
+import { Html5QrcodeScanner } from 'html5-qrcode';
 
-export default function UserChecker({ isElderlyMode, onToggleElderlyMode, reportsList, onAddReport, activeAlert }) {
+export default function UserChecker({ isElderlyMode, onToggleElderlyMode }) {
+  const { reportsList, activeAlert, addReport, blacklist } = useAppContext();
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState('text'); // text, screenshot, qr, url
   const [inputText, setInputText] = useState('');
   const [urlInput, setUrlInput] = useState('');
   const [phoneInput, setPhoneInput] = useState('');
   const [qrInput, setQrInput] = useState('');
+  const [qrScannerEnabled, setQrScannerEnabled] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [scanSteps, setScanSteps] = useState([]);
   const [scanResult, setScanResult] = useState(null);
@@ -39,12 +46,46 @@ export default function UserChecker({ isElderlyMode, onToggleElderlyMode, report
     stopSpeech();
   }, [scanResult]);
 
-  // Clean speech synthesis on unmount
+  // Clean speech synthesis and scanner on unmount
   useEffect(() => {
     return () => {
       stopSpeech();
     };
   }, []);
+
+  // QR Scanner Lifecycle
+  useEffect(() => {
+    if (activeTab !== 'qr' && qrScannerEnabled) {
+      setQrScannerEnabled(false);
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    let html5QrcodeScanner = null;
+    if (qrScannerEnabled) {
+      html5QrcodeScanner = new Html5QrcodeScanner(
+        "qr-reader",
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        /* verbose= */ false
+      );
+      html5QrcodeScanner.render(
+        (decodedText) => {
+          setQrInput(decodedText);
+          setQrScannerEnabled(false);
+          triggerScanAnimation(`Scanned QR Destination: ${decodedText}`, { qrCode: decodedText });
+        },
+        (error) => {
+          // Ignored. html5qrcode throws errors continuously when no QR is found.
+        }
+      );
+    }
+
+    return () => {
+      if (html5QrcodeScanner) {
+        html5QrcodeScanner.clear().catch(error => console.error("Failed to clear scanner", error));
+      }
+    };
+  }, [qrScannerEnabled]);
 
   const triggerScanAnimation = (finalText, metadata = {}) => {
     setIsScanning(true);
@@ -79,7 +120,8 @@ export default function UserChecker({ isElderlyMode, onToggleElderlyMode, report
 
       const res = analyzeScamRisk(finalText, {
         ...metadata,
-        verifiedReportsCount: verifiedReportsCount
+        verifiedReportsCount: verifiedReportsCount,
+        blacklist: blacklist
       });
       
       setScanResult(res);
@@ -112,27 +154,33 @@ export default function UserChecker({ isElderlyMode, onToggleElderlyMode, report
     triggerScanAnimation(demo.extractedText, meta);
   };
 
-  const handleFileUpload = (e) => {
+  const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     setCustomScreenshotName(file.name);
-    // Simulate OCR readout on random upload
-    const mockExtracted = `Received custom screenshot upload: ${file.name}. Urgent transfer required of RM450 within 1 hour. Pay now to bank 564210923049. Ref: PosLaju service.`;
-    triggerScanAnimation(mockExtracted);
+    setIsScanning(true);
+    setScanSteps(["Initializing OCR Engine...", "Extracting text from image..."]);
+    
+    try {
+      const result = await Tesseract.recognize(file, 'eng', {
+        logger: m => {
+          if (m.status === 'recognizing text') {
+            setScanSteps([`Extracting text... ${Math.round(m.progress * 100)}%`]);
+          }
+        }
+      });
+      const extractedText = result.data.text;
+      setInputText(extractedText);
+      triggerScanAnimation(extractedText);
+    } catch (error) {
+      console.error("OCR Error:", error);
+      triggerScanAnimation("Error extracting text. Please type manually.");
+    }
   };
 
   const handleSimulateQrScanner = () => {
-    setIsScanning(true);
-    setScanSteps(["Opening camera interface...", "Scanning for QR matrices...", "Decoding QR destination URL..."]);
-    
-    setTimeout(() => {
-      const randomDest = "https://pos-laju.info/claim-fee/2.50";
-      setQrInput(randomDest);
-      triggerScanAnimation(`Scanned QR Destination Code: ${randomDest}`, {
-        qrCode: randomDest
-      });
-    }, 1800);
+    setQrScannerEnabled(true);
   };
 
   const toggleCheckAction = (idx) => {
@@ -220,8 +268,8 @@ export default function UserChecker({ isElderlyMode, onToggleElderlyMode, report
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <Sparkles color="var(--primary)" size={22} />
           <div>
-            <h3 style={{ fontSize: isElderlyMode ? '1.4rem' : '1.1rem', color: '#fff' }}>ScamShield Assistant</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>Multi-format evidence analyzer & safety guide</p>
+            <h3 style={{ fontSize: isElderlyMode ? '1.4rem' : '1.1rem', color: '#fff' }}>{t('scanner.assistant')}</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>{t('scanner.assistant_desc')}</p>
           </div>
         </div>
         <button 
@@ -237,7 +285,7 @@ export default function UserChecker({ isElderlyMode, onToggleElderlyMode, report
             gap: '0.5rem'
           }}
         >
-          {isElderlyMode ? '👵 Switch to Regular Mode' : '👵 Switch to Elderly Mode'}
+          {isElderlyMode ? t('scanner.switch_regular') : t('scanner.switch_elderly')}
         </button>
       </div>
 
@@ -247,7 +295,7 @@ export default function UserChecker({ isElderlyMode, onToggleElderlyMode, report
         <div className="glass-panel" style={{ padding: '2rem' }}>
           <h2 style={{ fontSize: '1.4rem', color: '#fff', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Shield size={24} color="var(--primary)" />
-            Scan Suspicious Content
+            {t('scanner.title')}
           </h2>
 
           {/* Form Tabs */}
@@ -257,28 +305,28 @@ export default function UserChecker({ isElderlyMode, onToggleElderlyMode, report
               className={`nav-link ${activeTab === 'text' ? 'active' : ''}`}
               style={{ fontSize: isElderlyMode ? '1.15rem' : '0.9rem' }}
             >
-              <Clipboard size={16} /> Text Paste
+              <Clipboard size={16} /> {t('scanner.text_paste')}
             </button>
             <button 
               onClick={() => { setActiveTab('screenshot'); setScanResult(null); }}
               className={`nav-link ${activeTab === 'screenshot' ? 'active' : ''}`}
               style={{ fontSize: isElderlyMode ? '1.15rem' : '0.9rem' }}
             >
-              <Upload size={16} /> Screenshot OCR
+              <Upload size={16} /> {t('scanner.upload_btn')}
             </button>
             <button 
               onClick={() => { setActiveTab('qr'); setScanResult(null); }}
               className={`nav-link ${activeTab === 'qr' ? 'active' : ''}`}
               style={{ fontSize: isElderlyMode ? '1.15rem' : '0.9rem' }}
             >
-              <QrCode size={16} /> QR Scanner
+              <QrCode size={16} /> {t('scanner.qr_btn')}
             </button>
             <button 
               onClick={() => { setActiveTab('url'); setScanResult(null); }}
               className={`nav-link ${activeTab === 'url' ? 'active' : ''}`}
               style={{ fontSize: isElderlyMode ? '1.15rem' : '0.9rem' }}
             >
-              <Link size={16} /> URL & Phone Check
+              <Link size={16} /> {t('scanner.url_btn')}
             </button>
           </div>
 
@@ -290,7 +338,7 @@ export default function UserChecker({ isElderlyMode, onToggleElderlyMode, report
                 rows={isElderlyMode ? 5 : 4}
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                placeholder="Paste the message content, SMS, email text, or chat snippet here..."
+                placeholder={t('scanner.placeholder')}
                 style={{ resize: 'vertical' }}
               />
               <button 
@@ -300,7 +348,7 @@ export default function UserChecker({ isElderlyMode, onToggleElderlyMode, report
                 style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
               >
                 {isScanning ? <RefreshCw className="spinning" size={18} /> : <ShieldAlert size={18} />}
-                {isScanning ? 'Analyzing message...' : 'Analyze Message Content'}
+                {isScanning ? t('common.loading') : t('scanner.button')}
               </button>
             </div>
           )}
@@ -375,7 +423,7 @@ export default function UserChecker({ isElderlyMode, onToggleElderlyMode, report
           {activeTab === 'qr' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div style={{
-                height: '180px',
+                minHeight: '180px',
                 background: '#090d16',
                 border: '1px solid var(--border-color)',
                 borderRadius: '12px',
@@ -383,25 +431,16 @@ export default function UserChecker({ isElderlyMode, onToggleElderlyMode, report
                 overflow: 'hidden',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center'
-              }} className={isScanning ? 'scanning-glow' : ''}>
-                {isScanning ? (
-                  <>
-                    <div style={{
-                      position: 'absolute',
-                      width: '100%',
-                      height: '3px',
-                      background: 'var(--primary)',
-                      boxShadow: '0 0 10px var(--primary)',
-                      animation: 'scan-line 2s infinite ease-in-out'
-                    }} />
-                    <span style={{ color: 'var(--primary)', zIndex: 10, fontWeight: 600 }}>Active Camera Scan Simulation...</span>
-                  </>
+                justifyContent: 'center',
+                flexDirection: 'column'
+              }}>
+                {qrScannerEnabled ? (
+                  <div id="qr-reader" style={{ width: '100%', minHeight: '300px' }}></div>
                 ) : (
-                  <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+                  <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', padding: '2rem' }}>
                     <QrCode size={40} color="var(--primary)" />
                     <button onClick={handleSimulateQrScanner} className="btn-primary" style={{ marginTop: '0.5rem' }}>
-                      Simulate Camera QR Scanner
+                      Open Camera Scanner
                     </button>
                   </div>
                 )}
@@ -495,7 +534,7 @@ export default function UserChecker({ isElderlyMode, onToggleElderlyMode, report
                   {scanResult.riskBand}
                 </span>
                 <h3 style={{ fontSize: isElderlyMode ? '2rem' : '1.75rem', marginTop: '0.5rem', color: '#fff' }}>
-                  Risk Score: {scanResult.score}/100
+                  {t('result.risk_score')}: {scanResult.score}/100
                 </h3>
               </div>
               <div style={{ display: 'flex', gap: '0.75rem' }}>
@@ -514,7 +553,7 @@ export default function UserChecker({ isElderlyMode, onToggleElderlyMode, report
             {/* Explainable evidence indicators (8.3 Explainability) */}
             <div style={{ marginBottom: '1.5rem' }}>
               <h4 style={{ fontSize: isElderlyMode ? '1.3rem' : '1.05rem', color: '#fff', marginBottom: '0.75rem' }}>
-                Why does this matter? Evidence Breakdown:
+                {t('result.evidence_breakdown')}
               </h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {scanResult.explanations.length > 0 ? (
@@ -530,14 +569,14 @@ export default function UserChecker({ isElderlyMode, onToggleElderlyMode, report
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <strong style={{ color: '#fff', fontSize: '0.9rem' }}>⚠️ {exp.label}</strong>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Weight: +{exp.weight}%</span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{t('result.weight')}: +{exp.weight}%</span>
                       </div>
                       <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{exp.text}</p>
                     </div>
                   ))
                 ) : (
                   <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', padding: '0.5rem 0' }}>
-                    No critical social-engineering pressure, blacklisted accounts, or malicious redirect URLs were extracted.
+                    {t('result.no_critical_evidence')}
                   </div>
                 )}
               </div>
@@ -547,7 +586,7 @@ export default function UserChecker({ isElderlyMode, onToggleElderlyMode, report
             <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem', marginBottom: '2rem' }}>
               <h4 style={{ fontSize: isElderlyMode ? '1.3rem' : '1.05rem', color: '#fff', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <ShieldCheck size={18} color="var(--primary)" />
-                Recommended Safety Guidance:
+                {t('result.safety_guidance')}
               </h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {scanResult.recommendedActions.map((action, idx) => (
@@ -595,14 +634,14 @@ export default function UserChecker({ isElderlyMode, onToggleElderlyMode, report
                 }}
               >
                 <AlertTriangle size={18} />
-                Report Scam & Alert Community
+                {t('result.report_scam_btn')}
               </button>
               <button 
                 onClick={() => { setScanResult(null); setInputText(''); setUrlInput(''); setPhoneInput(''); setQrInput(''); setSelectedDemoScreenshot(''); setCustomScreenshotName(null); }}
                 className="btn-secondary" 
                 style={{ flex: 1 }}
               >
-                Scan Another Content
+                {t('result.scan_another_btn')}
               </button>
             </div>
 
@@ -617,7 +656,7 @@ export default function UserChecker({ isElderlyMode, onToggleElderlyMode, report
         onClose={() => setIsReportOpen(false)}
         scanResult={scanResult}
         originalText={inputText || urlInput || qrInput}
-        onSubmitReport={onAddReport}
+        onSubmitReport={addReport}
       />
 
     </div>

@@ -1,260 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Award, BookOpen, ShieldAlert, CheckCircle, XCircle, RefreshCw, ChevronRight, Filter, AlertTriangle, Eye, Layers, Flame, Search, ExternalLink } from 'lucide-react';
-
-// 18 Comprehensive Real-World Malaysian Scam Case Studies (3 per category)
-const LESSON_CARDS = [
-  // --- Category 1: Courier & Delivery ---
-  {
-    id: 101,
-    title: "Pos Malaysia / Courier COD Tax SMS",
-    category: "Courier & Delivery",
-    isDailyFeatured: true,
-    summary: "SMS claiming a parcel is held at sorting hub unless a small RM2.50 tax fee is paid within 30 minutes.",
-    exampleMessage: "POS MALAYSIA: Parcel MY8492040 held at sorting hub. Pay RM2.50 processing fee within 30 mins to avoid item disposal: pos-laju.info/claim-fee/2.50",
-    psychology: "Creates artificial urgency with a trivial small amount (RM2.50) so victims enter credit card details without double-checking.",
-    redFlags: ["Shortened / fake domain (pos-laju.info instead of pos.com.my)", "30-minute countdown pressure", "Unrequested parcel tracking code"],
-    advisory: "POS Malaysia will never request payment details via SMS, WhatsApp, or unofficial links. Always use the official Pos Malaysia app or portal."
-  },
-  {
-    id: 102,
-    title: "NinjaVan Fake COD Cash Overcharge",
-    category: "Courier & Delivery",
-    isDailyFeatured: false,
-    summary: "Scammer delivers cheap worthless items (e.g. plastic beads) to victims' homes demanding RM150 Cash-On-Delivery.",
-    exampleMessage: "NinjaVan Notification: Rider on the way to deliver parcel #NV9912. Cash amount due upon arrival: RM149.90. Prepare exact cash.",
-    psychology: "Targets elderly family members staying home who assume their working children ordered something online.",
-    redFlags: ["Unannounced COD package", "Rider refuses to let recipient inspect parcel contents before paying cash", "No purchase history in e-commerce apps"],
-    advisory: "Advise family members to never accept unannounced COD parcels without calling the purchaser first to verify."
-  },
-  {
-    id: 103,
-    title: "DHL Customs Clearance Tax Phishing Email",
-    category: "Courier & Delivery",
-    isDailyFeatured: false,
-    summary: "Phishing email claiming an international shipment requires clearance tax payment before release.",
-    exampleMessage: "DHL Express: Your shipment #9410291 is pending customs clearance. A mandatory RM45.00 duty fee is required: dhl-customs-my.net/pay",
-    psychology: "Impersonates international courier brands to panic online shoppers waiting for overseas imports.",
-    redFlags: ["Non-official email domain (e.g. notice@dhl-customs-my.net)", "Direct link to payment form requesting card CVV"],
-    advisory: "Verify shipment status directly on the official dhl.com portal using your master tracking number."
-  },
-
-  // --- Category 2: Job & Task Scams ---
-  {
-    id: 201,
-    title: "Shopee/Lazada Cart Click Commission Scam",
-    category: "Job & Task Scams",
-    isDailyFeatured: true,
-    summary: "Promises RM300-RM800 daily for processing e-commerce orders, requiring advancing personal funds for task deposits.",
-    exampleMessage: "Shopee HR: Earn RM500/day working 1 hr daily! Task 1: Deposit RM100 to unlock order #1 and receive RM150 commission instantly.",
-    psychology: "Pays out small initial commissions to build trust, then demands thousands of Ringgit in deposit top-ups to 'unlock' stuck payouts.",
-    redFlags: ["Hired via unsolicited Telegram/WhatsApp messages", "Requires depositing money to unlock work tasks", "Payments routed to personal bank accounts"],
-    advisory: "Legitimate e-commerce platforms do not hire workers via Telegram or require advance cash deposits to perform job duties."
-  },
-  {
-    id: 202,
-    title: "TikTok / YouTube Video Like Payout Scam",
-    category: "Job & Task Scams",
-    isDailyFeatured: false,
-    summary: "Earn RM5 per video like, then forced into high-tier crypto trading groups to retrieve accumulated earnings.",
-    exampleMessage: "Digital Media Marketing: Get paid RM5 for every TikTok video liked! Complete 10 likes to earn RM50. Join VIP Telegram: t.me/media_tasks_my",
-    psychology: "Lures victims with fun, effortless tasks before switching to mandatory crypto deposit traps.",
-    redFlags: ["Unrealistic compensation for simple clicks", "Task payouts locked behind Telegram crypto investments"],
-    advisory: "Never transfer money to unverified Telegram administrators to release promised task earnings."
-  },
-  {
-    id: 203,
-    title: "Hotel Rating & Booking Agent Task Scam",
-    category: "Job & Task Scams",
-    isDailyFeatured: false,
-    summary: "Claims travel agencies pay users to write fake 5-star Google/Agoda reviews, requiring prepaid security deposits.",
-    exampleMessage: "Agoda Marketing Agent: Review 5 hotels in KL & get RM250 daily. Security deposit RM200 required to activate reviewer badge.",
-    psychology: "Exploits brand names of reputable travel companies to make fake job offers appear legitimate.",
-    advisory: "Agoda and Google do not hire freelance reviewers via WhatsApp or charge reviewer security deposits."
-  },
-
-  // --- Category 3: Threat & Govt Impersonation ---
-  {
-    id: 301,
-    title: "LHDN Tax Audit Penalty & Arrest Warrant SMS",
-    category: "Threat & Govt Impersonation",
-    isDailyFeatured: true,
-    summary: "Threatens an unpaid RM50,000 tax penalty, bank account freeze, and arrest warrant unless settled within 2 hours.",
-    exampleMessage: "LHDN AMARAN: Saman Cukai RM50,000 belum dibayar. Akaun bank anda akan dibekukan & waran tangkap dikeluarkan dalam 2 jam: lhdn-cukai-portal.org",
-    psychology: "Exploits fear of law enforcement and legal consequences to induce panic and force instant payments.",
-    redFlags: ["Short deadline threat (within 2 hours)", "Redirects to non-government portal (lhdn-cukai-portal.org instead of hasil.gov.my)", "Demands payment to personal lawyer account"],
-    advisory: "Government tax agencies never send threats of immediate arrest via SMS links or demand payment to personal accounts."
-  },
-  {
-    id: 302,
-    title: "PDRM / Court Macao Phone Call Scam",
-    category: "Threat & Govt Impersonation",
-    isDailyFeatured: false,
-    summary: "Scammers spoofing police station hotline numbers claiming your IC is implicated in drug trafficking or money laundering.",
-    exampleMessage: "Call from IPK Sabah: 'No Kad Pengenalan anda dikesan terlibat kes cuci wang RM2.3 Juta. Pindahkan simpanan ke akaun audit negara untuk elak lokap.'",
-    psychology: "Uses aggressive legal jargon and keeps victims on continuous long phone calls to prevent them from contacting family.",
-    advisory: "PDRM and courts will NEVER demand money transfers into 'safe/audit accounts' over phone calls."
-  },
-  {
-    id: 303,
-    title: "JPJ Traffic Saman & License Suspension SMS",
-    category: "Threat & Govt Impersonation",
-    isDailyFeatured: false,
-    summary: "Fake JPJ SMS claiming unpaid speed camera summons will result in immediate driving license revocation.",
-    exampleMessage: "JPJ NOTIS: Saman AES RM150 tertunggak. Lesen memandu akan digantung dalam 24 jam. Bayar segera di: jpj-saman-online.xyz",
-    psychology: "Targets drivers' fear of license suspension using small fine amounts.",
-    redFlags: ["Domains ending in .xyz or .club", "Claims license will be revoked automatically within 24 hours"],
-    advisory: "Always check and settle official traffic summonses via the official MyBayar PDRM or MySIKAP JPJ portals."
-  },
-
-  // --- Category 4: Impossible Investment ---
-  {
-    id: 401,
-    title: "Telegram Syariah 1,000% Profit Multiplier",
-    category: "Impossible Investment",
-    isDailyFeatured: false,
-    summary: "Guarantees 1,000% returns in 3 hours. E.g. 'Invest RM1,000 and receive guaranteed reward payout of RM100,000'.",
-    exampleMessage: "Peluang Pelaburan Syariah 100% Sah: Labur RM1,000 dapat pulangan RM100,000 dalam 3 jam! Dijamin 100% tanpa risiko. Hubungi Admin Telegram.",
-    psychology: "Promises life-changing financial wealth with zero risk to entice financially stressed individuals.",
-    redFlags: ["Guaranteed 1,000% profit in hours", "Claims 100% zero risk", "Conducted entirely inside Telegram private groups"],
-    advisory: "No legitimate investment can guarantee astronomical returns without risk. If it sounds too good to be true, it is 100% a scam."
-  },
-  {
-    id: 402,
-    title: "Pre-IPO Stock Allocation Insider Scam",
-    category: "Impossible Investment",
-    isDailyFeatured: false,
-    summary: "Poses as a licensed investment broker offering guaranteed allocation of high-profile tech stocks before public listing.",
-    exampleMessage: "Bursa Insider Trading: Guaranteed allocation of 10,000 pre-IPO tech shares at 80% discount. Minimum investment RM2,000.",
-    psychology: "Creates exclusivity and fear of missing out (FOMO) on major stock market profits.",
-    redFlags: ["Claims access to illegal 'insider allocation'", "Requires sending funds to individual mule accounts"],
-    advisory: "Check the Securities Commission Malaysia (SC) Investor Alert List before investing in any financial scheme."
-  },
-  {
-    id: 403,
-    title: "Automated Crypto Trading Bot Arbitrage Scam",
-    category: "Impossible Investment",
-    isDailyFeatured: false,
-    summary: "Promises automated AI crypto trading bots yielding 5% daily compounding interest.",
-    exampleMessage: "CryptoAI Bot: Earn 5% daily profit automatically! Deposit 0.05 BTC to activate automated arbitrage trading engine.",
-    psychology: "Uses modern buzzwords like 'AI Arbitrage Bot' to trick tech-enthusiasts into depositing cryptocurrency.",
-    advisory: "Unregulated crypto yield platforms carry extreme risks and frequently turn out to be Ponzi rug-pull schemes."
-  },
-
-  // --- Category 5: Emergency & Secrecy ---
-  {
-    id: 501,
-    title: "Mum Phone Fell In Water Medical Bill Scam",
-    category: "Emergency & Secrecy",
-    isDailyFeatured: true,
-    summary: "Posing as a child whose phone fell into water, asking for urgent money while strictly forbidding calling them.",
-    exampleMessage: "Mak, fon abang jatuh air. Ni nombor baru kawan. Tolong pindahkan RM1,000 segera ke akaun 164228910239 untuk repair. Jgn beritahu sesiapa & jgn telefon.",
-    psychology: "Combines emotional panic for family safety with strict secrecy to prevent you from verifying with family members.",
-    redFlags: ["Unverified new phone number", "Strictly forbids calling back ('speaker broken')", "Requests money transfer to unknown third-party account"],
-    advisory: "Always call your child/relative on their original phone number or verify through mutual family members before transferring money."
-  },
-  {
-    id: 502,
-    title: "Fake Kidnapping & Ransom Phone Extortion",
-    category: "Emergency & Secrecy",
-    isDailyFeatured: false,
-    summary: "Scammer calls parents screaming in background, claiming their child has been kidnapped and demanding instant cash transfer.",
-    exampleMessage: "Phone call: 'Anak kamu ada dengan kami! Kami dah tangkap dia. Kalau nak dia selamat, kumpul RM20,000 sekarang & jangan hubungi polis!'",
-    psychology: "Induces extreme emotional terror and confusion so parents comply before checking where their child actually is.",
-    advisory: "Stay calm. Attempt to contact your child's school, workplace, or friends immediately while keeping the scammer on hold."
-  },
-  {
-    id: 503,
-    title: "Relative Arrested Police Bail Deposit Scam",
-    category: "Emergency & Secrecy",
-    isDailyFeatured: false,
-    summary: "Poses as a lawyer or police sergeant claiming a cousin/sibling was detained at a roadblock and needs urgent bail money.",
-    exampleMessage: "WhatsApp: 'Saya Sarjan Azman. Sepupu anda kini ditahan di balai kerana kesalahan dadah. Sila urus jaminan RM3,000 ke akaun peguam ini serta-merta.'",
-    psychology: "Plays on family loyalty and urgency to bypass standard bail procedure verification.",
-    advisory: "Bail payments in Malaysia are only processed physically at official court registries, never via instant bank transfers."
-  },
-
-  // --- Category 6: Quishing / QR Code Scams ---
-  {
-    id: 601,
-    title: "Hawker Stall QR Sticker Swap Payment Scam",
-    category: "Quishing / QR Code",
-    isDailyFeatured: false,
-    summary: "Scammers secretly paste malicious QR code stickers over authentic hawker stall payment signs, stealing customer payments.",
-    exampleMessage: "Scanned QR Code Target: https://maybank-secure-pay.xyz/merchant/transfer-funds?amount=15.00",
-    psychology: "Relies on customer habits of quickly scanning QR codes without checking the business merchant name on the payment screen.",
-    redFlags: ["QR code is a physical sticker pasted over an original sign", "Payment screen shows an individual's name instead of stall name"],
-    advisory: "Always verify the merchant's business name on your e-wallet payment confirmation screen before entering your PIN."
-  },
-  {
-    id: 602,
-    title: "Parking Kiosk Fake Touch 'n Go QR Code",
-    category: "Quishing / QR Code",
-    isDailyFeatured: false,
-    summary: "Fake QR stickers pasted on street parking meters leading to phishing portals that harvest credit card numbers.",
-    exampleMessage: "Scanned QR Target: https://tng-parking-pay.club/kiosk/kl-zone-1",
-    psychology: "Targets drivers in a hurry trying to avoid getting a parking fine.",
-    redFlags: ["Points to non-official URLs (.club or .info)", "Asks for full credit card details instead of e-wallet integration"],
-    advisory: "Only pay parking using official council apps (e.g. Flexi Parking, Touch 'n Go eWallet) directly."
-  },
-  {
-    id: 603,
-    title: "Event Poster Free Voucher QR Malware Scam",
-    category: "Quishing / QR Code",
-    isDailyFeatured: false,
-    summary: "Promotional posters in shopping malls promising free RM50 shopping vouchers via QR code scan, installing malicious APKs.",
-    exampleMessage: "Scanned QR Target: https://shopee-voucher-claim.info/download/ShopeeBonus.apk",
-    psychology: "Entices users with free gifts to trick them into installing dangerous Android malware apps.",
-    redFlags: ["Prompts downloading an .APK file directly", "Requests Android Accessibility and SMS permissions"],
-    advisory: "Never install .APK software files downloaded from unknown QR code scans."
-  }
-];
-
-const QUIZ_QUESTIONS = [
-  {
-    text: "WhatsApp message: 'Transfer me RM1,000 now, I will give u guaranteed rewards RM1,000,000 within 2 hours, 100% true and no risk!'",
-    isScam: true,
-    category: "Impossible Investment",
-    explanation: "Scam! Promising an impossible 1,000x financial return with zero risk is a classic Money Multiplier / Investment Scam."
-  },
-  {
-    text: "SMS from LHDN-ALERT: 'Cukai tertunggak RM50,000. Bayar ke akaun personal peguam dalam 2 jam atau waran tangkap & penjara dikeluarkan: lhdn-bayar.club'",
-    isScam: true,
-    category: "Fear & Threat",
-    explanation: "Scam! LHDN never sends text messages threatening jail within hours or asking for payment to personal accounts or unofficial websites."
-  },
-  {
-    text: "Telegram: 'Mum, my phone broke. Send RM800 to account 164228910239 for medical bill. Keep it secret and don't tell anyone or call me.'",
-    isScam: true,
-    category: "Secrecy & Impersonation",
-    explanation: "Scam! Instructing secrecy ('don't tell anyone', 'don't call') is designed to isolate you so you can't verify with family."
-  },
-  {
-    text: "SMS from JPJ-Alert: 'Anda mempunyai saman tertunggak RM150. Sila bayar dalam 24 jam di jpj-saman-online.xyz untuk mengelak lesen digantung.'",
-    isScam: true,
-    category: "Government Impersonation",
-    explanation: "Scam! JPJ does not use .xyz domains or pressure you with a 24-hour license suspension threat via SMS."
-  },
-  {
-    text: "Official email notification from Maybank (maybank2u.com.my) containing your monthly e-Statement in a password-protected PDF file.",
-    isScam: false,
-    category: "Legitimate",
-    explanation: "Safe! The domain matches Maybank's official registered URL, and statement PDFs are sent without asking for your password."
-  },
-  {
-    text: "Shopee HR WhatsApp: 'Earn RM500 daily by liking products! Just deposit RM50 first to unlock your first VIP task payout.'",
-    isScam: true,
-    category: "Job & Task Scam",
-    explanation: "Scam! Legitimate e-commerce platforms do not require job applicants to pay advance deposit fees to unlock work tasks."
-  }
-];
+import { getDailyQuestions } from '../utils/quizDatabase';
+import { useLanguage } from '../context/LanguageContext';
+import { LESSON_CARDS } from '../utils/lessonCards';
 
 export default function KnowledgeCentre({ isElderlyMode }) {
+  const { t, lang } = useLanguage();
+  
   // Quiz State
+  const [dailyQuestions, setDailyQuestions] = useState([]);
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [showExplanation, setShowExplanation] = useState(false);
   const [score, setScore] = useState(0);
   const [quizFinished, setQuizFinished] = useState(false);
+  
+  // Continuous Challenge State
+  const [streak, setStreak] = useState(0);
+  const [longestStreak, setLongestStreak] = useState(0);
+  const [wrongQuestions, setWrongQuestions] = useState([]);
+  const [isCorrectionPhase, setIsCorrectionPhase] = useState(false);
+
+  useEffect(() => {
+    setDailyQuestions(getDailyQuestions());
+  }, []);
 
   // Library State
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -262,14 +31,28 @@ export default function KnowledgeCentre({ isElderlyMode }) {
   const [activeModalCard, setActiveModalCard] = useState(null);
 
   const categories = [
-    'All',
-    'Courier & Delivery',
-    'Job & Task Scams',
-    'Threat & Govt Impersonation',
-    'Impossible Investment',
-    'Emergency & Secrecy',
-    'Quishing / QR Code'
+    { id: 'All', labelKey: 'category.all' },
+    { id: 'Courier & Delivery', labelKey: 'category.courier' },
+    { id: 'Job & Task Scams', labelKey: 'category.job' },
+    { id: 'Threat & Govt Impersonation', labelKey: 'category.threat' },
+    { id: 'Impossible Investment', labelKey: 'category.investment' },
+    { id: 'Emergency & Secrecy', labelKey: 'category.emergency' },
+    { id: 'Quishing / QR Code', labelKey: 'category.qr' }
   ];
+
+  // Helper to translate a category string from a lesson card
+  const translateCategory = (catStr) => {
+    const found = categories.find(c => c.id === catStr);
+    return found ? t(found.labelKey) : catStr;
+  };
+
+  // Helper to get bilingual text for card fields
+  const getCardText = (card, field) => {
+    if (lang === 'ms' && card[`${field}_ms`]) {
+      return card[`${field}_ms`];
+    }
+    return card[field];
+  };
 
   // Daily Featured Highlights
   const dailyFeaturedCards = LESSON_CARDS.filter(card => card.isDailyFeatured);
@@ -284,13 +67,25 @@ export default function KnowledgeCentre({ isElderlyMode }) {
     return matchesCategory && matchesSearch;
   });
 
+  const currentQList = isCorrectionPhase ? wrongQuestions : dailyQuestions;
+  const currentQ = currentQList[currentQuestionIdx];
+
   const handleAnswer = (answer) => {
     setSelectedAnswer(answer);
     setShowExplanation(true);
     
-    const currentQ = QUIZ_QUESTIONS[currentQuestionIdx];
     if (answer === currentQ.isScam) {
-      setScore(prev => prev + 1);
+      if (!isCorrectionPhase) {
+        setScore(prev => prev + 1);
+        const newStreak = streak + 1;
+        setStreak(newStreak);
+        if (newStreak > longestStreak) setLongestStreak(newStreak);
+      }
+    } else {
+      if (!isCorrectionPhase) {
+        setStreak(0); // Reset streak on wrong answer
+        setWrongQuestions(prev => [...prev, currentQ]);
+      }
     }
   };
 
@@ -298,23 +93,57 @@ export default function KnowledgeCentre({ isElderlyMode }) {
     setShowExplanation(false);
     setSelectedAnswer(null);
     
-    if (currentQuestionIdx < QUIZ_QUESTIONS.length - 1) {
+    // If user got it wrong in correction phase, they have to repeat it immediately or it stays in the queue.
+    // For simplicity, we just move to the next if they got it right in correction phase.
+    if (isCorrectionPhase) {
+      if (selectedAnswer === currentQ.isScam) {
+        // They got it right this time, remove from wrongQuestions
+        const updatedWrongList = [...wrongQuestions];
+        updatedWrongList.splice(currentQuestionIdx, 1);
+        setWrongQuestions(updatedWrongList);
+        
+        if (updatedWrongList.length === 0) {
+          setQuizFinished(true); // Finally done!
+        } else {
+          // Stay at current index unless it's out of bounds
+          setCurrentQuestionIdx(prev => prev >= updatedWrongList.length ? 0 : prev);
+        }
+      } else {
+        // Still wrong, move to next in the queue to cycle through
+        setCurrentQuestionIdx(prev => (prev + 1) % wrongQuestions.length);
+      }
+      return;
+    }
+
+    // Normal phase progression
+    if (currentQuestionIdx < dailyQuestions.length - 1) {
       setCurrentQuestionIdx(prev => prev + 1);
     } else {
-      setQuizFinished(true);
+      // Reached the end of the 12 daily questions
+      if (wrongQuestions.length > 0) {
+        setIsCorrectionPhase(true);
+        setCurrentQuestionIdx(0);
+      } else {
+        setQuizFinished(true);
+      }
     }
   };
 
   const handleRestart = () => {
+    setDailyQuestions(getDailyQuestions());
     setCurrentQuestionIdx(0);
     setSelectedAnswer(null);
     setShowExplanation(false);
     setScore(0);
+    setStreak(0);
+    setLongestStreak(0);
+    setWrongQuestions([]);
+    setIsCorrectionPhase(false);
     setQuizFinished(false);
   };
 
   const getRank = () => {
-    const pct = score / QUIZ_QUESTIONS.length;
+    const pct = score / dailyQuestions.length;
     if (pct === 1) return "🥇 Digital Safety Master";
     if (pct >= 0.7) return "🥈 Scam Defense Specialist";
     return "🥉 Safety Guardian Cadet";
@@ -327,31 +156,79 @@ export default function KnowledgeCentre({ isElderlyMode }) {
       <div className="glass-panel" style={{ padding: '2rem' }}>
         <h2 style={{ fontSize: '1.4rem', color: '#fff', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Award size={24} color="var(--primary)" />
-          Spot the Scam! Awareness Quiz
+          {t('knowledge.quiz_header')}
         </h2>
 
         {quizFinished ? (
-          <div style={{ textAlign: 'center', padding: '2rem 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem' }}>
-            <CheckCircle size={56} color="var(--color-low)" />
+          <div className="fade-in" style={{ textAlign: 'center', padding: '2rem 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem' }}>
+            <CheckCircle size={64} color="var(--color-low)" />
             <div>
-              <h3 style={{ fontSize: '1.5rem', color: '#fff' }}>Quiz Completed!</h3>
-              <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
-                You identified <strong>{score} out of {QUIZ_QUESTIONS.length}</strong> scam patterns correctly.
+              <h3 style={{ fontSize: '1.8rem', color: '#fff', marginBottom: '0.5rem' }}>Challenge Completed!</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem' }}>
+                You scored <strong>{score} out of {dailyQuestions.length}</strong> correctly on the first try.
               </p>
-              <h4 style={{ color: 'var(--primary)', fontSize: '1.25rem', marginTop: '1rem' }}>Rank: {getRank()}</h4>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '2rem', margin: '1rem 0' }}>
+              <div style={{ background: 'rgba(255,255,255,0.05)', padding: '1rem 1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)', minWidth: '150px' }}>
+                <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Longest Streak</div>
+                <div style={{ fontSize: '1.8rem', color: '#f59e0b', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
+                  <Flame size={24} /> {longestStreak}
+                </div>
+              </div>
+              <div style={{ background: 'rgba(255,255,255,0.05)', padding: '1rem 1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)', minWidth: '150px' }}>
+                <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Final Rank</div>
+                <div style={{ fontSize: '1.2rem', color: 'var(--primary)', fontWeight: 'bold', marginTop: '0.5rem' }}>
+                  {getRank()}
+                </div>
+              </div>
             </div>
 
-            <button onClick={handleRestart} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <RefreshCw size={16} /> Retake Pattern Quiz
+            <button onClick={handleRestart} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1rem' }}>
+              <RefreshCw size={16} /> Play Another Round
             </button>
           </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Question {currentQuestionIdx + 1} of {QUIZ_QUESTIONS.length}</span>
-              <span className="badge badge-caution" style={{ textTransform: 'capitalize' }}>
-                {QUIZ_QUESTIONS[currentQuestionIdx].category}
-              </span>
+        ) : currentQ ? (
+          <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            
+            {/* Progress and Streak Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+              <div style={{ flex: 1, minWidth: '200px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.85rem' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>
+                    {isCorrectionPhase ? (
+                      <strong style={{ color: 'var(--color-caution)' }}>Correction Phase: {wrongQuestions.length} remaining</strong>
+                    ) : (
+                      t('knowledge.question_count').replace('{current}', currentQuestionIdx + 1).replace('{total}', dailyQuestions.length)
+                    )}
+                  </span>
+                  <span className="badge badge-caution" style={{ textTransform: 'capitalize' }}>
+                    {translateCategory(currentQ.category)}
+                  </span>
+                </div>
+                {/* Progress Bar */}
+                <div style={{ height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden' }}>
+                  <div style={{ 
+                    height: '100%', 
+                    background: isCorrectionPhase ? 'var(--color-caution)' : 'var(--primary)', 
+                    width: isCorrectionPhase ? '100%' : `${((currentQuestionIdx) / dailyQuestions.length) * 100}%`,
+                    transition: 'width 0.3s ease'
+                  }} />
+                </div>
+              </div>
+
+              {!isCorrectionPhase && (
+                <div style={{ 
+                  display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                  background: streak > 2 ? 'rgba(245, 158, 11, 0.15)' : 'rgba(255,255,255,0.05)',
+                  padding: '0.5rem 1rem', borderRadius: '20px',
+                  border: `1px solid ${streak > 2 ? 'rgba(245, 158, 11, 0.3)' : 'transparent'}`,
+                  transition: 'all 0.3s ease'
+                }}>
+                  <Flame size={18} color={streak > 2 ? '#f59e0b' : 'var(--text-muted)'} />
+                  <strong style={{ color: streak > 2 ? '#f59e0b' : '#fff' }}>{t('knowledge.streak')}: {streak}</strong>
+                </div>
+              )}
             </div>
 
             <div style={{
@@ -364,7 +241,7 @@ export default function KnowledgeCentre({ isElderlyMode }) {
               color: '#f8fafc',
               lineHeight: '1.5'
             }}>
-              "{QUIZ_QUESTIONS[currentQuestionIdx].text}"
+              "{currentQ.text}"
             </div>
 
             {!showExplanation ? (
@@ -387,25 +264,25 @@ export default function KnowledgeCentre({ isElderlyMode }) {
             ) : (
               <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                 <div style={{ 
-                  background: selectedAnswer === QUIZ_QUESTIONS[currentQuestionIdx].isScam ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)',
-                  border: `1px solid ${selectedAnswer === QUIZ_QUESTIONS[currentQuestionIdx].isScam ? 'var(--color-low)' : 'var(--color-high)'}`,
+                  background: selectedAnswer === currentQ.isScam ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)',
+                  border: `1px solid ${selectedAnswer === currentQ.isScam ? 'var(--color-low)' : 'var(--color-high)'}`,
                   borderRadius: '10px',
                   padding: '1.25rem',
                   display: 'flex',
                   alignItems: 'start',
                   gap: '0.75rem'
                 }}>
-                  {selectedAnswer === QUIZ_QUESTIONS[currentQuestionIdx].isScam ? (
+                  {selectedAnswer === currentQ.isScam ? (
                     <CheckCircle size={24} color="var(--color-low)" style={{ flexShrink: 0 }} />
                   ) : (
                     <XCircle size={24} color="var(--color-high)" style={{ flexShrink: 0 }} />
                   )}
                   <div>
                     <strong style={{ color: '#fff', fontSize: '1rem' }}>
-                      {selectedAnswer === QUIZ_QUESTIONS[currentQuestionIdx].isScam ? 'Correct Decision!' : 'Incorrect Decision!'}
+                      {selectedAnswer === currentQ.isScam ? 'Correct Decision!' : 'Incorrect Decision!'}
                     </strong>
                     <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.25rem' }}>
-                      {QUIZ_QUESTIONS[currentQuestionIdx].explanation}
+                      {currentQ.explanation}
                     </p>
                   </div>
                 </div>
@@ -415,15 +292,17 @@ export default function KnowledgeCentre({ isElderlyMode }) {
                   className="btn-primary"
                   style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}
                 >
-                  Next Question <ChevronRight size={16} />
+                  {isCorrectionPhase && selectedAnswer !== currentQ.isScam ? (
+                    "Got it, next correction"
+                  ) : (
+                    <>Next Question <ChevronRight size={16} /></>
+                  )}
                 </button>
               </div>
             )}
           </div>
-        )}
+        ) : null}
       </div>
-
-      {/* Malaysian Scam Pattern Intelligence Library */}
 
       {/* SECTION B: Categorized Malaysian Scam Pattern Intelligence Library */}
       <div className="glass-panel" style={{ padding: '2rem' }}>
@@ -431,10 +310,10 @@ export default function KnowledgeCentre({ isElderlyMode }) {
           <div>
             <h2 style={{ fontSize: '1.4rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <BookOpen size={24} color="var(--primary)" />
-              Malaysian Scam Pattern Intelligence Library ({LESSON_CARDS.length} Verified Case Studies)
+              {t('knowledge.library_title')}
             </h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.25rem' }}>
-              Explore comprehensive real-world Malaysian scam signatures, psychological traps, and official advisories.
+              {t('knowledge.library_desc')}
             </p>
           </div>
         </div>
@@ -455,22 +334,22 @@ export default function KnowledgeCentre({ isElderlyMode }) {
         {/* Category Filter Pills */}
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
           {categories.map(cat => {
-            const count = cat === 'All' ? LESSON_CARDS.length : LESSON_CARDS.filter(c => c.category === cat).length;
+            const count = cat.id === 'All' ? LESSON_CARDS.length : LESSON_CARDS.filter(c => c.category === cat.id).length;
             return (
               <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`btn-secondary ${selectedCategory === cat ? 'active' : ''}`}
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`btn-secondary ${selectedCategory === cat.id ? 'active' : ''}`}
                 style={{
                   fontSize: '0.8rem',
                   padding: '0.4rem 0.85rem',
                   borderRadius: '20px',
-                  background: selectedCategory === cat ? 'var(--primary)' : 'rgba(255,255,255,0.04)',
-                  color: selectedCategory === cat ? '#fff' : 'var(--text-secondary)',
-                  border: selectedCategory === cat ? 'none' : '1px solid var(--border-color)'
+                  background: selectedCategory === cat.id ? 'var(--primary)' : 'rgba(255,255,255,0.04)',
+                  color: selectedCategory === cat.id ? '#fff' : 'var(--text-secondary)',
+                  border: selectedCategory === cat.id ? 'none' : '1px solid var(--border-color)'
                 }}
               >
-                {cat} ({count})
+                {t(cat.labelKey)} ({count})
               </button>
             );
           })}
@@ -490,15 +369,15 @@ export default function KnowledgeCentre({ isElderlyMode }) {
             }}>
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                  <span className="badge badge-caution" style={{ fontSize: '0.65rem' }}>{card.category}</span>
+                  <span className="badge badge-caution" style={{ fontSize: '0.65rem' }}>{translateCategory(card.category)}</span>
                   {card.isDailyFeatured && (
                     <span style={{ fontSize: '0.65rem', color: 'var(--primary)', fontWeight: 600 }}>★ Highlight</span>
                   )}
                 </div>
                 
-                <h3 style={{ fontSize: '1.1rem', color: '#fff', marginBottom: '0.5rem' }}>{card.title}</h3>
+                <h3 style={{ fontSize: '1.1rem', color: '#fff', marginBottom: '0.5rem' }}>{getCardText(card, 'title')}</h3>
                 <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.4', marginBottom: '1rem' }}>
-                  "{card.summary}"
+                  "{getCardText(card, 'summary')}"
                 </p>
 
                 <div style={{ background: '#050810', border: '1px dashed var(--border-color)', borderRadius: '8px', padding: '0.75rem', fontSize: '0.8rem', color: '#f1f5f9', fontStyle: 'italic', marginBottom: '1rem' }}>
@@ -507,15 +386,15 @@ export default function KnowledgeCentre({ isElderlyMode }) {
               </div>
 
               <div style={{ borderTop: '1px dashed var(--border-color)', paddingTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <strong style={{ fontSize: '0.8rem', color: 'var(--primary)' }}>Official Safety Advisory:</strong>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>{card.advisory}</p>
+                <strong style={{ fontSize: '0.8rem', color: 'var(--primary)' }}>{t('knowledge.scam_explanation')}:</strong>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>{getCardText(card, 'advisory')}</p>
 
                 <button 
                   onClick={() => setActiveModalCard(card)} 
                   className="btn-secondary" 
                   style={{ marginTop: '0.5rem', fontSize: '0.75rem', padding: '0.45rem 0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', width: '100%' }}
                 >
-                  <Eye size={14} /> Read Complete Case Study & Red Flags
+                  <Eye size={14} /> {t('knowledge.read_case_study')}
                 </button>
               </div>
             </div>
@@ -560,36 +439,36 @@ export default function KnowledgeCentre({ isElderlyMode }) {
               </button>
             </div>
 
-            <h2 style={{ color: '#fff', fontSize: '1.4rem', marginBottom: '1rem' }}>{activeModalCard.title}</h2>
+            <h2 style={{ color: '#fff', fontSize: '1.4rem', marginBottom: '1rem' }}>{getCardText(activeModalCard, 'title')}</h2>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div>
-                <strong style={{ color: 'var(--primary)', fontSize: '0.85rem' }}>📱 Real-World Text/SMS Evidence Sample:</strong>
+                <strong style={{ color: 'var(--primary)', fontSize: '0.85rem' }}>📱 {t('knowledge.evidence_sample')}:</strong>
                 <div style={{ background: '#050810', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '1rem', marginTop: '0.4rem', color: '#f1f5f9', fontSize: '0.9rem', fontStyle: 'italic' }}>
                   "{activeModalCard.exampleMessage}"
                 </div>
               </div>
 
               <div>
-                <strong style={{ color: 'var(--color-high)', fontSize: '0.85rem' }}>🚩 Identified Red Flag Markers:</strong>
+                <strong style={{ color: 'var(--color-high)', fontSize: '0.85rem' }}>🚩 {t('knowledge.red_flags')}:</strong>
                 <ul style={{ marginTop: '0.4rem', paddingLeft: '1.2rem', color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: '1.5' }}>
-                  {activeModalCard.redFlags.map((flag, idx) => (
+                  {(getCardText(activeModalCard, 'redFlags') || []).map((flag, idx) => (
                     <li key={idx} style={{ marginBottom: '0.25rem' }}>{flag}</li>
                   ))}
                 </ul>
               </div>
 
               <div>
-                <strong style={{ color: '#f59e0b', fontSize: '0.85rem' }}>🧠 Psychological Strategy Used by Scammer:</strong>
+                <strong style={{ color: '#f59e0b', fontSize: '0.85rem' }}>🧠 {t('knowledge.psychology')}:</strong>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.3rem', lineHeight: '1.5' }}>
-                  {activeModalCard.psychology}
+                  {getCardText(activeModalCard, 'psychology')}
                 </p>
               </div>
 
               <div>
-                <strong style={{ color: 'var(--color-low)', fontSize: '0.85rem' }}>🛡️ Prevention & Verification Advisory:</strong>
+                <strong style={{ color: 'var(--color-low)', fontSize: '0.85rem' }}>🛡️ {t('knowledge.advisory')}:</strong>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.3rem', lineHeight: '1.5' }}>
-                  {activeModalCard.advisory}
+                  {getCardText(activeModalCard, 'advisory')}
                 </p>
               </div>
             </div>

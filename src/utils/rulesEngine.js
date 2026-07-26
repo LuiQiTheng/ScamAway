@@ -2,18 +2,7 @@
  * ScamShield - Hybrid Risk Assessment & Pattern Rules Engine
  */
 
-// Demo Database of known indicators and reputation records (Malaysia focus)
-export const LOCAL_BLACK_LIST = {
-  phoneNumbers: ['+6011-8762512', '+6017-9921102', '+6012-3345591', '+6019-2238475'],
-  urls: [
-    'pos-laju.info',
-    'maybank-secure-login.xyz',
-    'shopee-rewards-claim.net',
-    'tnb-bill-payment.club',
-    'lhdn-refund.org'
-  ],
-  bankAccounts: ['164228910239', '564210923049']
-};
+// Demo mock screenshots database for OCR simulation
 
 // Demo mock screenshots database for OCR simulation
 export const DEMO_SCREENSHOTS = {
@@ -95,10 +84,12 @@ export function analyzeScamRisk(text, metadata = {}) {
   // Track if we hit a critical blacklist match that forces base high-risk
   let matchedBlacklistIndicator = false;
 
+  const blacklist = metadata.blacklist || { phoneNumbers: [], urls: [], bankAccounts: [] };
+
   // 1. SENDER REPUTATION & BLACKLIST MATCHES
   if (analysis.phones.length > 0) {
     const isBlacklistedPhone = analysis.phones.some(phone => 
-      LOCAL_BLACK_LIST.phoneNumbers.includes(phone)
+      blacklist.phoneNumbers.includes(phone)
     );
 
     if (isBlacklistedPhone) {
@@ -114,7 +105,7 @@ export function analyzeScamRisk(text, metadata = {}) {
   }
 
   // Check account blacklist
-  const matchedBlacklistAccount = LOCAL_BLACK_LIST.bankAccounts.find(acc => text.includes(acc));
+  const matchedBlacklistAccount = blacklist.bankAccounts.find(acc => text.includes(acc));
   if (matchedBlacklistAccount) {
     matchedBlacklistIndicator = true;
     explanations.push({
@@ -128,7 +119,7 @@ export function analyzeScamRisk(text, metadata = {}) {
 
   // URL blacklist check
   if (analysis.urls.length > 0) {
-    const suspiciousDomains = LOCAL_BLACK_LIST.urls;
+    const suspiciousDomains = blacklist.urls;
     const matchedBadDomain = analysis.urls.find(url => 
       suspiciousDomains.some(bad => url.includes(bad) || bad.includes(url))
     );
@@ -147,7 +138,7 @@ export function analyzeScamRisk(text, metadata = {}) {
 
   // QR destination check
   if (qrDestination) {
-    const isSuspiciousQr = LOCAL_BLACK_LIST.urls.some(bad => qrDestination.includes(bad));
+    const isSuspiciousQr = blacklist.urls.some(bad => qrDestination.includes(bad));
     if (isSuspiciousQr) {
       matchedBlacklistIndicator = true;
       explanations.push({
@@ -168,17 +159,17 @@ export function analyzeScamRisk(text, metadata = {}) {
   // 2. RULE LAYER & SOCIAL ENGINEERING KEYWORDS
   let ruleContribution = 0;
   
-  const urgencyKeywords = ['urgent', 'urgently', '30 minutes', 'within 24 hours', 'immediately', 'expire', 'fast', 'segera', 'cepat', 'now', 'sekarang', 'limited time', 'hours', 'hrs', 'mins'];
-  const secrecyKeywords = ['secret', 'secrecy', 'dont tell', 'don\'t tell', 'dont let', 'don\'t let', 'rahsia', 'jangan beritahu', 'keep it secret', 'keep this secret', 'between us', 'don\'t call'];
-  const credentialKeywords = ['otp', 'login', 'verify password', 'username', 'click here to update', 'update account', 'suspended', 'tac code'];
-  const falseGuaranteeKeywords = ['100% true', '100% safe', 'no risk', 'without risk', 'guarantee', 'guaranteed', 'dijamin', '100% untung'];
-  const baitKeywords = ['congratulations', 'won rm', 'free gift', 'earn daily', 'part-time job', 'bonus', 'rewards', 'reward', 'komisen', 'gaji', 'untung'];
-  const fearThreatKeywords = ['fined', 'fine', 'denda', 'jail', 'penjara', 'arrest', 'arrested', 'warrant', 'warant', 'saman', 'blacklisted', 'tax debt', 'cukai', 'lhdn penalty', 'lock account', 'account frozen', 'court action', 'legal action'];
+  const urgencyKeywords = ['urgent', 'urgently', '30 minutes', 'within 24 hours', 'immediately', 'expire', 'fast', 'segera', 'cepat', 'now', 'sekarang', 'terkini', 'hari ini', 'masa terhad', 'limited time', 'hours', 'hrs', 'mins'];
+  const secrecyKeywords = ['secret', 'secrecy', 'dont tell', 'don\'t tell', 'dont let', 'don\'t let', 'rahsia', 'jangan beritahu', 'keep it secret', 'keep this secret', 'between us', 'don\'t call', 'jangan call', 'jangan hubungi'];
+  const credentialKeywords = ['otp', 'login', 'verify password', 'username', 'click here to update', 'update account', 'suspended', 'tac code', 'kod tac', 'kata laluan', 'sahkan id', 'log masuk'];
+  const falseGuaranteeKeywords = ['100% true', '100% safe', 'no risk', 'without risk', 'guarantee', 'guaranteed', 'dijamin', '100% untung', 'tanpa risiko', 'pasti untung', 'syariah patuh', 'patuh syariah'];
+  const baitKeywords = ['congratulations', 'won rm', 'free gift', 'earn daily', 'part-time job', 'bonus', 'rewards', 'reward', 'komisen', 'gaji', 'untung', 'tahniah', 'kerja sambilan', 'hadiah', 'percuma', 'tebus'];
+  const fearThreatKeywords = ['fined', 'fine', 'denda', 'jail', 'penjara', 'arrest', 'arrested', 'warrant', 'warant', 'waran tangkap', 'saman', 'blacklisted', 'tax debt', 'cukai', 'lhdn penalty', 'lock account', 'account frozen', 'akaun dibeku', 'court action', 'legal action', 'tindakan undang-undang'];
   
   // Family impersonation keywords (lost phone scams)
-  const familyEmergencyKeywords = ['mum', 'dad', 'mak', 'ayah', 'fell into water', 'rosak', 'damaged phone', 'new number', 'friend\'s account', 'friend\'s phone', 'tukar nombor', 'telefon rosak'];
+  const familyEmergencyKeywords = ['mum', 'dad', 'mak', 'ayah', 'ibu', 'bapa', 'abang', 'adik', 'fell into water', 'rosak', 'damaged phone', 'new number', 'friend\'s account', 'friend\'s phone', 'tukar nombor', 'telefon rosak', 'masuk hospital', 'kemalangan'];
   // Authority impersonation
-  const authorityKeywords = ['police', 'polis', 'court', 'mahkamah', 'lhdn', 'jpj', 'saman', 'arrest warrant', 'pos laju', 'poslaju', 'courier tax', 'customs', 'kastam'];
+  const authorityKeywords = ['police', 'polis', 'court', 'mahkamah', 'lhdn', 'jpj', 'saman', 'arrest warrant', 'pos laju', 'poslaju', 'courier tax', 'customs', 'kastam', 'sprm', 'mcmc', 'skmm', 'bank negara', 'bnm', 'kwsp', 'epf'];
 
   const lowerText = text.toLowerCase();
 
@@ -204,9 +195,9 @@ export function analyzeScamRisk(text, metadata = {}) {
     if (minVal > 0 && maxVal / minVal >= 5) {
       hasImpossibleRoi = true;
     }
-  } else if ((lowerText.includes('transfer') || lowerText.includes('lend') || lowerText.includes('give') || lowerText.includes('pay') || lowerText.includes('deposit')) &&
-             (lowerText.includes('reward') || lowerText.includes('return') || lowerText.includes('profit') || lowerText.includes('receive')) &&
-             (lowerText.includes('100%') || lowerText.includes('guarantee') || lowerText.includes('rm'))) {
+  } else if ((lowerText.includes('transfer') || lowerText.includes('lend') || lowerText.includes('give') || lowerText.includes('pay') || lowerText.includes('deposit') || lowerText.includes('bank in') || lowerText.includes('pindah')) &&
+             (lowerText.includes('reward') || lowerText.includes('return') || lowerText.includes('profit') || lowerText.includes('receive') || lowerText.includes('pulangan') || lowerText.includes('untung')) &&
+             (lowerText.includes('100%') || lowerText.includes('guarantee') || lowerText.includes('jamin') || lowerText.includes('rm'))) {
     hasImpossibleRoi = true;
   }
 
@@ -298,7 +289,7 @@ export function analyzeScamRisk(text, metadata = {}) {
 
   // 3. PAYMENT TRIGGER WORDS (if not already handled by blacklist account)
   let paymentContribution = 0;
-  if (analysis.hasPaymentKeywords || analysis.extractedPayment || lowerText.includes('transfer') || lowerText.includes('pay') || lowerText.includes('lend')) {
+  if (analysis.hasPaymentKeywords || analysis.extractedPayment || lowerText.includes('transfer') || lowerText.includes('pay') || lowerText.includes('lend') || lowerText.includes('bank in') || lowerText.includes('pindah') || lowerText.includes('bayar')) {
     paymentContribution += 15;
     explanations.push({
       category: "payment",
