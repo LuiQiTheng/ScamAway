@@ -1,7 +1,7 @@
 # ScamShield
 
 > [!IMPORTANT]
-> 📂 **Implementation Specification**: Detailed technical document available at [`implementation/content.md`](implementation/content.md)  
+> 📂 **Implementation Specification**: Detailed technical document available at [`implementation.md`](implementation.md)  
 > 🚀 **Target Competition**: 3rd UPM Computer Science Research & International Innovation Exhibition (UCRIX 2026) / CIC ASIA 2026
 
 Explainable, Community-Verified Scam Intelligence & Intervention Platform.  
@@ -42,7 +42,7 @@ Follow these steps to get the project running locally.
 - `src/components/TrendsDashboard.jsx`: Category charts and interactive Malaysia regional threat map
 - `src/components/KnowledgeCentre.jsx`: Scam pattern advisories and "Spot the Scam" awareness quiz
 - `src/utils/rulesEngine.js`: Hybrid risk assessment scoring engine, keyword detectors, and blacklist overrides
-- `implementation/content.md`: Technical specification, data schema, and SDG alignment document
+- `implementation.md`: Technical specification, data schema, and SDG alignment document
 
 ---
 
