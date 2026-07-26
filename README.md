@@ -1,58 +1,68 @@
-# ScamShield (UCRIX 2026 Prototype)
+# ScamShield
 
-> **Explainable, Community-Verified Scam Intelligence & Intervention Platform**
-> *"Analyse. Explain. Verify. Act before the user clicks, shares, or pays."*
+> [!IMPORTANT]
+> 📂 **Implementation Specification**: Detailed technical document available at [`implementation/content.md`](implementation/content.md)  
+> 🚀 **Target Competition**: 3rd UPM Computer Science Research & International Innovation Exhibition (UCRIX 2026) / CIC ASIA 2026
 
-Developed for the **3rd UPM Computer Science Research & International Innovation Exhibition (UCRIX 2026)**, in conjunction with **CIC ASIA 2026**.
+Explainable, Community-Verified Scam Intelligence & Intervention Platform.  
+*"Analyse. Explain. Verify. Act before the user clicks, shares, or pays."*
 
-This repository contains the complete prototype source code for **ScamShield**, which integrates automated multi-format parsing, explainable scoring, action checklists, community reports, and regional threat maps.
+---
+
+## 🚀 Getting Started
+
+Follow these steps to get the project running locally.
+
+### 1. Prerequisites
+- **Node.js**: (v18 or higher recommended)
+- **NPM**: Package manager (included with Node.js)
+
+### 2. Install & Start Services
+
+1. **Install dependencies**:
+   ```bash
+   npm install
+   ```
+
+2. **Run the Application**:
+   ```bash
+   npm run dev
+   ```
+
+3. **Open Application**:
+   Open [http://localhost:5173](http://localhost:5173) in your browser to view the application.
+
+---
+
+## 🧱 Workspace Layout
+
+- `src/components/UserChecker.jsx`: Scam checking interface (Regular & Elderly mode, Text-to-Speech narration)
+- `src/components/ReportModal.jsx`: Anonymized report redaction and submission preview
+- `src/components/ModeratorDashboard.jsx`: Moderation queue, indicator auto-blacklisting, and community threat alert publisher
+- `src/components/TrendsDashboard.jsx`: Category charts and interactive Malaysia regional threat map
+- `src/components/KnowledgeCentre.jsx`: Scam pattern advisories and "Spot the Scam" awareness quiz
+- `src/utils/rulesEngine.js`: Hybrid risk assessment scoring engine, keyword detectors, and blacklist overrides
+- `implementation/content.md`: Technical specification, data schema, and SDG alignment document
+
+---
+
+## 🛠️ Stack
+
+- **Frontend & Web App**: React 19, Vite, Lucide Icons
+- **Styling System**: Vanilla CSS (Dark mode, Neon glassmorphism, responsive rules)
+- **Analysis Engine**: Rule-Based Pattern Fusion, Social Engineering Keyword Detector, Blacklist Overrides
+- **Accessibility & Voice**: Web Speech API (Text-to-Speech Audio Synthesis), Elderly Mode
+- **State & Storage**: Anonymized Report Schemas, Local Indicator Blacklists, Reputation Indices
 
 ---
 
 ## 🌟 Core Features
 
-1. **User Scam Checker UI**:
-   - **Multi-Format Inputs**: Supports Pasted Text, Screenshot Upload (with simulated OCR), QR Code Scanning (with camera simulation), and URL/Phone blacklists.
-   - **Hybrid Risk Scoring**: Evaluates scam probability dynamically. Integrates **Critical Blacklist Overrides** (automatic 85%+ score if blacklisted accounts/URLs/phones are entered), social engineering keywords (lost phone scams, government baits), and compound penalty fusions.
-   - **Explainable Evidence Breakdown**: Details the exact social engineering techniques and markers flagged (urgency, baits, bad redirects) to educate users rather than just warning them.
-   - **Elderly-Friendly Mode**: Toggle for large fonts, high-contrast buttons, and **Audio Read-Aloud (Text-to-Speech)** voice support.
-   - **Consent-Driven Report Redaction**: Anonymize screenshots and sensitive bank/phone details before reporting.
-
-2. **Moderator & Admin Dashboard**:
-   - **Moderation Queue**: Review, confirm, reject, or flag community-submitted reports.
-   - **Indicator Auto-Blacklisting**: Confirmed reports instantly feed matching domains and numbers back into the scanning blacklists.
-   - **Community Alert Publisher**: Broadcast urgent threat warnings directly to the user dashboard.
-   - **Reputation System**: Grade community reporters based on historical agreement rates and flags.
-
-3. **Common Trends & Analytics**:
-   - **Category & Channel Analysis**: Interactive charts tracking vectors (Telegram, WhatsApp, SMS) and category trends.
-   - **Interactive Regional Map (Malaysia)**: SVG blueprint mapping active incidents per region (Selangor, Kuala Lumpur, Johor, Penang, Perak).
-
-4. **Knowledge Centre (SDG 4 Alignment)**:
-   - **Pattern Guides**: Interactive advisories for common Malaysian scam models (Pos Laju COD, Shopee jobs, LHDN refunds).
-   - **"Spot the Scam" Quiz**: Interactive awareness game that grades users and assigns digital safety badges.
-
----
-
-## 🚀 Setup & Installation
-
-### Prerequisites
-- [Node.js](https://nodejs.org/) (v16 or above recommended)
-- NPM (comes with Node.js)
-
-### Installation Steps
-
-1. Install project dependencies:
-   ```bash
-   npm install
-   ```
-
-2. Run the local development server:
-   ```bash
-   npm run dev
-   ```
-
-3. Open your browser and navigate to the address shown in your terminal (typically `http://localhost:5173`).
+- **Multi-Format Scam Checker**: Pasted text, screenshot upload (OCR simulation), QR camera scanner, URL/Phone checks.
+- **Explainable Evidence Breakdown**: Details exact social-engineering markers (urgency, credential harvesting, payment requests).
+- **Critical Blacklist Override**: Matching blacklisted accounts or numbers locks risk score to **85%+ (Critical)**.
+- **Admin Moderation & Threat Alerts**: Moderator verification queue and broadcast warnings.
+- **Interactive Regional Map**: State-wide incident mapping across Malaysia (Kuala Lumpur, Selangor, Johor, Penang, Perak).
 
 ---
 
