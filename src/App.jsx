@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { ShieldAlert, TrendingUp, HelpCircle, User, ShieldAlert as AdminIcon, Sparkles } from 'lucide-react';
+import { ShieldAlert, HelpCircle, User, ShieldAlert as AdminIcon, Sparkles } from 'lucide-react';
 import UserChecker from './components/UserChecker';
 import ModeratorDashboard from './components/ModeratorDashboard';
-import TrendsDashboard from './components/TrendsDashboard';
 import KnowledgeCentre from './components/KnowledgeCentre';
 
 // Initial Mock Reports representing seed data and Appendix E test cases
@@ -81,11 +80,21 @@ const INITIAL_REPUTATIONS = [
 ];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('check'); // check, trends, knowledge, moderator
+  const [activeTab, setActiveTab] = useState('check'); // check, knowledge, moderator
+  const [userRole, setUserRole] = useState('citizen'); // 'citizen' or 'admin'
   const [isElderlyMode, setIsElderlyMode] = useState(false);
   const [reportsList, setReportsList] = useState(INITIAL_REPORTS);
   const [reputationProfiles, setReputationProfiles] = useState(INITIAL_REPUTATIONS);
-  
+
+  const handleRoleChange = (role) => {
+    setUserRole(role);
+    if (role === 'admin') {
+      setActiveTab('moderator');
+    } else {
+      setActiveTab('check');
+    }
+  };
+
   // Published active community alerts
   const [activeAlert, setActiveAlert] = useState({
     id: 1,
@@ -144,35 +153,67 @@ export default function App() {
         </div>
 
         <nav className="nav-links">
-          <button 
-            onClick={() => setActiveTab('check')} 
-            className={`nav-link ${activeTab === 'check' ? 'active' : ''}`}
-            style={{ fontSize: isElderlyMode ? '1.15rem' : '0.9rem' }}
-          >
-            🛡️ Scam Checker
-          </button>
-          <button 
-            onClick={() => setActiveTab('trends')} 
-            className={`nav-link ${activeTab === 'trends' ? 'active' : ''}`}
-            style={{ fontSize: isElderlyMode ? '1.15rem' : '0.9rem' }}
-          >
-            📊 Common Trends
-          </button>
-          <button 
-            onClick={() => setActiveTab('knowledge')} 
-            className={`nav-link ${activeTab === 'knowledge' ? 'active' : ''}`}
-            style={{ fontSize: isElderlyMode ? '1.15rem' : '0.9rem' }}
-          >
-            📖 Education & Quiz
-          </button>
-          <button 
-            onClick={() => setActiveTab('moderator')} 
-            className={`nav-link ${activeTab === 'moderator' ? 'active' : ''}`}
-            style={{ fontSize: isElderlyMode ? '1.15rem' : '0.9rem' }}
-          >
-            👮 Admin Moderation
-          </button>
+          {userRole === 'citizen' ? (
+            <>
+              <button 
+                onClick={() => setActiveTab('check')} 
+                className={`nav-link ${activeTab === 'check' ? 'active' : ''}`}
+                style={{ fontSize: isElderlyMode ? '1.15rem' : '0.9rem' }}
+              >
+                🛡️ Scam Checker
+              </button>
+              <button 
+                onClick={() => setActiveTab('knowledge')} 
+                className={`nav-link ${activeTab === 'knowledge' ? 'active' : ''}`}
+                style={{ fontSize: isElderlyMode ? '1.15rem' : '0.9rem' }}
+              >
+                🧠 Spot the Scam
+              </button>
+            </>
+          ) : (
+            <button 
+              onClick={() => setActiveTab('moderator')} 
+              className={`nav-link ${activeTab === 'moderator' ? 'active' : ''}`}
+              style={{ fontSize: isElderlyMode ? '1.15rem' : '0.9rem' }}
+            >
+              👮 Admin Moderation
+            </button>
+          )}
         </nav>
+
+        {/* Role Switcher Badge for Demo */}
+        <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.03)', padding: '0.25rem 0.5rem', borderRadius: '20px', border: '1px solid var(--border-color)' }}>
+          <button 
+            onClick={() => handleRoleChange('citizen')}
+            style={{
+              padding: '0.3rem 0.75rem',
+              borderRadius: '16px',
+              border: 'none',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              background: userRole === 'citizen' ? 'var(--primary)' : 'transparent',
+              color: userRole === 'citizen' ? '#fff' : 'var(--text-muted)'
+            }}
+          >
+            👤 Citizen
+          </button>
+          <button 
+            onClick={() => handleRoleChange('admin')}
+            style={{
+              padding: '0.3rem 0.75rem',
+              borderRadius: '16px',
+              border: 'none',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              background: userRole === 'admin' ? '#ef4444' : 'transparent',
+              color: userRole === 'admin' ? '#fff' : 'var(--text-muted)'
+            }}
+          >
+            👮 Admin
+          </button>
+        </div>
       </header>
 
       {/* Main Content Layout */}
@@ -184,12 +225,6 @@ export default function App() {
             reportsList={reportsList}
             onAddReport={handleAddReport}
             activeAlert={activeAlert}
-          />
-        )}
-
-        {activeTab === 'trends' && (
-          <TrendsDashboard 
-            reportsList={reportsList}
           />
         )}
 

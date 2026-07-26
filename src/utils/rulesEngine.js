@@ -168,10 +168,11 @@ export function analyzeScamRisk(text, metadata = {}) {
   // 2. RULE LAYER & SOCIAL ENGINEERING KEYWORDS
   let ruleContribution = 0;
   
-  const urgencyKeywords = ['urgent', 'urgently', '30 minutes', 'within 24 hours', 'immediately', 'expire', 'fast', 'segera', 'cepat'];
+  const urgencyKeywords = ['urgent', 'urgently', '30 minutes', 'within 24 hours', 'immediately', 'expire', 'fast', 'segera', 'cepat', 'now', 'sekarang', 'limited time', 'hours', 'hrs', 'mins'];
   const secrecyKeywords = ['secret', 'secrecy', 'dont tell', 'don\'t tell', 'dont let', 'don\'t let', 'rahsia', 'jangan beritahu', 'keep it secret', 'keep this secret', 'between us', 'don\'t call'];
   const credentialKeywords = ['otp', 'login', 'verify password', 'username', 'click here to update', 'update account', 'suspended', 'tac code'];
-  const baitKeywords = ['congratulations', 'won rm', 'free gift', 'earn daily', 'part-time job', 'bonus', 'rewards', 'reward', 'komisen', 'gaji', 'untung', '100% true', '100% safe', 'guarantee', 'guaranteed'];
+  const falseGuaranteeKeywords = ['100% true', '100% safe', 'no risk', 'without risk', 'guarantee', 'guaranteed', 'dijamin', '100% untung'];
+  const baitKeywords = ['congratulations', 'won rm', 'free gift', 'earn daily', 'part-time job', 'bonus', 'rewards', 'reward', 'komisen', 'gaji', 'untung'];
   const fearThreatKeywords = ['fined', 'fine', 'denda', 'jail', 'penjara', 'arrest', 'arrested', 'warrant', 'warant', 'saman', 'blacklisted', 'tax debt', 'cukai', 'lhdn penalty', 'lock account', 'account frozen', 'court action', 'legal action'];
   
   // Family impersonation keywords (lost phone scams)
@@ -181,16 +182,17 @@ export function analyzeScamRisk(text, metadata = {}) {
 
   const lowerText = text.toLowerCase();
 
-  const hasUrgency = urgencyKeywords.some(kw => lowerText.includes(kw));
+  const hasUrgency = urgencyKeywords.some(kw => lowerText.includes(kw)) || /within\s*\d+\s*(hours?|hrs?|mins?|minutes?|days?)/i.test(text);
   const hasSecrecy = secrecyKeywords.some(kw => lowerText.includes(kw));
   const hasCreds = credentialKeywords.some(kw => lowerText.includes(kw));
+  const hasFalseGuarantee = falseGuaranteeKeywords.some(kw => lowerText.includes(kw));
   const hasBait = baitKeywords.some(kw => lowerText.includes(kw));
   const hasFearThreat = fearThreatKeywords.some(kw => lowerText.includes(kw));
   const hasFamilyEmergency = familyEmergencyKeywords.some(kw => lowerText.includes(kw));
   const hasAuthority = authorityKeywords.some(kw => lowerText.includes(kw));
 
   // Advanced heuristic: Impossible ROI / Investment Multiplier Detection
-  // e.g. "Transfer me RM1000, I give u rewards RM10000000000000000" or "give RM100 receive RM10000"
+  // e.g. "Transfer me RM1000, I give u rewards RM1000000" or "give RM100 receive RM10000"
   let hasImpossibleRoi = false;
   const numbersInText = (text.match(/rm\s*[\d,]+|\b\d+,\d+|\b\d{3,}\b/gi) || [])
     .map(n => parseFloat(n.replace(/rm\s*|,/gi, '')))
@@ -209,22 +211,32 @@ export function analyzeScamRisk(text, metadata = {}) {
   }
 
   if (hasImpossibleRoi) {
-    ruleContribution += 45;
+    ruleContribution += 50;
     explanations.push({
       category: "bait",
       label: "Impossible Investment Payout / Money Multiplier Scam",
       text: "Prompts unrealistic return ratios or guaranteed financial multipliers (e.g. pay small deposit, get astronomical rewards/returns). This is a textbook Advance-Fee / Investment Scam tactic.",
-      weight: 45
+      weight: 50
+    });
+  }
+
+  if (hasFalseGuarantee) {
+    ruleContribution += 25;
+    explanations.push({
+      category: "bait",
+      label: "False 'Zero-Risk / 100% Guaranteed' Claim",
+      text: "Uses false assurances ('100% true', 'no risk', 'guaranteed payout') to trick victims into dropping their guard.",
+      weight: 25
     });
   }
 
   if (hasFearThreat) {
-    ruleContribution += 40;
+    ruleContribution += 45;
     explanations.push({
       category: "threat",
       label: "Fear & Extortion Pressure (Fines / Jail / Arrest)",
       text: "Uses legal threats, jail sentences, heavy fines, or account freezing to terrify victims into immediate compliance.",
-      weight: 40
+      weight: 45
     });
   }
 
@@ -239,12 +251,12 @@ export function analyzeScamRisk(text, metadata = {}) {
   }
 
   if (hasUrgency) {
-    ruleContribution += 18;
+    ruleContribution += 20;
     explanations.push({
       category: "urgency",
       label: "Urgency Pressure Detected",
-      text: "The sender pressures you to act immediately (e.g. 'urgently', 'within 30 mins') to bypass rational safety checks.",
-      weight: 18
+      text: "The sender pressures you to act immediately (e.g. 'now', 'within 2 hours') to bypass rational safety checks.",
+      weight: 20
     });
   }
   if (hasCreds) {
@@ -256,7 +268,7 @@ export function analyzeScamRisk(text, metadata = {}) {
       weight: 20
     });
   }
-  if (hasBait && !hasImpossibleRoi) {
+  if (hasBait && !hasImpossibleRoi && !hasFalseGuarantee) {
     ruleContribution += 15;
     explanations.push({
       category: "bait",
@@ -298,12 +310,12 @@ export function analyzeScamRisk(text, metadata = {}) {
 
   // 4. COMBINATION PENALTY (Multipliers for high-risk co-occurrences)
   let combinationContribution = 0;
-  if ((analysis.hasPaymentKeywords || analysis.extractedPayment || lowerText.includes('transfer')) && (hasUrgency || hasSecrecy || hasFearThreat || hasImpossibleRoi)) {
+  if ((analysis.hasPaymentKeywords || analysis.extractedPayment || lowerText.includes('transfer')) && (hasUrgency || hasSecrecy || hasFearThreat || hasImpossibleRoi || hasFalseGuarantee)) {
     combinationContribution += 20;
     explanations.push({
       category: "rule_fusion",
       label: "Critical Risk Co-occurrence",
-      text: "Combining direct money transfer demands with secrecy, fear of arrest, or impossible rewards indicates extreme scam probability.",
+      text: "Combining direct money transfer demands with urgency, secrecy, false guarantees, or impossible rewards indicates extreme scam probability.",
       weight: 20
     });
   }
