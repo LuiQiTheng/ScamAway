@@ -53,18 +53,18 @@ const INITIAL_REPORTS = [
 const INITIAL_REPUTATIONS = [
   {
     profileId: 'rep_101',
-    userName: 'Ahmad Rafiq (Student, FSKTM)',
-    role: 'Student',
-    identityLevel: 2, // Verified Student email
+    userName: 'Ahmad Rafiq (Kuala Lumpur)',
+    role: 'Citizen',
+    identityLevel: 2, // Verified email
     agreementRate: 94,
     verifiedReports: 5,
     abuseFlags: 0
   },
   {
     profileId: 'rep_102',
-    userName: 'Lim Wei Han (Staff, library)',
-    role: 'Staff',
-    identityLevel: 3, // Staff domain
+    userName: 'Lim Wei Han (Selangor)',
+    role: 'Citizen',
+    identityLevel: 3, // Premium reporter
     agreementRate: 100,
     verifiedReports: 12,
     abuseFlags: 0
@@ -86,10 +86,10 @@ export default function App() {
   const [reportsList, setReportsList] = useState(INITIAL_REPORTS);
   const [reputationProfiles, setReputationProfiles] = useState(INITIAL_REPUTATIONS);
   
-  // Published active campus alerts
+  // Published active community alerts
   const [activeAlert, setActiveAlert] = useState({
     id: 1,
-    message: "Urgent: A wave of parcel cash-on-delivery (COD) SMS impersonating Pos Laju links (pos-laju.info) has been targeting Hostels Block A and B. Do not pay or open the links.",
+    message: "Urgent: A wave of parcel cash-on-delivery (COD) SMS impersonating Pos Laju links (pos-laju.info) has been targeting Selangor and Klang Valley regions. Do not pay or open the links.",
     timestamp: new Date().toISOString()
   });
 
@@ -140,7 +140,7 @@ export default function App() {
       <header className="app-header">
         <div className="app-logo">
           <ShieldAlert size={28} color="var(--primary)" />
-          <span>SCAMSHIELD MY</span>
+          <span>SCAMSHIELD</span>
         </div>
 
         <nav className="nav-links">
@@ -156,7 +156,7 @@ export default function App() {
             className={`nav-link ${activeTab === 'trends' ? 'active' : ''}`}
             style={{ fontSize: isElderlyMode ? '1.15rem' : '0.9rem' }}
           >
-            📊 Campus Trends
+            📊 Common Trends
           </button>
           <button 
             onClick={() => setActiveTab('knowledge')} 
@@ -221,7 +221,7 @@ export default function App() {
       }}>
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
           <Sparkles size={14} color="var(--primary)" />
-          <strong>ScamShield MY — Explainable Digital Safety Platform</strong>
+          <strong>ScamShield — Explainable Digital Safety Platform</strong>
         </div>
         <p>Prepared for UCRIX Innovation 2026 Competition. Aligning with UN Sustainable Development Goals (SDG 16, 9, 10, 4).</p>
       </footer>

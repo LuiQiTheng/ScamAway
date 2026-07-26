@@ -257,14 +257,14 @@ export default function ModeratorDashboard({ reportsList, onUpdateReportStatus, 
 
         </div>
 
-        {/* Right Side: Campus Alert Publisher & User Reputation */}
+        {/* Right Side: Community Alert Publisher & User Reputation */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           
           {/* Broadcaster */}
           <div className="glass-panel" style={{ padding: '1.5rem' }}>
             <h3 style={{ fontSize: '1.1rem', color: '#fff', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <ShieldAlert size={20} color="var(--color-high)" />
-              Broadcast Campus Alert
+              Broadcast Community Alert
             </h3>
             
             <form onSubmit={handlePublishAlert} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -273,17 +273,17 @@ export default function ModeratorDashboard({ reportsList, onUpdateReportStatus, 
                 rows={3}
                 value={alertText}
                 onChange={(e) => setAlertText(e.target.value)}
-                placeholder="Type high-risk threat warning to broadcast to all students..."
+                placeholder="Type high-risk threat warning to broadcast to all users..."
                 style={{ fontSize: '0.85rem' }}
               />
               <button type="submit" className="btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                <Send size={14} /> Publish Broadcast Alert
+                <Send size={14} /> Publish Threat Alert
               </button>
             </form>
 
             {alertSuccess && (
               <div style={{ marginTop: '0.75rem', fontSize: '0.8rem', color: 'var(--color-low)', textAlign: 'center' }}>
-                ✓ Alert published to student view screens.
+                ✓ Alert published to public view screens.
               </div>
             )}
           </div>

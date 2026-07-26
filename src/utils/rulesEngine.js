@@ -1,8 +1,8 @@
 /**
- * ScamShield MY - Hybrid Risk Assessment & Pattern Rules Engine
+ * ScamShield - Hybrid Risk Assessment & Pattern Rules Engine
  */
 
-// Demo Database of known indicators and reputation records
+// Demo Database of known indicators and reputation records (Malaysia focus)
 export const LOCAL_BLACK_LIST = {
   phoneNumbers: ['+6011-8762512', '+6017-9921102', '+6012-3345591', '+6019-2238475'],
   urls: [
@@ -89,77 +89,59 @@ export function analyzeScamRisk(text, metadata = {}) {
   let score = 0;
   const explanations = [];
   const indicatorsMatched = [];
-
   const analysis = extractIndicators(text);
   const qrDestination = metadata.qrCode || null;
 
-  // 1. RULE LAYER & SOCIAL ENGINEERING (Weight: 30%)
-  let ruleScore = 0;
-  const urgencyKeywords = ['urgent', '30 minutes', 'within 24 hours', 'immediately', 'expire', 'fast', 'secrecy', 'secret', 'dont tell', 'don\'t call'];
-  const credentialKeywords = ['otp', 'login', 'verify password', 'username', 'click here to update', 'update account', 'suspended'];
-  const baitKeywords = ['congratulations', 'won RM', 'free gift', 'earn daily', 'part-time job', 'bonus', 'rewards claim'];
+  // Track if we hit a critical blacklist match that forces base high-risk
+  let matchedBlacklistIndicator = false;
 
-  const hasUrgency = urgencyKeywords.some(kw => text.toLowerCase().includes(kw));
-  const hasCreds = credentialKeywords.some(kw => text.toLowerCase().includes(kw));
-  const hasBait = baitKeywords.some(kw => text.toLowerCase().includes(kw));
+  // 1. SENDER REPUTATION & BLACKLIST MATCHES
+  if (analysis.phones.length > 0) {
+    const isBlacklistedPhone = analysis.phones.some(phone => 
+      LOCAL_BLACK_LIST.phoneNumbers.includes(phone)
+    );
 
-  if (hasUrgency) {
-    ruleScore += 12;
-    explanations.push({
-      category: "urgency",
-      label: "Urgency Pressure",
-      text: "The message creates false urgency (e.g., tight deadline) to force action without thinking.",
-      weight: 12
-    });
+    if (isBlacklistedPhone) {
+      matchedBlacklistIndicator = true;
+      explanations.push({
+        category: "reputation",
+        label: "Blacklisted Phone Number",
+        text: "The phone number matches reported local/national phishing dispatchers.",
+        weight: 35
+      });
+      indicatorsMatched.push(...analysis.phones);
+    }
   }
-  if (hasCreds) {
-    ruleScore += 10;
-    explanations.push({
-      category: "credentials",
-      label: "Credential Harvesting Request",
-      text: "Requests credentials, OTPs, or redirects to suspicious account-verification links.",
-      weight: 10
-    });
-  }
-  if (hasBait) {
-    ruleScore += 8;
-    explanations.push({
-      category: "bait",
-      label: "Financial Reward Bait",
-      text: "Offers high salaries, prizes, or cash rewards for small upfront actions.",
-      weight: 8
-    });
-  }
-  score += ruleScore;
 
-  // 2. TECHNICAL INDICATORS (Weight: 25%)
-  let techScore = 0;
-  
-  // URL check
+  // Check account blacklist
+  const matchedBlacklistAccount = LOCAL_BLACK_LIST.bankAccounts.find(acc => text.includes(acc));
+  if (matchedBlacklistAccount) {
+    matchedBlacklistIndicator = true;
+    explanations.push({
+      category: "payment",
+      label: "Blacklisted Bank Account",
+      text: `The bank account listed (${matchedBlacklistAccount}) is flagged in the official mule bank account database.`,
+      weight: 45
+    });
+    indicatorsMatched.push(matchedBlacklistAccount);
+  }
+
+  // URL blacklist check
   if (analysis.urls.length > 0) {
     const suspiciousDomains = LOCAL_BLACK_LIST.urls;
-    const hasSuspiciousUrl = analysis.urls.some(url => 
+    const matchedBadDomain = analysis.urls.find(url => 
       suspiciousDomains.some(bad => url.includes(bad) || bad.includes(url))
     );
 
-    if (hasSuspiciousUrl) {
-      techScore += 15;
+    if (matchedBadDomain) {
+      matchedBlacklistIndicator = true;
       explanations.push({
         category: "technical",
-        label: "Suspicious Domain Detected",
-        text: "The link points to a domain matching known malicious redirects or lookalikes.",
-        weight: 15
+        label: "Malicious Blacklisted Domain",
+        text: `The link (${matchedBadDomain}) points to a verified scam/phishing site in our directory.`,
+        weight: 40
       });
-      indicatorsMatched.push(...analysis.urls);
-    } else {
-      // General warning on links in unsolicited messages
-      techScore += 5;
-      explanations.push({
-        category: "technical",
-        label: "External URL Contained",
-        text: "Contains clickable web link; verify domain details before logging in.",
-        weight: 5
-      });
+      indicatorsMatched.push(matchedBadDomain);
     }
   }
 
@@ -167,102 +149,148 @@ export function analyzeScamRisk(text, metadata = {}) {
   if (qrDestination) {
     const isSuspiciousQr = LOCAL_BLACK_LIST.urls.some(bad => qrDestination.includes(bad));
     if (isSuspiciousQr) {
-      techScore += 10;
+      matchedBlacklistIndicator = true;
       explanations.push({
         category: "technical",
-        label: "QR Destination Mismatch",
-        text: "The scanned QR code redirects to an unofficial payment or credential collection portal.",
-        weight: 10
+        label: "Scam QR Destination Link",
+        text: `Scanned QR code points to a blacklisted domain: ${qrDestination}.`,
+        weight: 35
       });
       indicatorsMatched.push(qrDestination);
-    } else {
-      techScore += 4;
-      explanations.push({
-        category: "technical",
-        label: "QR Redirect Scanner",
-        text: "QR code targets an external link. Confirm destination before proceeding.",
-        weight: 4
-      });
     }
   }
-  score += Math.min(25, techScore);
 
-  // 3. PAYMENT & ACCOUNT REQUESTS (Weight: 15%)
-  let paymentScore = 0;
+  // Base score setting if matched a blacklisted element
+  if (matchedBlacklistIndicator) {
+    score = 85; // Immediately flag as critical base score
+  }
+
+  // 2. RULE LAYER & SOCIAL ENGINEERING KEYWORDS
+  let ruleContribution = 0;
+  
+  const urgencyKeywords = ['urgent', 'urgently', '30 minutes', 'within 24 hours', 'immediately', 'expire', 'fast', 'secrecy', 'secret', 'dont tell', 'don\'t call', 'segera', 'cepat'];
+  const credentialKeywords = ['otp', 'login', 'verify password', 'username', 'click here to update', 'update account', 'suspended', 'tac code'];
+  const baitKeywords = ['congratulations', 'won RM', 'free gift', 'earn daily', 'part-time job', 'bonus', 'rewards claim', 'komisen', 'gaji'];
+  
+  // Family impersonation keywords (lost phone scams)
+  const familyEmergencyKeywords = ['mum', 'dad', 'mak', 'ayah', 'fell into water', 'rosak', 'damaged phone', 'new number', 'friend\'s account', 'friend\'s phone', 'tukar nombor', 'telefon rosak'];
+  // Authority impersonation
+  const authorityKeywords = ['police', 'court', 'lhdn', 'jpj', 'saman', 'arrest warrant', 'pos laju', 'poslaju', 'courier tax', 'customs'];
+
+  const hasUrgency = urgencyKeywords.some(kw => text.toLowerCase().includes(kw));
+  const hasCreds = credentialKeywords.some(kw => text.toLowerCase().includes(kw));
+  const hasBait = baitKeywords.some(kw => text.toLowerCase().includes(kw));
+  const hasFamilyEmergency = familyEmergencyKeywords.some(kw => text.toLowerCase().includes(kw));
+  const hasAuthority = authorityKeywords.some(kw => text.toLowerCase().includes(kw));
+
+  if (hasUrgency) {
+    ruleContribution += 18;
+    explanations.push({
+      category: "urgency",
+      label: "Urgency Pressure Detected",
+      text: "The sender pressures you to act immediately (e.g. 'urgently', 'don't call', 'within 24 hours') to bypass safety validation.",
+      weight: 18
+    });
+  }
+  if (hasCreds) {
+    ruleContribution += 18;
+    explanations.push({
+      category: "credentials",
+      label: "Credential Harvesting Pattern",
+      text: "Asks for sensitive credentials, PINs, OTP/TAC verification codes, or login overrides.",
+      weight: 18
+    });
+  }
+  if (hasBait) {
+    ruleContribution += 15;
+    explanations.push({
+      category: "bait",
+      label: "Financial Reward baiting",
+      text: "Features rewards or online job payouts designed to entice users into registration fees.",
+      weight: 15
+    });
+  }
+  if (hasFamilyEmergency) {
+    ruleContribution += 25;
+    explanations.push({
+      category: "impersonation",
+      label: "Family Impersonation Bait",
+      text: "Matches a common 'damaged phone / new number / hospital emergency' scam targeting parents.",
+      weight: 25
+    });
+  }
+  if (hasAuthority) {
+    ruleContribution += 20;
+    explanations.push({
+      category: "impersonation",
+      label: "Authority Impersonation Marker",
+      text: "Uses official government agencies (LHDN, JPJ, police) or delivery groups to establish trust.",
+      weight: 20
+    });
+  }
+
+  // 3. PAYMENT TRIGGER WORDS (if not already handled by blacklist account)
+  let paymentContribution = 0;
   if (analysis.hasPaymentKeywords || analysis.extractedPayment) {
-    paymentScore += 10;
+    paymentContribution += 15;
     explanations.push({
       category: "payment",
-      label: "Unsolicited Payment Request",
-      text: `Requests financial transfer (${analysis.extractedPayment || 'unspecified amount'}) via message rather than secure official portal.`,
-      weight: 10
+      label: "Direct Money Transfer Request",
+      text: `Requests financial payment (${analysis.extractedPayment || 'unspecified amount'}) through peer messages rather than secure company apps.`,
+      weight: 15
     });
+  }
 
-    // Check account blacklist
-    const containsBlacklistAccount = LOCAL_BLACK_LIST.bankAccounts.some(acc => text.includes(acc));
-    if (containsBlacklistAccount) {
-      paymentScore += 5;
+  // 4. COMBINATION PENALTY (Multipliers for high-risk co-occurrences)
+  let combinationContribution = 0;
+  // If payment request + urgency + family impersonation all occur together, it's 99% a scam!
+  if ((analysis.hasPaymentKeywords || analysis.extractedPayment) && hasUrgency) {
+    combinationContribution += 15;
+    explanations.push({
+      category: "rule_fusion",
+      label: "High-Risk Vector Combination",
+      text: "Co-occurrence of financial requests and urgency spikes the probability of active social-engineering.",
+      weight: 15
+    });
+  }
+
+  // Add normal scores if we didn't override with blacklist base
+  if (!matchedBlacklistIndicator) {
+    score += ruleContribution + paymentContribution + combinationContribution;
+    
+    // Add minor general indicators if URLs or phone numbers are present
+    if (analysis.urls.length > 0) {
+      score += 10;
       explanations.push({
-        category: "payment",
-        label: "Blacklisted Bank Account",
-        text: "The bank account listed in the message matches a flagged mule account database.",
-        weight: 5
+        category: "technical",
+        label: "Clickable Link Contained",
+        text: "Contains external link destinations which should only be verified through official site domains.",
+        weight: 10
       });
     }
-  }
-  score += paymentScore;
-
-  // 4. SENDER REPUTATION & LOCAL PATTERNS (Weight: 15%)
-  let repScore = 0;
-  if (analysis.phones.length > 0) {
-    const isBlacklistedPhone = analysis.phones.some(phone => 
-      LOCAL_BLACK_LIST.phoneNumbers.includes(phone)
-    );
-
-    if (isBlacklistedPhone) {
-      repScore += 15;
+    if (analysis.phones.length > 0) {
+      score += 8;
       explanations.push({
         category: "reputation",
-        label: "Known Scam Contact Number",
-        text: "The phone number matches reported local and campus-wide phishing dispatchers.",
-        weight: 15
-      });
-      indicatorsMatched.push(...analysis.phones);
-    } else {
-      repScore += 5;
-      explanations.push({
-        category: "reputation",
-        label: "Unknown Unregistered Sender",
-        text: "Sender phone number is not listed in local white-directories.",
-        weight: 5
-      });
-    }
-  }
-  score += Math.min(15, repScore);
-
-  // 5. COMMUNITY EVIDENCE (Weight: 15%)
-  let communityScore = 0;
-  const verifiedReports = metadata.verifiedReportsCount || 0;
-  if (verifiedReports > 0) {
-    if (verifiedReports >= 3) {
-      communityScore += 15;
-      explanations.push({
-        category: "community",
-        label: "Verified Campus Reports",
-        text: `This pattern matches ${verifiedReports} confirmed community scam reports verified by moderators.`,
-        weight: 15
-      });
-    } else {
-      communityScore += 8;
-      explanations.push({
-        category: "community",
-        label: "Active Community Review",
-        text: `${verifiedReports} similar report is currently under review by campus security/moderators.`,
+        label: "Unregistered Sender Details",
+        text: "Sender phone number requires independent validation.",
         weight: 8
       });
     }
   }
-  score += communityScore;
+
+  // 5. COMMUNITY FUSION (Weight: 15% - adds bonus to final score)
+  const verifiedReports = metadata.verifiedReportsCount || 0;
+  if (verifiedReports > 0) {
+    const commBonus = verifiedReports >= 3 ? 15 : 8;
+    score += commBonus;
+    explanations.push({
+      category: "community",
+      label: "Active Community Alerts",
+      text: `Matches ${verifiedReports} reports confirmed by local citizen moderators.`,
+      weight: commBonus
+    });
+  }
 
   // Keep score capped between 0 and 100
   score = Math.min(100, Math.max(0, score));
@@ -282,21 +310,21 @@ export function analyzeScamRisk(text, metadata = {}) {
       "DO NOT transfer money or submit login codes.",
       "Block the sender immediately and delete the message.",
       "Take a screenshot, redact personal details, and submit a report to alert others.",
-      "Escalate/Consult your campus security or trusted guardian."
+      "Contact your bank helpline (997 National Scam Response Centre if in Malaysia) if money was moved."
     ];
   } else if (score >= 60) {
     riskBand = "High risk";
     bandColor = "high";
     recommendedActions = [
       "Do not pay or share credentials under any circumstance.",
-      "Contact the official company using a verified phone number from their main website.",
-      "Share this scam checker result with your family caregiver or guardian."
+      "Contact the official company or family member using a verified channel.",
+      "Share this result with a trusted guardian or support circle."
     ];
   } else if (score >= 30) {
     riskBand = "Caution";
     bandColor = "caution";
     recommendedActions = [
-      "Pause before clicking. The message utilizes social-engineering pressure.",
+      "Pause before clicking. The message utilizes pressure tactics.",
       "Check if the message uses unofficial communication channels (e.g. Gmail instead of corporate domain)."
     ];
   }
@@ -306,7 +334,8 @@ export function analyzeScamRisk(text, metadata = {}) {
   let evidenceCount = (analysis.urls.length > 0 ? 1 : 0) + 
                       (analysis.phones.length > 0 ? 1 : 0) + 
                       (qrDestination ? 1 : 0) +
-                      (verifiedReports > 0 ? 1 : 0);
+                      (verifiedReports > 0 ? 1 : 0) +
+                      (matchedBlacklistIndicator ? 1 : 0);
   
   if (evidenceCount >= 3) confidence = "High";
   else if (evidenceCount >= 1) confidence = "Medium";

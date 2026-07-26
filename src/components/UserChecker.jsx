@@ -205,7 +205,7 @@ export default function UserChecker({ isElderlyMode, onToggleElderlyMode, report
           <AlertCircle size={28} color="var(--color-high)" style={{ flexShrink: 0, marginTop: '2px' }} />
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span className="badge badge-high" style={{ padding: '0.1rem 0.5rem', fontSize: '0.7rem' }}>Campus Alert</span>
+              <span className="badge badge-high" style={{ padding: '0.1rem 0.5rem', fontSize: '0.7rem' }}>Community Alert</span>
               <strong style={{ color: '#fff', fontSize: isElderlyMode ? '1.2rem' : '0.95rem' }}>Active Threat Advisory</strong>
             </div>
             <p style={{ color: '#fca5a5', marginTop: '0.25rem', fontSize: isElderlyMode ? '1.15rem' : '0.85rem' }}>
@@ -220,7 +220,7 @@ export default function UserChecker({ isElderlyMode, onToggleElderlyMode, report
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <Sparkles color="var(--primary)" size={22} />
           <div>
-            <h3 style={{ fontSize: isElderlyMode ? '1.4rem' : '1.1rem', color: '#fff' }}>ScamShield AI Assistant</h3>
+            <h3 style={{ fontSize: isElderlyMode ? '1.4rem' : '1.1rem', color: '#fff' }}>ScamShield Assistant</h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>Multi-format evidence analyzer & safety guide</p>
           </div>
         </div>
