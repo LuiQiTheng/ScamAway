@@ -56,29 +56,6 @@ This repository contains the complete prototype source code for **ScamShield MY*
 
 ---
 
-## 🖥️ 3-Minute Live Demo Walkthrough
-
-Follow this sequence for judging demonstrations:
-
-1. **0:00 - 0:30: Show the Problem & System Intro**
-   - Toggle **Elderly Mode** to showcase large text and test the **Read Aloud** audio narration.
-2. **0:30 - 1:10: Multi-Format Scan & Explain**
-   - Go to the **Screenshot OCR** tab. Select the **📦 Courier/Parcel Scam** demo preset.
-   - Run the check to demonstrate scanning progress and review the **76/100 High Risk** score.
-   - Inspect the **Explainable evidence indicators** to show the judges exactly how the score was calculated.
-3. **1:10 - 1:45: Interactive Checklist & Consent Report**
-   - Go through the verification checklist. Click **Report Scam**.
-   - Preview the redacted text (phone numbers masked) and submit the community report.
-4. **1:45 - 2:20: Moderator Verification Loop**
-   - Navigate to the **Admin Moderation** tab. Select the newly reported case.
-   - Enter a rationale and click **Confirm Scam Case**. This automatically adds the indicators to the checker's blacklist.
-5. **2:20 - 3:00: Campus Alerts & Trend Dashboard Update**
-   - In the moderator sidebar, type a broadcast alert message and click publish.
-   - Switch to **Campus Trends** and click on the **Student Hostels** map zone to show real-time hotspot updates.
-   - Return to the **Scam Checker** tab to see your broadcast alert active at the top.
-
----
-
 ## 🤝 SDG Alignment
 - **SDG 16 (Peace, Justice and Strong Institutions)**: Reductions in fraud victimization via transparent evidence checking.
 - **SDG 9 (Industry, Innovation and Infrastructure)**: Secure local data integration.
