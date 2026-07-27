@@ -265,7 +265,11 @@ export default function UserChecker({ isElderlyMode, onToggleElderlyMode }) {
               <strong style={{ color: '#fff', fontSize: isElderlyMode ? '1.2rem' : '0.95rem' }}>{t('scanner.alert_title')}</strong>
             </div>
             <p style={{ color: '#fca5a5', marginTop: '0.25rem', fontSize: isElderlyMode ? '1.15rem' : '0.85rem' }}>
-              {activeAlert.message}
+              {lang === 'ms' 
+                ? (activeAlert.message_ms || (activeAlert.message?.includes("Urgent: A wave of parcel") 
+                    ? "Segera: Gelombang SMS bayaran semasa penghantaran (COD) bungkusan yang menyamar sebagai pautan Pos Laju (pos-laju.info) telah menyasarkan wilayah Selangor dan Lembah Klang. Jangan bayar atau buka pautan tersebut." 
+                    : activeAlert.message)) 
+                : activeAlert.message}
             </p>
           </div>
         </div>

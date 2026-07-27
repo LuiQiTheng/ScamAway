@@ -94,9 +94,17 @@ export const AppProvider = ({ children }) => {
   const [activeAlert, setActiveAlert] = useState(() => {
     try {
       const saved = localStorage.getItem('scamshield_alert');
-      return saved ? JSON.parse(saved) : {
+      const parsed = saved ? JSON.parse(saved) : null;
+      if (parsed) {
+        if (!parsed.message_ms && parsed.message?.includes("Urgent: A wave of parcel")) {
+          parsed.message_ms = "Segera: Gelombang SMS bayaran semasa penghantaran (COD) bungkusan yang menyamar sebagai pautan Pos Laju (pos-laju.info) telah menyasarkan wilayah Selangor dan Lembah Klang. Jangan bayar atau buka pautan tersebut.";
+        }
+        return parsed;
+      }
+      return {
         id: 1,
         message: "Urgent: A wave of parcel cash-on-delivery (COD) SMS impersonating Pos Laju links (pos-laju.info) has been targeting Selangor and Klang Valley regions. Do not pay or open the links.",
+        message_ms: "Segera: Gelombang SMS bayaran semasa penghantaran (COD) bungkusan yang menyamar sebagai pautan Pos Laju (pos-laju.info) telah menyasarkan wilayah Selangor dan Lembah Klang. Jangan bayar atau buka pautan tersebut.",
         timestamp: new Date().toISOString()
       };
     } catch (e) {
@@ -104,6 +112,7 @@ export const AppProvider = ({ children }) => {
       return {
         id: 1,
         message: "Urgent: A wave of parcel cash-on-delivery (COD) SMS impersonating Pos Laju links (pos-laju.info) has been targeting Selangor and Klang Valley regions. Do not pay or open the links.",
+        message_ms: "Segera: Gelombang SMS bayaran semasa penghantaran (COD) bungkusan yang menyamar sebagai pautan Pos Laju (pos-laju.info) telah menyasarkan wilayah Selangor dan Lembah Klang. Jangan bayar atau buka pautan tersebut.",
         timestamp: new Date().toISOString()
       };
     }
