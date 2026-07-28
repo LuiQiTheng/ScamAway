@@ -9,7 +9,22 @@ import UserProfile from './components/UserProfile';
 export default function App() {
   const [activeTab, setActiveTab] = useState('check'); // check, knowledge, moderator, profile
   const [userRole, setUserRole] = useState('user'); // 'user' or 'admin'
-  const [isElderlyMode, setIsElderlyMode] = useState(false);
+  const [userMode, setUserMode] = useState(() => {
+    try {
+      const savedMode = localStorage.getItem('scamshield_user_mode');
+      if (savedMode && ['normal', 'elderly', 'kid'].includes(savedMode)) {
+        return savedMode;
+      }
+      const legacyElderly = localStorage.getItem('scamshield_elderly_mode');
+      if (legacyElderly && JSON.parse(legacyElderly) === true) {
+        return 'elderly';
+      }
+      return 'normal';
+    } catch (e) {
+      return 'normal';
+    }
+  });
+
   const { lang, toggleLanguage, t } = useLanguage();
 
   const handleRoleChange = (role) => {
@@ -20,13 +35,22 @@ export default function App() {
       setActiveTab('check');
     }
   };
-  
-  const handleToggleElderlyMode = () => {
-    setIsElderlyMode(!isElderlyMode);
+
+  const handleSetUserMode = (mode) => {
+    setUserMode(mode);
+    try {
+      localStorage.setItem('scamshield_user_mode', mode);
+      localStorage.setItem('scamshield_elderly_mode', JSON.stringify(mode === 'elderly'));
+    } catch (e) {
+      console.error(e);
+    }
   };
 
+  const isElderlyMode = userMode === 'elderly';
+  const isKidMode = userMode === 'kid';
+
   return (
-    <div className={`app-container ${isElderlyMode ? 'elderly-mode' : ''}`}>
+    <div className={`app-container mode-${userMode} ${isElderlyMode ? 'elderly-mode' : ''} ${isKidMode ? 'kid-mode' : ''}`}>
       {/* Navigation Header */}
       <header className="app-header">
         <div className="app-logo">
@@ -37,42 +61,107 @@ export default function App() {
         <nav className="nav-links">
           {userRole === 'user' ? (
             <>
-              <button 
-                onClick={() => setActiveTab('check')} 
+              <button
+                onClick={() => setActiveTab('check')}
                 className={`nav-link ${activeTab === 'check' ? 'active' : ''}`}
-                style={{ fontSize: isElderlyMode ? '1.15rem' : '0.9rem' }}
+                style={{ fontSize: isElderlyMode ? '1.25rem' : '0.9rem' }}
               >
                 🛡️ {t('nav.scanner')}
               </button>
-              <button 
-                onClick={() => setActiveTab('knowledge')} 
+              <button
+                onClick={() => setActiveTab('knowledge')}
                 className={`nav-link ${activeTab === 'knowledge' ? 'active' : ''}`}
-                style={{ fontSize: isElderlyMode ? '1.15rem' : '0.9rem' }}
+                style={{ fontSize: isElderlyMode ? '1.25rem' : '0.9rem' }}
               >
                 🧠 {t('nav.knowledge')}
               </button>
-              <button 
-                onClick={() => setActiveTab('profile')} 
+              <button
+                onClick={() => setActiveTab('profile')}
                 className={`nav-link ${activeTab === 'profile' ? 'active' : ''}`}
-                style={{ fontSize: isElderlyMode ? '1.15rem' : '0.9rem' }}
+                style={{ fontSize: isElderlyMode ? '1.25rem' : '0.9rem' }}
               >
                 👤 {t('nav.profile')}
               </button>
             </>
           ) : (
-            <button 
-              onClick={() => setActiveTab('moderator')} 
+            <button
+              onClick={() => setActiveTab('moderator')}
               className={`nav-link ${activeTab === 'moderator' ? 'active' : ''}`}
-              style={{ fontSize: isElderlyMode ? '1.15rem' : '0.9rem' }}
+              style={{ fontSize: isElderlyMode ? '1.25rem' : '0.9rem' }}
             >
               👮 {t('nav.moderator')}
             </button>
           )}
         </nav>
 
-        <div className="flex-row items-center gap-sm">
+        <div className="flex-row items-center gap-sm" style={{ flexWrap: 'wrap' }}>
+          {/* Mode Selector Segmented Pill Control */}
+          <div 
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              background: 'rgba(255,255,255,0.03)', 
+              padding: '0.2rem', 
+              borderRadius: '20px', 
+              border: '1px solid var(--border-color)',
+              gap: '0.15rem'
+            }}
+          >
+            <button
+              onClick={() => handleSetUserMode('normal')}
+              title={t('mode.normal')}
+              style={{
+                padding: '0.3rem 0.6rem',
+                borderRadius: '16px',
+                border: 'none',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                background: userMode === 'normal' ? 'var(--primary)' : 'transparent',
+                color: userMode === 'normal' ? '#fff' : 'var(--text-muted)',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              {t('mode.normal')}
+            </button>
+            <button
+              onClick={() => handleSetUserMode('elderly')}
+              title={t('mode.elderly')}
+              style={{
+                padding: '0.3rem 0.6rem',
+                borderRadius: '16px',
+                border: 'none',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                background: userMode === 'elderly' ? '#06b6d4' : 'transparent',
+                color: userMode === 'elderly' ? '#fff' : 'var(--text-muted)',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              {t('mode.elderly')}
+            </button>
+            <button
+              onClick={() => handleSetUserMode('kid')}
+              title={t('mode.kid')}
+              style={{
+                padding: '0.3rem 0.6rem',
+                borderRadius: '16px',
+                border: 'none',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                background: userMode === 'kid' ? '#a855f7' : 'transparent',
+                color: userMode === 'kid' ? '#fff' : 'var(--text-muted)',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              {t('mode.kid')}
+            </button>
+          </div>
+
           {/* Language Toggle */}
-          <button 
+          <button
             onClick={toggleLanguage}
             style={{
               display: 'flex', alignItems: 'center', gap: '0.25rem',
@@ -87,7 +176,7 @@ export default function App() {
 
           {/* Role Switcher Badge for Demo */}
           <div className="flex-row items-center" style={{ background: 'rgba(255,255,255,0.03)', padding: '0.25rem 0.5rem', borderRadius: '20px', border: '1px solid var(--border-color)' }}>
-            <button 
+            <button
               onClick={() => handleRoleChange('user')}
               style={{
                 padding: '0.3rem 0.75rem',
@@ -102,7 +191,7 @@ export default function App() {
             >
               {t('app.role_user')}
             </button>
-            <button 
+            <button
               onClick={() => handleRoleChange('admin')}
               style={{
                 padding: '0.3rem 0.75rem',
@@ -124,20 +213,28 @@ export default function App() {
       {/* Main Content Layout */}
       <main className="w-full" style={{ flex: 1, padding: '2rem 1.5rem', maxWidth: '1280px', margin: '0 auto' }}>
         {activeTab === 'check' && (
-          <UserChecker 
+          <UserChecker
+            userMode={userMode}
             isElderlyMode={isElderlyMode}
-            onToggleElderlyMode={handleToggleElderlyMode}
+            isKidMode={isKidMode}
+            onSetUserMode={handleSetUserMode}
           />
         )}
 
         {activeTab === 'knowledge' && (
-          <KnowledgeCentre 
+          <KnowledgeCentre
+            userMode={userMode}
             isElderlyMode={isElderlyMode}
+            isKidMode={isKidMode}
           />
         )}
 
         {activeTab === 'profile' && (
-          <UserProfile />
+          <UserProfile
+            userMode={userMode}
+            isElderlyMode={isElderlyMode}
+            isKidMode={isKidMode}
+          />
         )}
 
         {activeTab === 'moderator' && (

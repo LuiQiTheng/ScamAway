@@ -3,7 +3,7 @@ import { useAppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { Bell, CheckCircle, XCircle, Clock } from 'lucide-react';
 
-export default function UserProfile() {
+export default function UserProfile({ userMode = 'normal', isElderlyMode = false, isKidMode = false }) {
   const { reportsList } = useAppContext();
   const { t } = useLanguage();
   const [myReports, setMyReports] = useState([]);
@@ -17,7 +17,7 @@ export default function UserProfile() {
     // Check for recently reviewed reports to show notifications
     // Simple mock logic: any report that is not 'unverified' and not 'under_review'
     const recentReviewed = userReports.filter(r => r.status === 'confirmed' || r.status === 'rejected');
-    
+
     // In a real app we'd track "read" status. For this prototype, just show the most recent one if it exists
     if (recentReviewed.length > 0) {
       // Sort by latest
@@ -27,15 +27,15 @@ export default function UserProfile() {
   }, [reportsList]);
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto' }} className="fade-in">
+    <div style={{ maxWidth: '800px', margin: '0 auto' }} className={`fade-in mode-${userMode} ${isElderlyMode ? 'elderly-mode' : ''} ${isKidMode ? 'kid-mode' : ''}`}>
       <h1 style={{ color: '#fff', fontSize: '1.8rem', marginBottom: '1.5rem' }}>{t('profile.title')}</h1>
 
       {/* Notifications Banner */}
       {notifications.length > 0 && (
-        <div style={{ 
-          background: 'rgba(59, 130, 246, 0.15)', 
-          border: '1px solid rgba(59, 130, 246, 0.5)', 
-          borderRadius: '12px', 
+        <div style={{
+          background: 'rgba(59, 130, 246, 0.15)',
+          border: '1px solid rgba(59, 130, 246, 0.5)',
+          borderRadius: '12px',
           padding: '1.25rem',
           marginBottom: '2rem',
           display: 'flex',
@@ -50,9 +50,9 @@ export default function UserProfile() {
             </p>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(0,0,0,0.3)', padding: '0.25rem 0.75rem', borderRadius: '20px', fontSize: '0.8rem' }}>
               {notifications[0].status === 'confirmed' ? (
-                <><CheckCircle size={14} color="var(--color-low)" /> <span style={{color: 'var(--color-low)'}}>Confirmed</span></>
+                <><CheckCircle size={14} color="var(--color-low)" /> <span style={{ color: 'var(--color-low)' }}>Confirmed</span></>
               ) : (
-                <><XCircle size={14} color="var(--color-high)" /> <span style={{color: 'var(--color-high)'}}>Rejected</span></>
+                <><XCircle size={14} color="var(--color-high)" /> <span style={{ color: 'var(--color-high)' }}>Rejected</span></>
               )}
             </div>
           </div>
@@ -88,9 +88,9 @@ export default function UserProfile() {
                     "{report.text}"
                   </td>
                   <td style={{ padding: '1rem' }}>
-                    {report.status === 'confirmed' && <span style={{ color: 'var(--color-low)', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem' }}><CheckCircle size={14}/> {t('profile.confirmed')}</span>}
-                    {report.status === 'rejected' && <span style={{ color: 'var(--color-high)', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem' }}><XCircle size={14}/> {t('profile.rejected')}</span>}
-                    {(report.status === 'unverified' || report.status === 'under_review') && <span style={{ color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem' }}><Clock size={14}/> {t('profile.pending')}</span>}
+                    {report.status === 'confirmed' && <span style={{ color: 'var(--color-low)', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem' }}><CheckCircle size={14} /> {t('profile.confirmed')}</span>}
+                    {report.status === 'rejected' && <span style={{ color: 'var(--color-high)', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem' }}><XCircle size={14} /> {t('profile.rejected')}</span>}
+                    {(report.status === 'unverified' || report.status === 'under_review') && <span style={{ color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem' }}><Clock size={14} /> {t('profile.pending')}</span>}
                   </td>
                 </tr>
               ))

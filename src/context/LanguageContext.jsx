@@ -13,7 +13,7 @@ const translations = {
     "nav.elderly": "Elderly Mode",
     "nav.submit_report": "Submit Report",
     "nav.moderator": "Admin Moderation",
-    
+
     // Admin Dashboard
     "admin.queue": "Case Queue",
     "admin.blacklists": "Blacklists",
@@ -61,7 +61,13 @@ const translations = {
     "admin.level": "level",
     "admin.agree": "Agree",
     "admin.verified": "verified",
-    
+
+    // Mode Selector & Accessibility
+    "mode.title": "Audience Mode",
+    "mode.normal": "👤 Normal",
+    "mode.elderly": "👵 Elderly",
+    "mode.kid": "🎮 Kid / Teen",
+
     // Scanner
     "scanner.title": "Scan Suspicious Context",
     "scanner.placeholder": "Paste suspicious text message, email, or context here...",
@@ -72,9 +78,11 @@ const translations = {
     "scanner.text_paste": "Paste the copied text",
     "scanner.assistant": "ScamShield Assistant",
     "scanner.assistant_desc": "Multi-format evidence analyzer & safety guide",
+    "scanner.assistant_kid": "ScamShield Junior Radar 🎮",
+    "scanner.assistant_desc_kid": "Fun & smart protection against game currency scams, fake top-ups & online traps!",
     "scanner.switch_regular": "👵 Switch to Regular Mode",
     "scanner.switch_elderly": "👵 Switch to Elderly Mode",
-    
+
     // Results
     "result.high_risk": "High Risk Detected",
     "result.safe": "Appears Safe",
@@ -88,7 +96,7 @@ const translations = {
     "result.report_scam_btn": "Report Scam & Alert Community",
     "result.scan_another_btn": "Scan Another Content",
     "result.weight": "Weight",
-    
+
     // Profile
     "profile.title": "My Reports & Tracking",
     "profile.status": "Status",
@@ -101,7 +109,7 @@ const translations = {
     "profile.table_category": "Category",
     "profile.table_content": "Content Snippet",
     "profile.no_reports": "No reports submitted yet.",
-    
+
     // Knowledge Centre
     "knowledge.quiz_title": "Daily 15-Question Challenge",
     "knowledge.quiz_start": "Start Challenge",
@@ -132,7 +140,7 @@ const translations = {
     "knowledge.longest_streak": "Longest Streak",
     "knowledge.final_rank": "Final Rank",
     "knowledge.play_another": "Play Another Round",
-    
+
     // Categories
     "category.all": "All",
     "category.courier": "Courier & Delivery",
@@ -141,7 +149,7 @@ const translations = {
     "category.investment": "Impossible Investment",
     "category.emergency": "Emergency & Secrecy",
     "category.qr": "Quishing / QR Code",
-    
+
     // Report Modal
     "report.submitted": "Report Submitted",
     "report.thank_you": "Thank you! The report is now added to the queue for moderator verification. Your community contribution helps make our campus safer.",
@@ -211,7 +219,7 @@ const translations = {
     "engine.speech_caution": "Caution. Suspicious elements were found. Please pause and verify.",
     "engine.speech_high": "Warning. High risk elements detected. Do not pay or share credentials.",
     "engine.speech_intro": "Here are the recommended safety actions.",
-    
+
     // General
     "common.close": "Close",
     "common.loading": "Processing..."
@@ -224,7 +232,7 @@ const translations = {
     "nav.elderly": "Mod Warga Emas",
     "nav.submit_report": "Hantar Laporan",
     "nav.moderator": "Moderasi Admin",
-    
+
     // Admin Dashboard
     "admin.queue": "Gilir Kes",
     "admin.blacklists": "Senarai Hitam",
@@ -273,6 +281,12 @@ const translations = {
     "admin.agree": "Setuju",
     "admin.verified": "disahkan",
 
+    // Mode Selector & Accessibility
+    "mode.title": "Mod Khalayak",
+    "mode.normal": "👤 Biasa",
+    "mode.elderly": "👵 Warga Emas",
+    "mode.kid": "🎮 Remaja & Budak",
+
     // Scanner
     "scanner.title": "Imbas Konteks Mencurigakan",
     "scanner.placeholder": "Tampal mesej teks, e-mel, atau konteks mencurigakan di sini...",
@@ -283,9 +297,11 @@ const translations = {
     "scanner.text_paste": "Tampal teks yang disalin",
     "scanner.assistant": "Pembantu ScamShield",
     "scanner.assistant_desc": "Penganalisis bukti pelbagai format & panduan keselamatan",
+    "scanner.assistant_kid": "Radar ScamShield Junior 🎮",
+    "scanner.assistant_desc_kid": "Perlindungan bijak & menyeronokkan daripada scam tebus game, top-up palsu & perangkap dalam talian!",
     "scanner.switch_regular": "👵 Tukar ke Mod Biasa",
     "scanner.switch_elderly": "👵 Tukar ke Mod Warga Emas",
-    
+
     // Results
     "result.high_risk": "Risiko Tinggi Dikesan",
     "result.safe": "Kelihatan Selamat",
@@ -299,7 +315,7 @@ const translations = {
     "result.report_scam_btn": "Lapor Scam & Maklum Komuniti",
     "result.scan_another_btn": "Imbas Kandungan Lain",
     "result.weight": "Pemberat",
-    
+
     // Profile
     "profile.title": "Laporan & Penjejakan Saya",
     "profile.status": "Status",
@@ -312,7 +328,7 @@ const translations = {
     "profile.table_category": "Kategori",
     "profile.table_content": "Petikan Kandungan",
     "profile.no_reports": "Tiada laporan dihantar lagi.",
-    
+
     // Knowledge Centre
     "knowledge.quiz_title": "Cabaran 15-Soalan Harian",
     "knowledge.quiz_start": "Mula Cabaran",
@@ -343,7 +359,7 @@ const translations = {
     "knowledge.longest_streak": "Rentetan Terpanjang",
     "knowledge.final_rank": "Pangkat Akhir",
     "knowledge.play_another": "Main Pusingan Lain",
-    
+
     // Categories
     "category.all": "Semua",
     "category.courier": "Kurier & Penghantaran",
@@ -352,7 +368,7 @@ const translations = {
     "category.investment": "Pelaburan Mustahil",
     "category.emergency": "Kecemasan & Rahsia",
     "category.qr": "Quishing / Kod QR",
-    
+
     // Report Modal
     "report.submitted": "Laporan Dihantar",
     "report.thank_you": "Terima kasih! Laporan kini ditambahkan ke giliran untuk pengesahan moderator. Sumbangan komuniti anda membantu menjadikan kampus kita lebih selamat.",
@@ -422,7 +438,7 @@ const translations = {
     "engine.speech_caution": "Berhati-hati. Elemen mencurigakan ditemui. Sila berhenti sebentar dan sahkan.",
     "engine.speech_high": "Amaran. Elemen berisiko tinggi dikesan. Jangan bayar atau kongsi kelayakan.",
     "engine.speech_intro": "Berikut ialah tindakan keselamatan yang disyorkan.",
-    
+
     // General
     "common.close": "Tutup",
     "common.loading": "Sedang memproses..."
