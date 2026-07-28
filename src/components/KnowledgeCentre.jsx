@@ -4,7 +4,6 @@ import { getDailyQuestions } from '../utils/quizDatabase';
 import { useLanguage } from '../context/LanguageContext';
 import { LESSON_CARDS } from '../utils/lessonCards';
 import { CHEAT_SHEETS } from '../content/member2Content';
-import SpotTheScamQuiz from './SpotTheScamQuiz';
 
 export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = false, isKidMode = false }) {
   const { t, lang } = useLanguage();
@@ -226,9 +225,6 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2rem', width: '100%', margin: '0 auto', padding: '1rem' }} className={`mode-${userMode} ${isElderlyMode ? 'elderly-mode' : ''} ${isKidMode ? 'kid-mode' : ''}`}>
-
-      {/* Member 2: focused two-choice awareness quiz */}
-      <SpotTheScamQuiz />
 
       {/* Member 2: essential Malaysian scam cheat sheets */}
       <section className="cheat-sheet-section" aria-labelledby="essential-cheat-sheets-title">
