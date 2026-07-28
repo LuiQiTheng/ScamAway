@@ -48,7 +48,7 @@ export default function App() {
       console.error(e);
     }
   };
-
+  
   const activeMode = userRole === 'admin' ? 'normal' : userMode;
   const isElderlyMode = activeMode === 'elderly';
   const isKidMode = activeMode === 'kid';
