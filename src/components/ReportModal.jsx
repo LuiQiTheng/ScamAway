@@ -1,154 +1,188 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Shield, Eye, EyeOff, X, CheckCircle } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { CheckCircle, Eye, EyeOff, Shield, X } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { redactSensitiveInformation } from '../utils/redaction';
 
-export default function ReportModal({ isOpen, onClose, scanResult, originalText, onSubmitReport }) {
+export default function ReportModal({
+  isOpen,
+  onClose,
+  scanResult,
+  originalText = '',
+  onSubmitReport,
+}) {
   const { t } = useLanguage();
-  if (!isOpen) return null;
-
   const [category, setCategory] = useState('phishing');
+  const [message, setMessage] = useState(originalText);
   const [consent, setConsent] = useState(false);
-  const [redactedText, setRedactedText] = useState(() => {
-    // Basic automatic redaction of phone numbers and bank account numbers for preview
-    let txt = originalText || '';
-    // Redact phone numbers
-    txt = txt.replace(/(\+?6?01[0-9]-?[0-9]{7,8}|\+?6?0[3-9]-?[0-9]{7})/g, '[REDACTED PHONE]');
-    // Redact bank account examples (digits of length 10-15)
-    txt = txt.replace(/\b\d{10,15}\b/g, '[REDACTED BANK ACCOUNT]');
-    return txt;
-  });
   const [showRaw, setShowRaw] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!consent) return;
-
-    // Send the report data back
-    onSubmitReport({
-      category,
-      text: redactedText,
-      originalText: originalText,
-      score: scanResult?.score || 0,
-      riskBand: scanResult?.riskBand || 'Low evidence',
-      timestamp: new Date().toISOString(),
-      status: 'unverified'
-    });
-
-    setSubmitted(true);
-    setTimeout(() => {
-      setSubmitted(false);
-      onClose();
-    }, 2000);
-  };
-
+  const [messageError, setMessageError] = useState('');
   const modalRef = useRef(null);
+  const messageRef = useRef(null);
+  const closeTimerRef = useRef(null);
+
+  const redactedText = useMemo(
+    () => redactSensitiveInformation(message),
+    [message],
+  );
 
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') onClose();
-      if (e.key === 'Tab' && modalRef.current) {
-        const focusableElements = modalRef.current.querySelectorAll(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        );
-        const firstElement = focusableElements[0];
-        const lastElement = focusableElements[focusableElements.length - 1];
+    if (!isOpen) return;
 
-        if (e.shiftKey) {
-          if (document.activeElement === firstElement) {
-            lastElement.focus();
-            e.preventDefault();
-          }
-        } else {
-          if (document.activeElement === lastElement) {
-            firstElement.focus();
-            e.preventDefault();
-          }
-        }
+    setMessage(originalText || '');
+    setCategory('phishing');
+    setConsent(false);
+    setShowRaw(false);
+    setSubmitted(false);
+    setMessageError('');
+
+    const focusTimer = window.setTimeout(() => messageRef.current?.focus(), 0);
+    return () => window.clearTimeout(focusTimer);
+  }, [isOpen, originalText]);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        onClose();
+        return;
+      }
+
+      if (event.key !== 'Tab' || !modalRef.current) return;
+
+      const focusableElements = modalRef.current.querySelectorAll(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+
+      if (focusableElements.length === 0) return;
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (event.shiftKey && document.activeElement === firstElement) {
+        lastElement.focus();
+        event.preventDefault();
+      } else if (!event.shiftKey && document.activeElement === lastElement) {
+        firstElement.focus();
+        event.preventDefault();
       }
     };
 
-    if (isOpen) {
-      document.addEventListener('keydown', handleKeyDown);
-      // Optional: focus first element when opened
-    }
+    document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
+  useEffect(() => () => {
+    if (closeTimerRef.current) {
+      window.clearTimeout(closeTimerRef.current);
+    }
+  }, []);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+
+    if (!message.trim()) {
+      setMessageError(t('report.message_required'));
+      messageRef.current?.focus();
+      return;
+    }
+
+    if (!consent) return;
+
+    onSubmitReport?.({
+      category,
+      text: redactedText,
+      originalText: message,
+      score: scanResult?.score || 0,
+      riskBand: scanResult?.riskBand || 'Low evidence',
+      timestamp: new Date().toISOString(),
+      status: 'unverified',
+    });
+
+    setSubmitted(true);
+    closeTimerRef.current = window.setTimeout(onClose, 1800);
+  };
+
+  const closeModal = () => {
+    if (closeTimerRef.current) {
+      window.clearTimeout(closeTimerRef.current);
+    }
+    onClose();
+  };
+
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      width: '100%',
-      height: '100%',
-      zIndex: 100,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '1rem',
-      background: 'rgba(7, 10, 19, 0.8)'
-    }}>
-      <div 
-        className="glass-panel" 
+    <div
+      className="report-modal-backdrop"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) closeModal();
+      }}
+    >
+      <div
+        className="report-modal glass-panel"
         ref={modalRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="modal-title"
-        style={{
-        width: '100%',
-        maxWidth: '550px',
-        background: 'var(--bg-dark)',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-        padding: '2rem',
-        position: 'relative'
-      }}>
-        <button onClick={onClose} style={{
-          position: 'absolute',
-          top: '1.25rem',
-          right: '1.25rem',
-          background: 'transparent',
-          border: 'none',
-          color: 'var(--text-secondary)',
-          cursor: 'pointer'
-        }}>
-          <X size={20} />
+        aria-labelledby="report-modal-title"
+      >
+        <button
+          type="button"
+          onClick={closeModal}
+          className="report-modal-close"
+          aria-label={t('report.close')}
+        >
+          <X size={21} />
         </button>
 
         {submitted ? (
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '2rem 0',
-            textAlign: 'center',
-            gap: '1rem'
-          }}>
-            <CheckCircle size={56} color="var(--color-low)" />
-            <h2 id="modal-title" style={{ fontSize: '1.75rem', color: '#fff' }}>{t('report.submitted')}</h2>
-            <p style={{ color: 'var(--text-secondary)' }}>
-              {t('report.thank_you')}
-            </p>
+          <div className="report-success" role="status" aria-live="polite">
+            <CheckCircle size={58} aria-hidden="true" />
+            <h2 id="report-modal-title">{t('report.submitted')}</h2>
+            <p>{t('report.thank_you')}</p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <Shield size={28} color="var(--primary)" />
-              <h2 id="modal-title" style={{ fontSize: '1.5rem', color: '#fff' }}>{t('report.title')}</h2>
+          <form onSubmit={handleSubmit} className="report-form">
+            <div className="report-heading">
+              <Shield size={29} aria-hidden="true" />
+              <div>
+                <p className="section-eyebrow">{t('report.community_eyebrow')}</p>
+                <h2 id="report-modal-title">{t('report.title')}</h2>
+              </div>
             </div>
-            
-            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-              {t('report.desc')}
-            </p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>{t('report.category')}</label>
-              <select 
-                value={category} 
-                onChange={(e) => setCategory(e.target.value)} 
+            <p className="report-description">{t('report.desc')}</p>
+
+            <label className="report-field">
+              <span>{t('report.message_label')}</span>
+              <textarea
+                ref={messageRef}
                 className="input-field"
-                style={{ background: '#111827', cursor: 'pointer' }}
+                rows="6"
+                value={message}
+                onChange={(event) => {
+                  setMessage(event.target.value);
+                  if (event.target.value.trim()) setMessageError('');
+                }}
+                placeholder={t('report.message_placeholder')}
+                aria-describedby={messageError ? 'report-message-error' : 'report-message-help'}
+                aria-invalid={Boolean(messageError)}
+              />
+              {messageError ? (
+                <small id="report-message-error" className="report-error">
+                  {messageError}
+                </small>
+              ) : (
+                <small id="report-message-help">{t('report.message_help')}</small>
+              )}
+            </label>
+
+            <label className="report-field">
+              <span>{t('report.category')}</span>
+              <select
+                value={category}
+                onChange={(event) => setCategory(event.target.value)}
+                className="input-field"
               >
                 <option value="phishing">{t('report.cat_phishing')}</option>
                 <option value="parcel">{t('report.cat_parcel')}</option>
@@ -157,82 +191,40 @@ export default function ReportModal({ isOpen, onClose, scanResult, originalText,
                 <option value="marketplace">{t('report.cat_marketplace')}</option>
                 <option value="finance">{t('report.cat_finance')}</option>
               </select>
-            </div>
+            </label>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                  {t('report.redacted_preview')}
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setShowRaw(!showRaw)}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: 'var(--primary)',
-                    fontSize: '0.75rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.25rem'
-                  }}
-                >
-                  {showRaw ? <EyeOff size={14} /> : <Eye size={14} />}
+            <div className="report-preview">
+              <div className="report-preview-heading">
+                <span>{t('report.redacted_preview')}</span>
+                <button type="button" onClick={() => setShowRaw((value) => !value)}>
+                  {showRaw ? <EyeOff size={15} /> : <Eye size={15} />}
                   {showRaw ? t('report.show_masked') : t('report.show_original')}
                 </button>
               </div>
-              
-              <div style={{
-                background: '#090d16',
-                border: '1px solid var(--border-color)',
-                borderRadius: '8px',
-                padding: '1rem',
-                fontSize: '0.9rem',
-                fontFamily: 'monospace',
-                maxHeight: '120px',
-                overflowY: 'auto',
-                color: showRaw ? '#fca5a5' : '#94a3b8'
-              }}>
-                {showRaw ? originalText : redactedText}
-              </div>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                {t('report.verified_filters')}
-              </span>
+              <pre className={showRaw ? 'showing-raw' : ''}>
+                {showRaw ? message : redactedText}
+              </pre>
+              <small>{t('report.verified_filters')}</small>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', marginTop: '0.5rem' }}>
-              <input 
-                id="consent-check"
-                type="checkbox" 
+            <label className="report-consent">
+              <input
+                type="checkbox"
                 checked={consent}
-                onChange={(e) => setConsent(e.target.checked)}
-                style={{ width: '18px', height: '18px', marginTop: '2px', cursor: 'pointer' }}
+                onChange={(event) => setConsent(event.target.checked)}
                 required
               />
-              <label htmlFor="consent-check" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>
-                {t('report.consent')}
-              </label>
-            </div>
+              <span>{t('report.consent')}</span>
+            </label>
 
-            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-              <button 
-                type="button" 
-                onClick={onClose} 
-                className="btn-secondary" 
-                style={{ flex: 1 }}
-              >
+            <div className="report-actions">
+              <button type="button" onClick={closeModal} className="btn-secondary">
                 {t('report.cancel')}
               </button>
-              <button 
-                type="submit" 
-                disabled={!consent}
-                className="btn-primary" 
-                style={{ 
-                  flex: 1, 
-                  opacity: consent ? 1 : 0.5,
-                  cursor: consent ? 'pointer' : 'not-allowed'
-                }}
+              <button
+                type="submit"
+                disabled={!consent || !message.trim()}
+                className="btn-primary"
               >
                 {t('report.submit_btn')}
               </button>

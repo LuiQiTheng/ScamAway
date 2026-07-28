@@ -1,0 +1,43 @@
+SCAMSHIELD — MEMBER 2 CONTENT PACK
+==================================
+
+CHEAT SHEETS
+------------
+
+1. LHDN TAX SCAM
+Scammers impersonate LHDN officers and claim that you owe tax, face arrest, or qualify for a refund. They create fear and ask for an immediate transfer, personal details, or a login through an unofficial link. Do not continue the conversation; check your tax status by opening the official MyTax portal yourself or call LHDN using a number from its official website.
+
+2. POS LAJU PARCEL SCAM
+A parcel scam says that delivery failed or a small customs fee is required, then provides a link that copies a courier website. The small amount makes the request feel harmless, but the fake page may steal card details, passwords, or OTP codes. Track the parcel only by typing the official courier address yourself or by using the courier's official app.
+
+3. TELEGRAM JOB SCAM
+Fake recruiters promise high pay for easy online tasks such as liking products, posting reviews, or processing orders. After a small reward builds trust, the victim is asked to deposit increasing amounts to unlock commissions or withdraw earnings. A genuine employer should not require you to pay for a job, so verify the company through its official website and stop if money or crypto is requested.
+
+
+SPOT THE SCAM — FIVE QUIZ SCENARIOS
+-----------------------------------
+
+Scenario 1
+Message: "POS LAJU: Your parcel is stuck at customs. Pay RM5 now at poslaju-redelivery.help to prevent cancellation."
+Answer: Scam
+Why: The unexpected fee, urgency, and unofficial courier domain are common parcel-phishing signs.
+
+Scenario 2
+Message: Your lecturer posts in the class group: "Tomorrow's tutorial is moved to Room B12. Check PutraBLAST for the same announcement."
+Answer: Safe
+Why: It does not request money or private details and tells you to verify through the normal university platform.
+
+Scenario 3
+Message: A Telegram recruiter offers RM500 per day for liking products and says you must transfer RM100 to activate your worker account.
+Answer: Scam
+Why: Genuine employers do not charge an activation deposit before you can work.
+
+Scenario 4
+Message: Your bank app shows a scheduled maintenance notice. The notice asks for no password or OTP and contains no external link.
+Answer: Safe
+Why: The notice appears inside the official app and does not ask you to disclose information or take risky action.
+
+Scenario 5
+Message: An "LHDN officer" calls and says police will arrest you today unless you transfer the outstanding tax to an account owned by an individual.
+Answer: Scam
+Why: Threats of immediate arrest and payment to a personal bank account are serious impersonation red flags.

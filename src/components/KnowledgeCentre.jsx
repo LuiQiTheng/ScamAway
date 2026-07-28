@@ -3,6 +3,8 @@ import { Award, BookOpen, ShieldAlert, CheckCircle, XCircle, RefreshCw, ChevronR
 import { getDailyQuestions } from '../utils/quizDatabase';
 import { useLanguage } from '../context/LanguageContext';
 import { LESSON_CARDS } from '../utils/lessonCards';
+import { CHEAT_SHEETS } from '../content/member2Content';
+import SpotTheScamQuiz from './SpotTheScamQuiz';
 
 export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = false, isKidMode = false }) {
   const { t, lang } = useLanguage();
@@ -224,6 +226,59 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2rem', width: '100%', margin: '0 auto', padding: '1rem' }} className={`mode-${userMode} ${isElderlyMode ? 'elderly-mode' : ''} ${isKidMode ? 'kid-mode' : ''}`}>
+
+      {/* Member 2: focused two-choice awareness quiz */}
+      <SpotTheScamQuiz />
+
+      {/* Member 2: essential Malaysian scam cheat sheets */}
+      <section className="cheat-sheet-section" aria-labelledby="essential-cheat-sheets-title">
+        <div className="section-heading">
+          <div>
+            <p className="section-eyebrow">
+              {lang === 'ms' ? 'Cheat sheet Malaysia' : 'Malaysia cheat sheets'}
+            </p>
+            <h2 id="essential-cheat-sheets-title">
+              {lang === 'ms'
+                ? 'Tiga scam yang anda perlu kenali'
+                : 'Three scams you should recognise'}
+            </h2>
+          </div>
+          <BookOpen size={28} aria-hidden="true" />
+        </div>
+
+        <div className="cheat-sheet-grid">
+          {CHEAT_SHEETS.map((sheet) => (
+            <article className="cheat-sheet-card glass-panel" key={sheet.id}>
+              <div className="cheat-sheet-topline">
+                <BookOpen size={20} aria-hidden="true" />
+                <span>{sheet.category[lang] || sheet.category.en}</span>
+              </div>
+
+              <h3>{sheet.title[lang] || sheet.title.en}</h3>
+              <p className="cheat-sheet-paragraph">
+                {sheet.paragraph[lang] || sheet.paragraph.en}
+              </p>
+
+              <div className="cheat-sheet-flags">
+                <strong>{lang === 'ms' ? 'Tanda amaran' : 'Red flags'}</strong>
+                <ul>
+                  {(sheet.redFlags[lang] || sheet.redFlags.en).map((flag) => (
+                    <li key={flag}>{flag}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="cheat-sheet-action">
+                <CheckCircle size={19} aria-hidden="true" />
+                <div>
+                  <strong>{lang === 'ms' ? 'Tindakan selamat' : 'Safe action'}</strong>
+                  <p>{sheet.safeAction[lang] || sheet.safeAction.en}</p>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
 
       {/* Quiz Section */}
       <div className="glass-panel" style={{ padding: '1.5rem 1.75rem' }}>
