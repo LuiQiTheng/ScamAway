@@ -209,9 +209,9 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
     }
 
     const intro = t('engine.speech_done').replace('{band}', scanResult.riskBand).replace('{score}', scanResult.score);
-    const low = scanResult.riskBand === 'Low evidence' ? t('engine.speech_low') : '';
-    const caution = scanResult.riskBand === 'Caution' ? t('engine.speech_caution') : '';
-    const high = (scanResult.riskBand === 'High risk' || scanResult.riskBand === 'Critical') ? t('engine.speech_high') : '';
+    const low = scanResult.bandColor === 'low' ? t('engine.speech_low') : '';
+    const caution = scanResult.bandColor === 'caution' ? t('engine.speech_caution') : '';
+    const high = (scanResult.bandColor === 'high' || scanResult.bandColor === 'critical') ? t('engine.speech_high') : '';
     const recommended = t('engine.speech_intro');
 
     const textToSpeak = `

@@ -1,48 +1,121 @@
-import { describe, it, expect } from 'vitest';
-import { extractIndicators, analyzeScamRisk } from '../utils/rulesEngine';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { analyzeTextWithGemini } from '../utils/aiEngine';
+import { analyzeScamRisk, extractIndicators } from '../utils/rulesEngine';
 
-describe('Bilingual Scam Detection Engine', () => {
-  
-  it('should detect Malay urgency and threat keywords', () => {
-    const text = 'AMARAN: LHDN mendapati anda mempunyai tunggakan cukai. Waran tangkap akan dikeluarkan dengan segera. Sila hubungi kami sekarang.';
-    const result = analyzeScamRisk(text);
-    
-    expect(result.score).toBeGreaterThan(60); // Should trigger high score due to threat and urgency
-    expect(result.explanations.some(e => e.category === 'threat')).toBe(true);
-    expect(result.explanations.some(e => e.category === 'urgency')).toBe(true);
+vi.mock('../utils/aiEngine', () => ({
+  analyzeTextWithGemini: vi.fn(),
+}));
+
+const urgentHiringPost = `Urgent Hiring (Full-time / Part-time)
+Penang, Melaka, Negeri Sembilan, KL, Selangor & Johor
+WFH / Hybrid / Office
+Positions: Admin, Customer Service, Sales, Accountant, Content Creator, UX/UI and Web Developer.
+Internship available for Finance, Marketing, Business, Accounting and HR.
+Requirements: SPM pass, able to speak/read/write Chinese, Malaysian only.
+Send resume to Mingxing: wa.me/60162518403`;
+
+describe('Context-aware scam detection engine', () => {
+  beforeEach(() => {
+    analyzeTextWithGemini.mockResolvedValue(null);
   });
 
-  it('should detect English impossible ROI investment scams', () => {
-    const text = 'Give RM100 and you will receive a guaranteed return of RM10000 in just 30 minutes!';
-    const result = analyzeScamRisk(text);
-    
-    expect(result.score).toBeGreaterThan(70);
-    expect(result.explanations.some(e => e.label.includes('Impossible Investment'))).toBe(true);
+  it('treats Urgent Hiring as a job title rather than immediate pressure', async () => {
+    const result = await analyzeScamRisk(urgentHiringPost);
+
+    expect(result.context).toMatchObject({
+      type: 'job_post',
+      verificationStatus: 'unverified',
+      hasWhatsAppLink: true,
+    });
+    expect(result.riskBand).toBe('Needs verification');
+    expect(result.score).toBeLessThan(30);
+    expect(result.explanations.some(({ category }) => category === 'urgency')).toBe(false);
   });
 
-  it('should detect Malay family emergency impersonation', () => {
-    const text = 'Mak, telefon saya rosak. Ini nombor baru. Tolong bank in duit ke akaun kawan saya segera untuk bayar bil hospital.';
-    const result = analyzeScamRisk(text);
+  it('explains that wa.me is a contact link requiring recruiter verification', async () => {
+    const result = await analyzeScamRisk(urgentHiringPost);
+    const whatsappExplanation = result.explanations.find(
+      ({ category }) => category === 'contact',
+    );
 
-    expect(result.score).toBeGreaterThan(50);
-    expect(result.explanations.some(e => e.category === 'impersonation')).toBe(true);
+    expect(result.indicators.urls).toContain('wa.me');
+    expect(whatsappExplanation?.label).toBe('WhatsApp Contact Link');
+    expect(whatsappExplanation?.text).toContain('not proof of a scam');
+    expect(result.explanations.some(({ label }) => label.includes('Unregistered'))).toBe(false);
   });
 
-  it('should flag URLs and phone numbers correctly', () => {
-    const text = 'Sila semak bungkusan anda di https://pos-laju.info atau hubungi 011-8762512.';
-    const analysis = extractIndicators(text);
-    
-    expect(analysis.urls).toContain('pos-laju.info');
-    expect(analysis.phones).toContain('011-8762512');
+  it('flags a job post that requires an advance activation deposit', async () => {
+    const result = await analyzeScamRisk(
+      'Part-time job: earn RM500 daily for simple online tasks. Pay RM100 registration deposit now to start. Contact wa.me/60123456789.',
+    );
+
+    expect(result.score).toBeGreaterThanOrEqual(60);
+    expect(result.explanations.some(({ label }) => label === 'Advance Fee to Start a Job')).toBe(true);
+    expect(result.explanations.some(({ category }) => category === 'urgency')).toBe(true);
   });
 
-  it('should output BM strings when lang is ms', () => {
-    const text = 'Mak, telefon saya rosak. Ini nombor baru. Tolong bank in duit ke akaun kawan saya segera untuk bayar bil hospital.';
-    const result = analyzeScamRisk(text, { lang: 'ms' });
+  it('detects explicit Malay urgency and legal threats', async () => {
+    const result = await analyzeScamRisk(
+      'AMARAN LHDN: Waran tangkap akan dikeluarkan. Bayar sekarang untuk mengelakkan tindakan undang-undang.',
+    );
 
-    expect(result.riskBand).toBe('Berisiko tinggi');
-    expect(result.explanations.some(e => e.label === 'Umpan Penyamaran Keluarga')).toBe(true);
-    expect(result.recommendedActions[0]).toBe('Jangan bayar atau kongsi kelayakan dalam apa jua keadaan.');
+    expect(result.score).toBeGreaterThanOrEqual(60);
+    expect(result.explanations.some(({ category }) => category === 'threat')).toBe(true);
+    expect(result.explanations.some(({ category }) => category === 'urgency')).toBe(true);
   });
 
+  it('detects a family emergency impersonation pattern', async () => {
+    const result = await analyzeScamRisk(
+      "Mum, my phone is broken and this is my new number. Transfer RM1,000 to my friend's account and don't call.",
+    );
+
+    expect(result.score).toBeGreaterThanOrEqual(45);
+    expect(result.explanations.some(({ label }) => label === 'Family Impersonation Pattern')).toBe(true);
+    expect(result.explanations.some(({ category }) => category === 'secrecy')).toBe(true);
+  });
+
+  it('extracts URLs and Malaysian phone numbers', () => {
+    const analysis = extractIndicators(
+      'Check https://pos-laju.info or contact wa.me/60162518403 and 011-8762512.',
+    );
+
+    expect(analysis.urls).toEqual(expect.arrayContaining(['pos-laju.info', 'wa.me']));
+    expect(analysis.phones).toEqual(
+      expect.arrayContaining(['60162518403', '011-8762512']),
+    );
+  });
+
+  it('caps AI escalation for an ordinary unverified job post', async () => {
+    analyzeTextWithGemini.mockResolvedValue({
+      score: 88,
+      explanations: [
+        {
+          category: 'urgency',
+          label: 'Urgent wording',
+          text: 'The title says urgent.',
+          weight: 20,
+        },
+        {
+          category: 'phishing',
+          label: 'WhatsApp link',
+          text: 'The message contains wa.me.',
+          weight: 25,
+        },
+      ],
+    });
+
+    const result = await analyzeScamRisk(urgentHiringPost);
+
+    expect(result.score).toBeLessThan(30);
+    expect(result.explanations.some(({ category }) => category === 'urgency')).toBe(false);
+    expect(result.explanations.some(({ category }) => category === 'phishing')).toBe(false);
+  });
+
+  it('returns Malay verification guidance when requested', async () => {
+    const result = await analyzeScamRisk(urgentHiringPost, { lang: 'ms' });
+
+    expect(result.riskBand).toBe('Perlu Pengesahan');
+    expect(result.recommendedActions[0]).toContain('SSM');
+    expect(result.explanations.some(({ label }) => label === 'Pautan Hubungan WhatsApp')).toBe(true);
+  });
 });
