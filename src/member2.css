@@ -415,6 +415,13 @@
 .report-field select {
   cursor: pointer;
   background: #111827;
+  color: #f8fafc;
+  color-scheme: dark;
+}
+
+.report-field select option {
+  background: #111827;
+  color: #f8fafc;
 }
 
 .report-field small,
