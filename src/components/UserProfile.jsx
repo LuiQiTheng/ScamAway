@@ -1,76 +1,352 @@
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
-import { Bell, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Bell, BellOff, CheckCircle, XCircle, Clock, Trash2, Check, MailOpen, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react';
 
 export default function UserProfile({ userMode = 'normal', isElderlyMode = false, isKidMode = false }) {
   const { reportsList } = useAppContext();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [myReports, setMyReports] = useState([]);
   const [notifications, setNotifications] = useState([]);
+  const [isNotificationsExpanded, setIsNotificationsExpanded] = useState(false);
+
+  // SessionStorage states for read and deleted notifications
+  const [readIds, setReadIds] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('scamshield_read_notifications');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  const [deletedIds, setDeletedIds] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('scamshield_deleted_notifications');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
 
   useEffect(() => {
     // Filter reports for the active user mock ID 'rep_103'
     const userReports = reportsList.filter(r => r.reporterId === 'rep_103');
     setMyReports(userReports);
 
-    // Check for recently reviewed reports to show notifications
-    // Simple mock logic: any report that is not 'unverified' and not 'under_review'
+    // Get ALL reviewed reports (confirmed or rejected) as notifications
     const recentReviewed = userReports.filter(r => r.status === 'confirmed' || r.status === 'rejected');
-
-    // In a real app we'd track "read" status. For this prototype, just show the most recent one if it exists
-    if (recentReviewed.length > 0) {
-      // Sort by latest
-      recentReviewed.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-      setNotifications([recentReviewed[0]]);
-    }
+    
+    // Sort latest first
+    recentReviewed.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    setNotifications(recentReviewed);
   }, [reportsList]);
 
+  // Handlers for read/delete/restore
+  const handleToggleRead = (id) => {
+    const nextRead = readIds.includes(id) 
+      ? readIds.filter(i => i !== id) 
+      : [...readIds, id];
+    setReadIds(nextRead);
+    try {
+      sessionStorage.setItem('scamshield_read_notifications', JSON.stringify(nextRead));
+    } catch (e) {}
+  };
+
+  const handleDeleteNotification = (id) => {
+    const nextDeleted = [...deletedIds, id];
+    setDeletedIds(nextDeleted);
+    try {
+      sessionStorage.setItem('scamshield_deleted_notifications', JSON.stringify(nextDeleted));
+    } catch (e) {}
+  };
+
+  const handleClearAll = () => {
+    const allIds = notifications.map(n => n.id);
+    const nextDeleted = Array.from(new Set([...deletedIds, ...allIds]));
+    setDeletedIds(nextDeleted);
+    try {
+      sessionStorage.setItem('scamshield_deleted_notifications', JSON.stringify(nextDeleted));
+    } catch (e) {}
+  };
+
+  const handleRestoreAll = () => {
+    setDeletedIds([]);
+    try {
+      sessionStorage.removeItem('scamshield_deleted_notifications');
+    } catch (e) {}
+  };
+
+  const activeNotifications = notifications.filter(n => !deletedIds.includes(n.id));
+  const visibleNotifications = isNotificationsExpanded ? activeNotifications : activeNotifications.slice(0, 1);
+
+  const handleMarkAllRead = () => {
+    const allIds = activeNotifications.map(n => n.id);
+    const nextRead = Array.from(new Set([...readIds, ...allIds]));
+    setReadIds(nextRead);
+    try {
+      sessionStorage.setItem('scamshield_read_notifications', JSON.stringify(nextRead));
+    } catch (e) {}
+  };
+
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto' }} className={`fade-in mode-${userMode} ${isElderlyMode ? 'elderly-mode' : ''} ${isKidMode ? 'kid-mode' : ''}`}>
-      <h1 style={{ color: '#fff', fontSize: '1.8rem', marginBottom: '1.5rem' }}>{t('profile.title')}</h1>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2rem', width: '100%', margin: '0 auto', padding: '1rem' }} className={`fade-in mode-${userMode} ${isElderlyMode ? 'elderly-mode' : ''} ${isKidMode ? 'kid-mode' : ''}`}>
 
-      {/* Notifications Banner */}
-      {notifications.length > 0 && (
-        <div style={{
-          background: 'rgba(59, 130, 246, 0.15)',
-          border: '1px solid rgba(59, 130, 246, 0.5)',
-          borderRadius: '12px',
-          padding: '1.25rem',
-          marginBottom: '2rem',
-          display: 'flex',
-          gap: '1rem',
-          alignItems: 'start'
-        }}>
-          <Bell color="#3b82f6" />
-          <div>
-            <strong style={{ color: '#fff', display: 'block', marginBottom: '0.25rem' }}>{t('profile.update_notice')}</strong>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-              {t('profile.update_desc').replace('{category}', notifications[0].category)}
-            </p>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(0,0,0,0.3)', padding: '0.25rem 0.75rem', borderRadius: '20px', fontSize: '0.8rem' }}>
-              {notifications[0].status === 'confirmed' ? (
-                <>
-                  <CheckCircle size={14} color="var(--color-low)" />
-                  <span style={{ color: 'var(--color-low)' }}>
-                    {t('status.confirmed')}
-                  </span>
-                </>
-              ) : (
-                <>
-                  <XCircle size={14} color="var(--color-high)" />
-                  <span style={{ color: 'var(--color-high)' }}>
-                    {t('status.rejected')}
-                  </span>
-                </>
+      {/* Notifications Card */}
+      <div className="glass-panel" style={{ padding: '1.5rem 1.75rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <h2 style={{ fontSize: isElderlyMode ? '1.6rem' : '1.35rem', fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+            <Bell size={24} color="#3b82f6" />
+            {lang === 'ms' ? 'Pemberitahuan Laporan' : 'Report Notifications'}
+            {activeNotifications.length > 0 && (
+              <span className="badge" style={{ background: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa', fontSize: '0.75rem', padding: '0.15rem 0.6rem', borderRadius: '12px' }}>
+                {activeNotifications.filter(n => !readIds.includes(n.id)).length} {lang === 'ms' ? 'Baru' : 'New'}
+              </span>
+            )}
+          </h2>
+
+          {activeNotifications.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              {activeNotifications.some(n => !readIds.includes(n.id)) && (
+                <button
+                  onClick={handleMarkAllRead}
+                  className="btn-secondary"
+                  style={{
+                    fontSize: '0.75rem',
+                    padding: '0.35rem 0.75rem',
+                    borderRadius: '16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    color: '#60a5fa',
+                    borderColor: 'rgba(59, 130, 246, 0.3)'
+                  }}
+                >
+                  <Check size={13} />
+                  {lang === 'ms' ? 'Tanda Semua Sebagai Dibaca' : 'Mark All as Read'}
+                </button>
               )}
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* Reports Table */}
-      <div className="glass-panel" style={{ padding: '1.5rem' }}>
+              <button
+                onClick={handleClearAll}
+                className="btn-secondary"
+                style={{
+                  fontSize: '0.75rem',
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  color: '#f87171',
+                  borderColor: 'rgba(239, 68, 68, 0.25)'
+                }}
+              >
+                <Trash2 size={13} />
+                {lang === 'ms' ? 'Padam Semua' : 'Clear All'}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {activeNotifications.length === 0 ? (
+          /* Balanced Empty Notifications Banner */
+          <div style={{
+            padding: '1.25rem 1.5rem',
+            background: 'rgba(255,255,255,0.015)',
+            border: '1px dashed var(--border-color)',
+            borderRadius: '12px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '1rem',
+            flexWrap: 'wrap'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+              <div style={{
+                background: 'rgba(255,255,255,0.04)',
+                padding: '0.6rem',
+                borderRadius: '50%',
+                border: '1px solid var(--border-color)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <BellOff size={20} color="var(--text-muted)" />
+              </div>
+              <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                <strong style={{ color: '#fff', display: 'inline-block', marginRight: '0.5rem' }}>
+                  {lang === 'ms' ? 'Tiada Pemberitahuan Baru:' : 'You Have No Notifications:'}
+                </strong>
+                {lang === 'ms'
+                  ? 'Semua pemberitahuan laporan telah dibaca atau dipadamkan.'
+                  : 'You are all caught up! No unread report updates.'}
+              </span>
+            </div>
+
+            {deletedIds.length > 0 && (
+              <button
+                onClick={handleRestoreAll}
+                className="btn-secondary"
+                style={{
+                  fontSize: '0.75rem',
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: '14px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  color: '#60a5fa',
+                  borderColor: 'rgba(59, 130, 246, 0.3)',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                <RotateCcw size={13} />
+                {lang === 'ms' ? 'Pulihkan' : 'Restore Notifications'}
+              </button>
+            )}
+          </div>
+        ) : (
+          /* List of Notifications */
+          <div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              {visibleNotifications.map(item => {
+                const isRead = readIds.includes(item.id);
+                return (
+                  <div
+                    key={item.id}
+                    style={{
+                      background: isRead ? 'rgba(255,255,255,0.02)' : 'rgba(59, 130, 246, 0.12)',
+                      border: `1px solid ${isRead ? 'var(--border-color)' : 'rgba(59, 130, 246, 0.35)'}`,
+                      borderRadius: '12px',
+                      padding: '1rem 1.25rem',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: '1rem',
+                      opacity: isRead ? 0.75 : 1,
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <div style={{ display: 'flex', gap: '0.85rem', alignItems: 'flex-start' }}>
+                      <Bell size={18} color={isRead ? 'var(--text-muted)' : '#3b82f6'} style={{ flexShrink: 0, marginTop: '3px' }} />
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.25rem', flexWrap: 'wrap' }}>
+                          <strong style={{ color: '#fff', fontSize: '0.95rem' }}>
+                            {t('profile.update_notice')}
+                          </strong>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            {new Date(item.timestamp).toLocaleDateString()}
+                          </span>
+                          {isRead && (
+                            <span className="badge" style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-muted)', fontSize: '0.68rem', padding: '0.05rem 0.4rem' }}>
+                              {lang === 'ms' ? 'Dibaca' : 'Read'}
+                            </span>
+                          )}
+                        </div>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '0.4rem' }}>
+                          {t('profile.update_desc').replace('{category}', item.category)}
+                        </p>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(0,0,0,0.25)', padding: '0.2rem 0.6rem', borderRadius: '14px', fontSize: '0.75rem' }}>
+                          {item.status === 'confirmed' ? (
+                            <>
+                              <CheckCircle size={12} color="var(--color-low)" />
+                              <span style={{ color: 'var(--color-low)' }}>{t('status.confirmed')}</span>
+                            </>
+                          ) : (
+                            <>
+                              <XCircle size={12} color="var(--color-high)" />
+                              <span style={{ color: 'var(--color-high)' }}>{t('status.rejected')}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
+                      <button
+                        onClick={() => handleToggleRead(item.id)}
+                        title={isRead ? (lang === 'ms' ? 'Tanda belum dibaca' : 'Mark unread') : (lang === 'ms' ? 'Tanda dibaca' : 'Mark read')}
+                        style={{
+                          background: 'rgba(255,255,255,0.05)',
+                          border: '1px solid var(--border-color)',
+                          color: isRead ? 'var(--text-muted)' : '#60a5fa',
+                          padding: '0.4rem 0.65rem',
+                          borderRadius: '8px',
+                          fontSize: '0.75rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.35rem'
+                        }}
+                      >
+                        {isRead ? <MailOpen size={14} /> : <Check size={14} />}
+                        <span>{isRead ? (lang === 'ms' ? 'Belum Dibaca' : 'Unread') : (lang === 'ms' ? 'Dibaca' : 'Mark Read')}</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleDeleteNotification(item.id)}
+                        title={lang === 'ms' ? 'Padam pemberitahuan' : 'Delete notification'}
+                        style={{
+                          background: 'rgba(239, 68, 68, 0.1)',
+                          border: '1px solid rgba(239, 68, 68, 0.25)',
+                          color: '#f87171',
+                          padding: '0.4rem 0.5rem',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Expand / Collapse Button */}
+            {activeNotifications.length > 1 && (
+              <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+                <button
+                  onClick={() => setIsNotificationsExpanded(prev => !prev)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--primary)',
+                    fontSize: '0.82rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    padding: '0.2rem 0.5rem',
+                    transition: 'color 0.2s ease'
+                  }}
+                >
+                  <span>
+                    {isNotificationsExpanded
+                      ? (lang === 'ms' ? 'Tunjukkan Kurang' : 'Show Less')
+                      : (lang === 'ms'
+                          ? `Tunjukkan Lebih Banyak (${activeNotifications.length - 1} lagi)`
+                          : `Show More (${activeNotifications.length - 1} more)`)}
+                  </span>
+                  {isNotificationsExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Reports Table Card */}
+      <div className="glass-panel" style={{ padding: '1.5rem 1.75rem' }}>
+        <h2 style={{ fontSize: isElderlyMode ? '1.6rem' : '1.35rem', fontWeight: 700, color: '#fff', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Clock size={24} color="var(--primary)" />
+          {t('profile.title')}
+        </h2>
+        
         <table style={{ width: '100%', borderCollapse: 'collapse', color: 'var(--text-secondary)' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>

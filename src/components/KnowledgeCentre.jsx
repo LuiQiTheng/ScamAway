@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Award, BookOpen, ShieldAlert, CheckCircle, XCircle, RefreshCw, ChevronRight, Filter, AlertTriangle, Eye, Layers, Flame, Search, ExternalLink } from 'lucide-react';
+import { Award, BookOpen, ShieldAlert, CheckCircle, XCircle, RefreshCw, ChevronRight, ChevronDown, ChevronUp, Filter, AlertTriangle, Eye, Layers, Flame, Search, ExternalLink } from 'lucide-react';
 import { getDailyQuestions } from '../utils/quizDatabase';
 import { useLanguage } from '../context/LanguageContext';
 import { LESSON_CARDS } from '../utils/lessonCards';
@@ -7,19 +7,44 @@ import { LESSON_CARDS } from '../utils/lessonCards';
 export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = false, isKidMode = false }) {
   const { t, lang } = useLanguage();
 
+  // Helper to load saved state
+  const getInitialState = (key, defaultVal) => {
+    try {
+      const saved = sessionStorage.getItem(`scamshield_quiz_${key}`);
+      return saved !== null ? JSON.parse(saved) : defaultVal;
+    } catch (e) {
+      return defaultVal;
+    }
+  };
+
   // Quiz State
   const [dailyQuestions, setDailyQuestions] = useState([]);
-  const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState(null);
-  const [showExplanation, setShowExplanation] = useState(false);
-  const [score, setScore] = useState(0);
-  const [quizFinished, setQuizFinished] = useState(false);
-
+  const [currentQuestionIdx, setCurrentQuestionIdx] = useState(() => getInitialState('idx', 0));
+  const [selectedAnswer, setSelectedAnswer] = useState(() => getInitialState('ans', null));
+  const [showExplanation, setShowExplanation] = useState(() => getInitialState('exp', false));
+  const [score, setScore] = useState(() => getInitialState('score', 0));
+  const [quizFinished, setQuizFinished] = useState(() => getInitialState('finished', false));
+  const [isQuizStarted, setIsQuizStarted] = useState(() => getInitialState('started', false));
+  
   // Continuous Challenge State
-  const [streak, setStreak] = useState(0);
-  const [longestStreak, setLongestStreak] = useState(0);
-  const [wrongQuestions, setWrongQuestions] = useState([]);
-  const [isCorrectionPhase, setIsCorrectionPhase] = useState(false);
+  const [streak, setStreak] = useState(() => getInitialState('streak', 0));
+  const [longestStreak, setLongestStreak] = useState(() => getInitialState('longestStreak', 0));
+  const [wrongQuestions, setWrongQuestions] = useState(() => getInitialState('wrongQ', []));
+  const [isCorrectionPhase, setIsCorrectionPhase] = useState(() => getInitialState('correction', false));
+
+  // Sync to session storage on change
+  useEffect(() => {
+    sessionStorage.setItem('scamshield_quiz_idx', JSON.stringify(currentQuestionIdx));
+    sessionStorage.setItem('scamshield_quiz_ans', JSON.stringify(selectedAnswer));
+    sessionStorage.setItem('scamshield_quiz_exp', JSON.stringify(showExplanation));
+    sessionStorage.setItem('scamshield_quiz_score', JSON.stringify(score));
+    sessionStorage.setItem('scamshield_quiz_finished', JSON.stringify(quizFinished));
+    sessionStorage.setItem('scamshield_quiz_started', JSON.stringify(isQuizStarted));
+    sessionStorage.setItem('scamshield_quiz_streak', JSON.stringify(streak));
+    sessionStorage.setItem('scamshield_quiz_longestStreak', JSON.stringify(longestStreak));
+    sessionStorage.setItem('scamshield_quiz_wrongQ', JSON.stringify(wrongQuestions));
+    sessionStorage.setItem('scamshield_quiz_correction', JSON.stringify(isCorrectionPhase));
+  }, [currentQuestionIdx, selectedAnswer, showExplanation, score, quizFinished, isQuizStarted, streak, longestStreak, wrongQuestions, isCorrectionPhase]);
 
   useEffect(() => {
     setDailyQuestions(getDailyQuestions());
@@ -29,6 +54,12 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeModalCard, setActiveModalCard] = useState(null);
+  const [isLibraryExpanded, setIsLibraryExpanded] = useState(false);
+
+  // Collapse library whenever category filters or search queries change
+  useEffect(() => {
+    setIsLibraryExpanded(false);
+  }, [selectedCategory, searchQuery]);
 
   const categories = [
     { id: 'All', labelKey: 'category.all' },
@@ -66,6 +97,16 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
       card.exampleMessage.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
+
+  // Prioritize Daily Featured Highlights at the top of the list
+  const sortedCards = [...filteredCards].sort((a, b) => {
+    if (a.isDailyFeatured && !b.isDailyFeatured) return -1;
+    if (!a.isDailyFeatured && b.isDailyFeatured) return 1;
+    return 0;
+  });
+
+  const initialCardCount = isElderlyMode ? 1 : 3;
+  const visibleCards = isLibraryExpanded ? sortedCards : sortedCards.slice(0, initialCardCount);
 
   const currentQList = isCorrectionPhase ? wrongQuestions : dailyQuestions;
   const currentQ = currentQList[currentQuestionIdx];
@@ -130,7 +171,7 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
   };
 
   const handleRestart = () => {
-    setDailyQuestions(getDailyQuestions());
+    setDailyQuestions(getDailyQuestions(true));
     setCurrentQuestionIdx(0);
     setSelectedAnswer(null);
     setShowExplanation(false);
@@ -140,6 +181,7 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
     setWrongQuestions([]);
     setIsCorrectionPhase(false);
     setQuizFinished(false);
+    setIsQuizStarted(false);
   };
 
   const getRank = () => {
@@ -181,16 +223,99 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
   }, [activeModalCard]);
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2rem', maxWidth: '1100px', margin: '0 auto', padding: '1rem' }} className={`mode-${userMode} ${isElderlyMode ? 'elderly-mode' : ''} ${isKidMode ? 'kid-mode' : ''}`}>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2rem', width: '100%', margin: '0 auto', padding: '1rem' }} className={`mode-${userMode} ${isElderlyMode ? 'elderly-mode' : ''} ${isKidMode ? 'kid-mode' : ''}`}>
 
       {/* Quiz Section */}
-      <div className="glass-panel" style={{ padding: '2rem' }}>
-        <h2 style={{ fontSize: '1.4rem', color: '#fff', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Award size={24} color="var(--primary)" />
-          {t('knowledge.quiz_header')}
-        </h2>
+      <div className="glass-panel" style={{ padding: '1.5rem 1.75rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+          <h2 style={{ fontSize: isElderlyMode ? '1.6rem' : '1.35rem', fontWeight: 700, color: '#fff', marginBottom: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Award size={24} color="var(--primary)" />
+            {t('knowledge.quiz_header')}
+          </h2>
+          {isQuizStarted && !quizFinished && (
+            <button 
+              onClick={() => setIsQuizStarted(false)} 
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                fontSize: '0.85rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+                transition: 'color 0.2s',
+                padding: '0.25rem 0.5rem',
+                borderRadius: '6px'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-high)'}
+              onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+            >
+              <XCircle size={16} />
+              {lang === 'ms' ? "Keluar Cabaran" : "Exit Challenge"}
+            </button>
+          )}
+        </div>
 
-        {quizFinished ? (
+        {!isQuizStarted ? (
+          <div className="fade-in" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.5rem', padding: '0.5rem 0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flex: 1, minWidth: '280px' }}>
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(59, 130, 246, 0.05) 100%)',
+                padding: '0.85rem',
+                borderRadius: '50%',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1px solid rgba(255,255,255,0.1)',
+                boxShadow: '0 4px 15px rgba(31, 38, 135, 0.2)',
+                flexShrink: 0
+              }}>
+                <Award size={28} color="var(--primary)" style={{ filter: 'drop-shadow(0 0 6px var(--primary))' }} />
+              </div>
+              <div style={{ textAlign: 'left' }}>
+                <h3 style={{ fontSize: isElderlyMode ? '1.4rem' : '1.1rem', color: '#fff', marginBottom: '0.2rem', fontWeight: 600 }}>
+                  {lang === 'ms' ? "Sedia untuk Cabaran Harian?" : "Ready for the Daily Challenge?"}
+                </h3>
+                <p style={{ color: 'var(--text-secondary)', fontSize: isElderlyMode ? '1.1rem' : '0.85rem', lineHeight: '1.4' }}>
+                  {lang === 'ms' 
+                    ? "Uji kepakaran anda menentang taktik penipuan terbaru. Bolehkah anda mengekalkan rentetan kemenangan anda?" 
+                    : "Test your skills against the latest scam tactics. Can you identify the red flags and maintain your streak?"}
+                </p>
+              </div>
+            </div>
+            <button 
+              onClick={() => setIsQuizStarted(true)} 
+              className="btn-primary" 
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '0.5rem', 
+                padding: '0.6rem 1.75rem',
+                fontSize: '1rem',
+                fontWeight: 'bold',
+                borderRadius: '30px',
+                background: 'linear-gradient(135deg, var(--primary) 0%, #3b82f6 100%)',
+                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'transform 0.2s, box-shadow 0.2s',
+                whiteSpace: 'nowrap'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.03)';
+                e.currentTarget.style.boxShadow = '0 6px 16px rgba(59, 130, 246, 0.5)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
+              }}
+            >
+              {lang === 'ms' ? "Mula Cabaran" : "Start Challenge"}
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        ) : quizFinished ? (
           <div className="fade-in" style={{ textAlign: 'center', padding: '2rem 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem' }}>
             <CheckCircle size={64} color="var(--color-low)" />
             <div>
@@ -336,14 +461,14 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
       </div>
 
       {/* SECTION B: Categorized Malaysian Scam Pattern Intelligence Library */}
-      <div className="glass-panel" style={{ padding: '2rem' }}>
+      <div className="glass-panel" style={{ padding: '1.5rem 1.75rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
           <div>
-            <h2 style={{ fontSize: '1.4rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <h2 style={{ fontSize: isElderlyMode ? '1.6rem' : '1.35rem', fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <BookOpen size={24} color="var(--primary)" />
               {t('knowledge.library_title')}
             </h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.25rem' }}>
+            <p style={{ color: 'var(--text-secondary)', fontSize: isElderlyMode ? '1.1rem' : '0.85rem', marginTop: '0.25rem' }}>
               {t('knowledge.library_desc')}
             </p>
           </div>
@@ -370,7 +495,7 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`btn-secondary ${selectedCategory === cat.id ? 'active' : ''}`}
+                className={`btn-secondary category-pill ${selectedCategory === cat.id ? 'active' : ''}`}
                 style={{
                   fontSize: '0.8rem',
                   padding: '0.4rem 0.85rem',
@@ -387,8 +512,8 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
         </div>
 
         {/* Knowledge Cards Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(310px, 1fr))', gap: '1.25rem' }}>
-          {filteredCards.map(card => (
+        <div style={{ display: 'grid', gridTemplateColumns: isElderlyMode ? '1fr' : 'repeat(3, minmax(0, 1fr))', gap: '1.25rem' }}>
+          {visibleCards.map(card => (
             <div key={card.id} style={{
               background: 'rgba(255,255,255,0.02)',
               border: '1px solid var(--border-color)',
@@ -411,26 +536,86 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
                   "{getCardText(card, 'summary')}"
                 </p>
 
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem', paddingLeft: '0.25rem', fontWeight: 600 }}>
+                  {lang === 'ms' ? 'Contoh Mesej / SMS:' : 'Example Message / SMS:'}
+                </div>
                 <div style={{ background: '#050810', border: '1px dashed var(--border-color)', borderRadius: '8px', padding: '0.75rem', fontSize: '0.8rem', color: '#f1f5f9', fontStyle: 'italic', marginBottom: '1rem' }}>
                   "{card.exampleMessage}"
                 </div>
               </div>
 
-              <div style={{ borderTop: '1px dashed var(--border-color)', paddingTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <strong style={{ fontSize: '0.8rem', color: 'var(--primary)' }}>{t('knowledge.scam_explanation')}:</strong>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>{getCardText(card, 'advisory')}</p>
-
+              <div style={{ borderTop: '1px dashed var(--border-color)', paddingTop: '0.75rem', display: 'flex', justifyContent: 'center' }}>
                 <button
                   onClick={() => setActiveModalCard(card)}
                   className="btn-secondary"
-                  style={{ marginTop: '0.5rem', fontSize: '0.75rem', padding: '0.45rem 0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', width: '100%' }}
+                  style={{
+                    marginTop: '0.25rem',
+                    fontSize: '0.8rem',
+                    padding: '0.5rem 1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.4rem',
+                    width: '100%',
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '8px',
+                    color: 'var(--primary)',
+                    fontWeight: 'bold',
+                    transition: 'all 0.2s ease',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(59, 130, 246, 0.1)';
+                    e.currentTarget.style.borderColor = 'var(--primary)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
+                    e.currentTarget.style.borderColor = 'var(--border-color)';
+                  }}
                 >
-                  <Eye size={14} /> {t('knowledge.read_case_study')}
+                  <Eye size={15} /> {t('knowledge.read_case_study')}
                 </button>
               </div>
             </div>
           ))}
         </div>
+
+        {filteredCards.length > initialCardCount && (
+          <div style={{ textAlign: 'center', marginTop: '1.75rem' }}>
+            <button
+              onClick={() => setIsLibraryExpanded(prev => !prev)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--primary)',
+                fontWeight: '600',
+                cursor: 'pointer',
+                fontSize: '0.9rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+                padding: '0.5rem 1rem',
+                transition: 'color 0.2s, transform 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = '#3b82f6';
+                e.currentTarget.style.transform = 'translateY(2px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = 'var(--primary)';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              <span>
+                {isLibraryExpanded 
+                  ? (lang === 'ms' ? "Tunjukkan Kurang" : "Show Less")
+                  : (lang === 'ms' ? `Tunjukkan Lebih Banyak (${filteredCards.length})` : `Show More (${filteredCards.length})`)}
+              </span>
+              {isLibraryExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Case Study Deep Dive Modal */}

@@ -244,7 +244,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
   };
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2rem', maxWidth: '900px', margin: '0 auto', padding: '1rem' }} className={isElderlyMode ? 'elderly-mode' : ''}>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2rem', width: '100%', margin: '0 auto', padding: '1rem' }} className={isElderlyMode ? 'elderly-mode' : ''}>
 
       {/* Broadcast Campus Alert Banner */}
       {activeAlert && (
@@ -276,13 +276,13 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
       )}
 
       {/* Control Board: Assistant header */}
-      <div className="glass-panel" style={{ padding: '1.25rem 2rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+      <div className="glass-panel" style={{ padding: '1.5rem 1.75rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
         <Sparkles color={isKidMode ? 'var(--primary)' : 'var(--primary)'} size={22} />
         <div>
-          <h3 style={{ fontSize: isElderlyMode ? '1.4rem' : '1.1rem', color: '#fff' }}>
+          <h3 style={{ fontSize: isElderlyMode ? '1.4rem' : '1.1rem', fontWeight: 600, color: '#fff' }}>
             {isKidMode ? t('scanner.assistant_kid') : t('scanner.assistant')}
           </h3>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: isElderlyMode ? '1.1rem' : '0.85rem' }}>
             {isKidMode ? t('scanner.assistant_desc_kid') : t('scanner.assistant_desc')}
           </p>
         </div>
@@ -291,8 +291,8 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2rem' }}>
 
         {/* Input Console */}
-        <div className="glass-panel" style={{ padding: '2rem' }}>
-          <h2 style={{ fontSize: '1.4rem', color: '#fff', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div className="glass-panel" style={{ padding: '1.5rem 1.75rem' }}>
+          <h2 style={{ fontSize: isElderlyMode ? '1.6rem' : '1.35rem', fontWeight: 700, color: '#fff', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Shield size={24} color="var(--primary)" />
             {t('scanner.title')}
           </h2>

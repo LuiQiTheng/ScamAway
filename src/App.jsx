@@ -211,7 +211,7 @@ export default function App() {
       </header>
 
       {/* Main Content Layout */}
-      <main className="w-full" style={{ flex: 1, padding: '2rem 1.5rem', maxWidth: '1280px', margin: '0 auto' }}>
+      <main className="w-full" style={{ flex: 1, padding: '2rem 1.5rem', maxWidth: '1100px', margin: '0 auto' }}>
         {activeTab === 'check' && (
           <UserChecker
             userMode={userMode}
