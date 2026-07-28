@@ -50,9 +50,9 @@ export default function UserProfile() {
             </p>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(0,0,0,0.3)', padding: '0.25rem 0.75rem', borderRadius: '20px', fontSize: '0.8rem' }}>
               {notifications[0].status === 'confirmed' ? (
-                <><CheckCircle size={14} color="var(--color-low)" /> <span style={{color: 'var(--color-low)'}}>Confirmed</span></>
+                <><CheckCircle size={14} color="var(--color-low)" /> <span style={{color: 'var(--color-low)'}}>{t('status.confirmed')}</span></>
               ) : (
-                <><XCircle size={14} color="var(--color-high)" /> <span style={{color: 'var(--color-high)'}}>Rejected</span></>
+                <><XCircle size={14} color="var(--color-high)" /> <span style={{color: 'var(--color-high)'}}>{t('status.rejected')}</span></>
               )}
             </div>
           </div>

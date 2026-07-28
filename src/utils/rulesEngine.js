@@ -1,8 +1,4 @@
-/**
- * ScamShield - Hybrid Risk Assessment & Pattern Rules Engine
- */
-
-// Demo mock screenshots database for OCR simulation
+import { analyzeTextWithGemini } from './aiEngine';
 
 // Demo mock screenshots database for OCR simulation
 export const DEMO_SCREENSHOTS = {
@@ -70,13 +66,13 @@ export function extractIndicators(text) {
 }
 
 /**
- * Runs the hybrid scoring algorithm on extracted inputs
+ * Runs the hybrid scoring algorithm on extracted inputs (Blacklist + Gemini AI)
  * @param {string} text - Message content
  * @param {object} metadata - Extra context (e.g. source, verified reports, QR code)
  */
-export function analyzeScamRisk(text, metadata = {}) {
+export async function analyzeScamRisk(text, metadata = {}) {
   let score = 0;
-  const explanations = [];
+  let explanations = [];
   const indicatorsMatched = [];
   const analysis = extractIndicators(text);
   const qrDestination = metadata.qrCode || null;
@@ -87,7 +83,7 @@ export function analyzeScamRisk(text, metadata = {}) {
 
   const blacklist = metadata.blacklist || { phoneNumbers: [], urls: [], bankAccounts: [] };
 
-  // 1. SENDER REPUTATION & BLACKLIST MATCHES
+  // 1. SENDER REPUTATION & BLACKLIST MATCHES (Instant Rule Engine)
   if (analysis.phones.length > 0) {
     const isBlacklistedPhone = analysis.phones.some(phone => 
       blacklist.phoneNumbers.includes(phone)
@@ -154,22 +150,20 @@ export function analyzeScamRisk(text, metadata = {}) {
 
   // Base score setting if matched a blacklisted element
   if (matchedBlacklistIndicator) {
-    score = 85; // Immediately flag as critical base score
+    score = 85; 
   }
 
   // 2. RULE LAYER & SOCIAL ENGINEERING KEYWORDS
   let ruleContribution = 0;
   
-  const urgencyKeywords = ['urgent', 'urgently', '30 minutes', 'within 24 hours', 'immediately', 'expire', 'fast', 'segera', 'cepat', 'now', 'sekarang', 'terkini', 'hari ini', 'masa terhad', 'limited time', 'hours', 'hrs', 'mins'];
+  const urgencyKeywords = ['urgent', 'urgently', '30 minutes', 'within 24 hours', 'immediately', 'expire', 'fast', 'segera', 'cepat', 'now', 'sekarang', 'terkini', 'hari ini', 'masa terhad', 'limited time', 'hours', 'hrs', 'mins', '24 hours'];
   const secrecyKeywords = ['secret', 'secrecy', 'dont tell', 'don\'t tell', 'dont let', 'don\'t let', 'rahsia', 'jangan beritahu', 'keep it secret', 'keep this secret', 'between us', 'don\'t call', 'jangan call', 'jangan hubungi'];
-  const credentialKeywords = ['otp', 'login', 'verify password', 'username', 'click here to update', 'update account', 'suspended', 'tac code', 'kod tac', 'kata laluan', 'sahkan id', 'log masuk'];
+  const credentialKeywords = ['otp', 'login', 'verify password', 'username', 'click here to update', 'update account', 'suspended', 'tac code', 'kod tac', 'kata laluan', 'sahkan id', 'log masuk', 'banking details', 'update your banking'];
   const falseGuaranteeKeywords = ['100% true', '100% safe', 'no risk', 'without risk', 'guarantee', 'guaranteed', 'dijamin', '100% untung', 'tanpa risiko', 'pasti untung', 'syariah patuh', 'patuh syariah'];
-  const baitKeywords = ['congratulations', 'won rm', 'free gift', 'earn daily', 'part-time job', 'bonus', 'rewards', 'reward', 'komisen', 'gaji', 'untung', 'tahniah', 'kerja sambilan', 'hadiah', 'percuma', 'tebus'];
+  const baitKeywords = ['congratulations', 'won rm', 'free gift', 'earn daily', 'part-time job', 'bonus', 'rewards', 'reward', 'komisen', 'gaji', 'untung', 'tahniah', 'kerja sambilan', 'hadiah', 'percuma', 'tebus', 'refund', 'tax refund', 'income tax'];
   const fearThreatKeywords = ['fined', 'fine', 'denda', 'jail', 'penjara', 'arrest', 'arrested', 'warrant', 'warant', 'waran tangkap', 'saman', 'blacklisted', 'tax debt', 'cukai', 'lhdn penalty', 'lock account', 'account frozen', 'akaun dibeku', 'court action', 'legal action', 'tindakan undang-undang'];
   
-  // Family impersonation keywords (lost phone scams)
   const familyEmergencyKeywords = ['mum', 'dad', 'mak', 'ayah', 'ibu', 'bapa', 'abang', 'adik', 'fell into water', 'rosak', 'damaged phone', 'new number', 'friend\'s account', 'friend\'s phone', 'tukar nombor', 'telefon rosak', 'masuk hospital', 'kemalangan'];
-  // Authority impersonation
   const authorityKeywords = ['police', 'polis', 'court', 'mahkamah', 'lhdn', 'jpj', 'saman', 'arrest warrant', 'pos laju', 'poslaju', 'courier tax', 'customs', 'kastam', 'sprm', 'mcmc', 'skmm', 'bank negara', 'bnm', 'kwsp', 'epf'];
 
   const lowerText = text.toLowerCase();
@@ -183,62 +177,23 @@ export function analyzeScamRisk(text, metadata = {}) {
   const hasFamilyEmergency = familyEmergencyKeywords.some(kw => lowerText.includes(kw));
   const hasAuthority = authorityKeywords.some(kw => lowerText.includes(kw));
 
-  // Advanced heuristic: Impossible ROI / Investment Multiplier Detection
-  // e.g. "Transfer me RM1000, I give u rewards RM1000000" or "give RM100 receive RM10000"
-  let hasImpossibleRoi = false;
-  const numbersInText = (text.match(/rm\s*[\d,]+|\b\d+,\d+|\b\d{3,}\b/gi) || [])
-    .map(n => parseFloat(n.replace(/rm\s*|,/gi, '')))
-    .filter(n => !isNaN(n));
-
-  if (numbersInText.length >= 2) {
-    const minVal = Math.min(...numbersInText);
-    const maxVal = Math.max(...numbersInText);
-    if (minVal > 0 && maxVal / minVal >= 5) {
-      hasImpossibleRoi = true;
-    }
-  } else if ((lowerText.includes('transfer') || lowerText.includes('lend') || lowerText.includes('give') || lowerText.includes('pay') || lowerText.includes('deposit') || lowerText.includes('bank in') || lowerText.includes('pindah')) &&
-             (lowerText.includes('reward') || lowerText.includes('return') || lowerText.includes('profit') || lowerText.includes('receive') || lowerText.includes('pulangan') || lowerText.includes('untung')) &&
-             (lowerText.includes('100%') || lowerText.includes('guarantee') || lowerText.includes('jamin') || lowerText.includes('rm'))) {
-    hasImpossibleRoi = true;
-  }
-
-  if (hasImpossibleRoi) {
-    ruleContribution += 50;
-    explanations.push({
-      category: "bait",
-      label: lang === 'ms' ? "Bayaran Pelaburan Mustahil / Penipuan Pengganda Wang" : "Impossible Investment Payout / Money Multiplier Scam",
-      text: lang === 'ms' ? "Menjanjikan nisbah pulangan yang tidak realistik atau pengganda kewangan terjamin (cth. bayar deposit kecil, dapat ganjaran astronomi). Ini ialah taktik Penipuan Pelaburan yang biasa." : "Prompts unrealistic return ratios or guaranteed financial multipliers (e.g. pay small deposit, get astronomical rewards/returns). This is a textbook Advance-Fee / Investment Scam tactic.",
-      weight: 50
-    });
-  }
-
-  if (hasFalseGuarantee) {
+  if (hasAuthority) {
     ruleContribution += 25;
     explanations.push({
-      category: "bait",
-      label: lang === 'ms' ? "Tuntutan Palsu 'Sifar-Risiko / 100% Terjamin'" : "False 'Zero-Risk / 100% Guaranteed' Claim",
-      text: lang === 'ms' ? "Menggunakan jaminan palsu ('100% benar', 'tiada risiko', 'bayaran terjamin') untuk menipu mangsa." : "Uses false assurances ('100% true', 'no risk', 'guaranteed payout') to trick victims into dropping their guard.",
+      category: "impersonation",
+      label: lang === 'ms' ? "Penyamaran Pihak Berkuasa / Kerajaan" : "Authority / Government Impersonation",
+      text: lang === 'ms' ? "Menyamar sebagai agensi rasmi (LHDN, JPJ, Polis) atau portal cukai untuk mewujudkan kuasa palsu." : "Impersonates official agencies (LHDN, Inland Revenue Board, Police) or refund portals to establish fake authority.",
       weight: 25
     });
   }
 
-  if (hasFearThreat) {
-    ruleContribution += 45;
+  if (hasCreds) {
+    ruleContribution += 30;
     explanations.push({
-      category: "threat",
-      label: lang === 'ms' ? "Tekanan Ketakutan & Peras Ugut (Denda / Penjara)" : "Fear & Extortion Pressure (Fines / Jail / Arrest)",
-      text: lang === 'ms' ? "Menggunakan ancaman undang-undang, hukuman penjara, denda berat, atau pembekuan akaun untuk menakutkan mangsa supaya mematuhi arahan serta-merta." : "Uses legal threats, jail sentences, heavy fines, or account freezing to terrify victims into immediate compliance.",
-      weight: 45
-    });
-  }
-
-  if (hasSecrecy) {
-    ruleContribution += 25;
-    explanations.push({
-      category: "urgency",
-      label: lang === 'ms' ? "Taktik Rahsia & Pengasingan Sosial" : "Secrecy & Social Isolation Tactics",
-      text: lang === 'ms' ? "Mengarahkan anda untuk merahsiakan permintaan tersebut, sengaja mengasingkan anda daripada nasihat keluarga atau pihak berkuasa." : "Instructs you to keep the request secret ('don't tell anyone', 'don't call'), deliberately isolating you from advice of family or authorities.",
-      weight: 25
+      category: "credentials",
+      label: lang === 'ms' ? "Pola Penuaian Kredensial / Perbankan" : "Credential / Banking Details Harvesting Pattern",
+      text: lang === 'ms' ? "Meminta anda mengemas kini atau menyerahkan butiran perbankan sensitif pada pautan tidak rasmi." : "Prompts you to update or submit sensitive banking details/credentials on an unofficial domain link.",
+      weight: 30
     });
   }
 
@@ -247,97 +202,58 @@ export function analyzeScamRisk(text, metadata = {}) {
     explanations.push({
       category: "urgency",
       label: lang === 'ms' ? "Tekanan Kedesakan Dikesan" : "Urgency Pressure Detected",
-      text: lang === 'ms' ? "Penghantar menekan anda untuk bertindak serta-merta (cth. 'sekarang', 'dalam 2 jam') untuk memintas semakan keselamatan yang rasional." : "The sender pressures you to act immediately (e.g. 'now', 'within 2 hours') to bypass rational safety checks.",
+      text: lang === 'ms' ? "Penghantar menekan anda untuk bertindak serta-merta (cth. 'dalam 24 jam') untuk memintas semakan keselamatan." : "The sender pressures you to act immediately (e.g. 'within 24 hours') to bypass safety checks.",
       weight: 20
     });
   }
-  if (hasCreds) {
-    ruleContribution += 20;
-    explanations.push({
-      category: "credentials",
-      label: lang === 'ms' ? "Pola Penuaian Kredensial / OTP" : "Credential / OTP Harvesting Pattern",
-      text: lang === 'ms' ? "Meminta kredensial sensitif, PIN, kod pengesahan OTP/TAC, atau ganti log masuk." : "Asks for sensitive credentials, PINs, OTP/TAC verification codes, or login overrides.",
-      weight: 20
-    });
-  }
-  if (hasBait && !hasImpossibleRoi && !hasFalseGuarantee) {
+
+  if (hasBait) {
     ruleContribution += 15;
     explanations.push({
       category: "bait",
-      label: lang === 'ms' ? "Bayaran Kewangan & Umpan Tugasan" : "Financial Payout & Task Bait",
-      text: lang === 'ms' ? "Menawarkan hadiah wang tunai yang tidak disahkan, tugas komisen harian, atau ganjaran percuma yang direka untuk memikat deposit pendahuluan." : "Offers unverified cash prizes, daily commission tasks, or free rewards designed to lure upfront deposits.",
-      weight: 15
-    });
-  }
-  if (hasFamilyEmergency) {
-    ruleContribution += 25;
-    explanations.push({
-      category: "impersonation",
-      label: lang === 'ms' ? "Umpan Penyamaran Keluarga" : "Family Impersonation Bait",
-      text: lang === 'ms' ? "Sepadan dengan penipuan 'telefon rosak / nombor baharu / kecemasan hospital' yang biasa menyasarkan ahli keluarga." : "Matches a common 'damaged phone / new number / hospital emergency' scam targeting family members.",
-      weight: 25
-    });
-  }
-  if (hasAuthority) {
-    ruleContribution += 20;
-    explanations.push({
-      category: "impersonation",
-      label: lang === 'ms' ? "Penyamaran Pihak Berkuasa / Kerajaan" : "Authority / Government Impersonation",
-      text: lang === 'ms' ? "Menyamar sebagai agensi rasmi (LHDN, JPJ, Polis Diraja Malaysia) atau platform kurier untuk mewujudkan kuasa palsu." : "Impersonates official agencies (LHDN, JPJ, Royal Malaysia Police) or courier platforms to establish fake authority.",
-      weight: 20
-    });
-  }
-
-  // 3. PAYMENT TRIGGER WORDS (if not already handled by blacklist account)
-  let paymentContribution = 0;
-  if (analysis.hasPaymentKeywords || analysis.extractedPayment || lowerText.includes('transfer') || lowerText.includes('pay') || lowerText.includes('lend') || lowerText.includes('bank in') || lowerText.includes('pindah') || lowerText.includes('bayar')) {
-    paymentContribution += 15;
-    explanations.push({
-      category: "payment",
-      label: lang === 'ms' ? "Permintaan Pindahan Wang Terus" : "Direct Money Transfer Request",
-      text: lang === 'ms' ? `Meminta pindahan kewangan (${analysis.extractedPayment || 'jumlah tidak dinyatakan'}) melalui pemesejan rakan setara dan bukannya portal korporat rasmi.` : `Requests financial transfer (${analysis.extractedPayment || 'unspecified amount'}) through peer messaging rather than official corporate portals.`,
+      label: lang === 'ms' ? "Umpan Pemulangan Cukai / Kewangan" : "Financial / Tax Refund Bait",
+      text: lang === 'ms' ? "Menggunakan umpan pemulangan wang/cukai untuk memancing anda membuka pautan asing." : "Uses tax refund or financial payout bait to trick you into opening untrusted links.",
       weight: 15
     });
   }
 
-  // 4. COMBINATION PENALTY (Multipliers for high-risk co-occurrences)
-  let combinationContribution = 0;
-  if ((analysis.hasPaymentKeywords || analysis.extractedPayment || lowerText.includes('transfer')) && (hasUrgency || hasSecrecy || hasFearThreat || hasImpossibleRoi || hasFalseGuarantee)) {
-    combinationContribution += 20;
-    explanations.push({
-      category: "rule_fusion",
-      label: lang === 'ms' ? "Kewujudan Bersama Risiko Kritikal" : "Critical Risk Co-occurrence",
-      text: lang === 'ms' ? "Menggabungkan tuntutan pindahan wang terus dengan kedesakan, kerahsiaan, jaminan palsu, atau ganjaran mustahil menunjukkan kebarangkalian penipuan yang melampau." : "Combining direct money transfer demands with urgency, secrecy, false guarantees, or impossible rewards indicates extreme scam probability.",
-      weight: 20
-    });
-  }
-
-  // Add normal scores if we didn't override with blacklist base
   if (!matchedBlacklistIndicator) {
-    score += ruleContribution + paymentContribution + combinationContribution;
-    
-    // Add minor general indicators if URLs or phone numbers are present
+    score += ruleContribution;
     if (analysis.urls.length > 0) {
-      score += 10;
+      score += 15;
       explanations.push({
         category: "technical",
-        label: lang === 'ms' ? "Pautan Boleh Klik Terkandung" : "Clickable Link Contained",
-        text: lang === 'ms' ? "Mengandungi destinasi pautan luaran yang hanya perlu disahkan melalui domain laman web rasmi." : "Contains external link destinations which should only be verified through official site domains.",
-        weight: 10
-      });
-    }
-    if (analysis.phones.length > 0) {
-      score += 8;
-      explanations.push({
-        category: "reputation",
-        label: lang === 'ms' ? "Butiran Penghantar Tidak Berdaftar" : "Unregistered Sender Details",
-        text: lang === 'ms' ? "Nombor telefon penghantar memerlukan pengesahan bebas." : "Sender phone number requires independent validation.",
-        weight: 8
+        label: lang === 'ms' ? "Pautan Boleh Klik Terkandung" : "External Link Contained",
+        text: lang === 'ms' ? `Mengandungi pautan luar (${analysis.urls[0]}) yang bukan domain rasmi.` : `Contains an external link (${analysis.urls[0]}) which is not an official domain.`,
+        weight: 15
       });
     }
   }
 
-  // 5. COMMUNITY FUSION (Weight: 15% - adds bonus to final score)
+  // 3. TRUE AI SEMANTIC ANALYSIS (Gemini API)
+  try {
+    const geminiResult = await analyzeTextWithGemini(text, lang);
+    if (geminiResult && geminiResult.score) {
+      // Take the max of rule score or AI score
+      score = Math.max(score, geminiResult.score);
+      
+      if (geminiResult.explanations && Array.isArray(geminiResult.explanations)) {
+        geminiResult.explanations.forEach(exp => {
+           explanations.push({
+             category: exp.category || 'ai_insight',
+             label: `✨ AI: ${exp.label}`,
+             text: exp.text,
+             weight: exp.weight || 0
+           });
+        });
+      }
+    }
+  } catch (err) {
+    console.error("Failed to run Gemini analysis, falling back to rule engine", err);
+  }
+
+
+  // 3. COMMUNITY FUSION (Weight: 15% - adds bonus to final score)
   const verifiedReports = metadata.verifiedReportsCount || 0;
   if (verifiedReports > 0) {
     const commBonus = verifiedReports >= 3 ? 15 : 8;
@@ -408,7 +324,8 @@ export function analyzeScamRisk(text, metadata = {}) {
                       (analysis.phones.length > 0 ? 1 : 0) + 
                       (qrDestination ? 1 : 0) +
                       (verifiedReports > 0 ? 1 : 0) +
-                      (matchedBlacklistIndicator ? 1 : 0);
+                      (matchedBlacklistIndicator ? 1 : 0) +
+                      (explanations.length > 0 ? 2 : 0); // Boost confidence if AI or rules found something
   
   if (evidenceCount >= 3) confidence = lang === 'ms' ? "Tinggi" : "High";
   else if (evidenceCount >= 1) confidence = lang === 'ms' ? "Sederhana" : "Medium";

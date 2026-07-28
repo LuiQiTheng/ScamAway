@@ -106,7 +106,7 @@ export default function UserChecker({ isElderlyMode, onToggleElderlyMode }) {
       }, (idx + 1) * 600);
     });
 
-    setTimeout(() => {
+    setTimeout(async () => {
       // Find matching reports in global state for duplicate mapping
       let verifiedReportsCount = 0;
       const foundIndicators = [];
@@ -118,7 +118,7 @@ export default function UserChecker({ isElderlyMode, onToggleElderlyMode }) {
         verifiedReportsCount = reportsList.filter(r => r.status === 'confirmed').length;
       }
 
-      const res = analyzeScamRisk(finalText, {
+      const res = await analyzeScamRisk(finalText, {
         ...metadata,
         verifiedReportsCount: verifiedReportsCount,
         blacklist: blacklist,
