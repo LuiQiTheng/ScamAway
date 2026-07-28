@@ -222,7 +222,13 @@ const translations = {
 
     // General
     "common.close": "Close",
-    "common.loading": "Processing..."
+    "common.loading": "Processing...",
+
+    // Statuses
+    "status.unverified": "Unverified",
+    "status.under_review": "Under Review",
+    "status.confirmed": "Confirmed",
+    "status.rejected": "Rejected"
   },
   ms: {
     // Navigation
@@ -441,7 +447,13 @@ const translations = {
 
     // General
     "common.close": "Tutup",
-    "common.loading": "Sedang memproses..."
+    "common.loading": "Sedang memproses...",
+
+    // Statuses
+    "status.unverified": "Belum Disahkan",
+    "status.under_review": "Dalam Semakan",
+    "status.confirmed": "Disahkan",
+    "status.rejected": "Ditolak"
   }
 };
 

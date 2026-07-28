@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import { collection, onSnapshot, addDoc, updateDoc, doc, setDoc, getDocs } from "firebase/firestore";
+import { db } from '../config/firebase';
 
 const AppContext = createContext();
 
@@ -25,122 +27,107 @@ const INITIAL_REPORTS = [
     timestamp: new Date("2026-07-25T11:15:00.000Z").toISOString(),
     status: 'confirmed',
     reporterId: 'rep_102'
-  },
-  {
-    id: 1003,
-    category: 'emergency',
-    text: "Mum, I damaged my phone speaker. Need you to transfer RM1,000 to my friend's account 164228910239 urgently for my medical bill. Don't call me.",
-    score: 90,
-    riskBand: "Critical",
-    timestamp: new Date("2026-07-26T09:04:00.000Z").toISOString(),
-    status: 'confirmed',
-    reporterId: 'rep_103'
-  },
-  {
-    id: 1004,
-    category: 'marketplace',
-    text: "Seller asks to proceed with payment via bank transfer outside Shopee guarantee page to get 10% discount.",
-    score: 55,
-    riskBand: "Caution",
-    timestamp: new Date("2026-07-26T15:10:00.000Z").toISOString(),
-    status: 'under_review',
-    reporterId: 'rep_101'
   }
 ];
 
 const INITIAL_REPUTATIONS = [
   { profileId: 'rep_101', userName: 'Ahmad Rafiq (Kuala Lumpur)', role: 'Citizen', identityLevel: 2, agreementRate: 94, verifiedReports: 5, abuseFlags: 0 },
-  { profileId: 'rep_102', userName: 'Lim Wei Han (Selangor)', role: 'Citizen', identityLevel: 3, agreementRate: 100, verifiedReports: 12, abuseFlags: 0 },
-  { profileId: 'rep_103', userName: 'Guest_User_912', role: 'Guest', identityLevel: 1, agreementRate: 75, verifiedReports: 2, abuseFlags: 0 }
+  { profileId: 'rep_102', userName: 'Lim Wei Han (Selangor)', role: 'Citizen', identityLevel: 3, agreementRate: 100, verifiedReports: 12, abuseFlags: 0 }
 ];
 
 const INITIAL_BLACKLIST = {
-  phoneNumbers: ['+6011-8762512', '+6017-9921102', '+6012-3345591', '+6019-2238475'],
-  urls: ['pos-laju.info', 'maybank-secure-login.xyz', 'shopee-rewards-claim.net', 'tnb-bill-payment.club', 'lhdn-refund.org'],
-  bankAccounts: ['164228910239', '564210923049']
+  id: 'global',
+  phoneNumbers: ['+6011-8762512', '+6017-9921102'],
+  urls: ['pos-laju.info', 'maybank-secure-login.xyz'],
+  bankAccounts: ['164228910239']
 };
 
 export const AppProvider = ({ children }) => {
-  const [reportsList, setReportsList] = useState(() => {
-    try {
-      const saved = localStorage.getItem('scamshield_reports');
-      return saved ? JSON.parse(saved) : INITIAL_REPORTS;
-    } catch (e) {
-      console.error(e);
-      return INITIAL_REPORTS;
-    }
-  });
+  const [reportsList, setReportsList] = useState([]);
+  const [reputationProfiles, setReputationProfiles] = useState([]);
+  const [blacklist, setBlacklist] = useState({ phoneNumbers: [], urls: [], bankAccounts: [] });
+  const [activeAlert, setActiveAlert] = useState(null);
 
-  const [reputationProfiles, setReputationProfiles] = useState(() => {
-    try {
-      const saved = localStorage.getItem('scamshield_reputations');
-      return saved ? JSON.parse(saved) : INITIAL_REPUTATIONS;
-    } catch (e) {
-      console.error(e);
-      return INITIAL_REPUTATIONS;
-    }
-  });
+  // Initialize and Sync Firebase Data
+  useEffect(() => {
+    if (!db) return;
 
-  const [blacklist, setBlacklist] = useState(() => {
-    try {
-      const saved = localStorage.getItem('scamshield_blacklist');
-      return saved ? JSON.parse(saved) : INITIAL_BLACKLIST;
-    } catch (e) {
-      console.error(e);
-      return INITIAL_BLACKLIST;
-    }
-  });
-
-  const [activeAlert, setActiveAlert] = useState(() => {
-    try {
-      const saved = localStorage.getItem('scamshield_alert');
-      const parsed = saved ? JSON.parse(saved) : null;
-      if (parsed) {
-        if (!parsed.message_ms && parsed.message?.includes("Urgent: A wave of parcel")) {
-          parsed.message_ms = "Segera: Gelombang SMS bayaran semasa penghantaran (COD) bungkusan yang menyamar sebagai pautan Pos Laju (pos-laju.info) telah menyasarkan wilayah Selangor dan Lembah Klang. Jangan bayar atau buka pautan tersebut.";
-        }
-        return parsed;
+    // Listen to Reports
+    const unsubReports = onSnapshot(collection(db, "reports"), (snapshot) => {
+      const reports = snapshot.docs.map(doc => ({ firebaseId: doc.id, ...doc.data() }));
+      if (reports.length === 0) {
+        INITIAL_REPORTS.forEach(r => addDoc(collection(db, "reports"), r).catch(e => console.warn("Firestore seed err:", e)));
+        setReportsList(INITIAL_REPORTS);
+      } else {
+        reports.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        setReportsList(reports);
       }
-      return {
-        id: 1,
-        message: "Urgent: A wave of parcel cash-on-delivery (COD) SMS impersonating Pos Laju links (pos-laju.info) has been targeting Selangor and Klang Valley regions. Do not pay or open the links.",
-        message_ms: "Segera: Gelombang SMS bayaran semasa penghantaran (COD) bungkusan yang menyamar sebagai pautan Pos Laju (pos-laju.info) telah menyasarkan wilayah Selangor dan Lembah Klang. Jangan bayar atau buka pautan tersebut.",
-        timestamp: new Date().toISOString()
-      };
-    } catch (e) {
-      console.error(e);
-      return {
-        id: 1,
-        message: "Urgent: A wave of parcel cash-on-delivery (COD) SMS impersonating Pos Laju links (pos-laju.info) has been targeting Selangor and Klang Valley regions. Do not pay or open the links.",
-        message_ms: "Segera: Gelombang SMS bayaran semasa penghantaran (COD) bungkusan yang menyamar sebagai pautan Pos Laju (pos-laju.info) telah menyasarkan wilayah Selangor dan Lembah Klang. Jangan bayar atau buka pautan tersebut.",
-        timestamp: new Date().toISOString()
-      };
-    }
-  });
+    }, (error) => {
+      console.warn("⚠️ [Firestore] Could not connect to Cloud Database. (Check if Firestore Database is created in Test Mode in Firebase Console). Using local fallback.", error?.message);
+      setReportsList(prev => prev.length === 0 ? INITIAL_REPORTS : prev);
+    });
 
-  // Sync to localStorage safely
-  const safeSetItem = (key, value) => {
+    // Listen to Reputations
+    const unsubReputations = onSnapshot(collection(db, "reputations"), (snapshot) => {
+      const reps = snapshot.docs.map(doc => doc.data());
+      if (reps.length === 0) {
+        INITIAL_REPUTATIONS.forEach(r => setDoc(doc(db, "reputations", r.profileId), r).catch(e => console.warn(e)));
+        setReputationProfiles(INITIAL_REPUTATIONS);
+      } else {
+        setReputationProfiles(reps);
+      }
+    }, (error) => console.warn("⚠️ [Firestore Reputations Listener]", error?.message));
+
+    // Listen to Blacklist
+    const unsubBlacklist = onSnapshot(doc(db, "system", "blacklist"), (docSnap) => {
+      if (!docSnap.exists()) {
+        setDoc(doc(db, "system", "blacklist"), INITIAL_BLACKLIST).catch(e => console.warn(e));
+        setBlacklist(INITIAL_BLACKLIST);
+      } else {
+        setBlacklist(docSnap.data());
+      }
+    }, (error) => console.warn("⚠️ [Firestore Blacklist Listener]", error?.message));
+
+    // Listen to Active Alert
+    const unsubAlert = onSnapshot(doc(db, "system", "activeAlert"), (docSnap) => {
+      if (docSnap.exists()) {
+        setActiveAlert(docSnap.data());
+      }
+    }, (error) => console.warn("⚠️ [Firestore Alert Listener]", error?.message));
+
+    return () => {
+      unsubReports();
+      unsubReputations();
+      unsubBlacklist();
+      unsubAlert();
+    };
+  }, []);
+
+  const addReport = useCallback(async (newReport) => {
+    const reportData = { ...newReport, id: Date.now(), reporterId: 'rep_103' };
+    // Optimistic local update
+    setReportsList(prev => [reportData, ...prev]);
     try {
-      localStorage.setItem(key, JSON.stringify(value));
+      await addDoc(collection(db, "reports"), reportData);
     } catch (e) {
-      console.error("Storage error:", e);
+      console.warn("⚠️ [Firestore] Failed to write report to cloud:", e?.message);
     }
-  };
-
-  useEffect(() => safeSetItem('scamshield_reports', reportsList), [reportsList]);
-  useEffect(() => safeSetItem('scamshield_reputations', reputationProfiles), [reputationProfiles]);
-  useEffect(() => safeSetItem('scamshield_blacklist', blacklist), [blacklist]);
-  useEffect(() => safeSetItem('scamshield_alert', activeAlert), [activeAlert]);
-
-  const addReport = useCallback((newReport) => {
-    setReportsList(prev => [{ ...newReport, id: Date.now(), reporterId: 'rep_103' }, ...prev]);
   }, []);
 
-  const updateReportStatus = useCallback((id, newStatus, rationale) => {
+  const updateReportStatus = useCallback(async (id, newStatus, rationale) => {
+    // Optimistic local update
     setReportsList(prev => prev.map(r => r.id === id ? { ...r, status: newStatus, rationale } : r));
-  }, []);
+    try {
+      const report = reportsList.find(r => r.id === id);
+      if (report && report.firebaseId) {
+        await updateDoc(doc(db, "reports", report.firebaseId), { status: newStatus, rationale });
+      }
+    } catch (e) {
+      console.warn("⚠️ [Firestore] Failed to update status in cloud:", e?.message);
+    }
+  }, [reportsList]);
 
-  const updateReputation = useCallback((profileId, wasCorrect) => {
+  const updateReputation = useCallback(async (profileId, wasCorrect) => {
     setReputationProfiles(prev => prev.map(p => {
       if (p.profileId === profileId) {
         const newVerified = wasCorrect ? p.verifiedReports + 1 : p.verifiedReports;
@@ -149,17 +136,46 @@ export const AppProvider = ({ children }) => {
       }
       return p;
     }));
+    try {
+      const profile = reputationProfiles.find(p => p.profileId === profileId);
+      if (profile) {
+        const newVerified = wasCorrect ? profile.verifiedReports + 1 : profile.verifiedReports;
+        const newRate = Math.min(100, Math.round((newVerified / (newVerified + (wasCorrect ? 0 : 1))) * 100));
+        await updateDoc(doc(db, "reputations", profileId), { 
+          verifiedReports: newVerified, 
+          agreementRate: isNaN(newRate) ? profile.agreementRate : newRate 
+        });
+      }
+    } catch (e) {
+      console.warn("⚠️ [Firestore] Failed to update reputation in cloud:", e?.message);
+    }
+  }, [reputationProfiles]);
+
+  const addAlert = useCallback(async (alert) => {
+    setActiveAlert(alert);
+    try {
+      await setDoc(doc(db, "system", "activeAlert"), alert);
+    } catch (e) {
+      console.warn("⚠️ [Firestore] Failed to update active alert in cloud:", e?.message);
+    }
   }, []);
 
-  const addAlert = useCallback((alert) => setActiveAlert(alert), []);
-
-  const addBlacklistItem = useCallback((type, value) => {
+  const addBlacklistItem = useCallback(async (type, value) => {
     if (!['phoneNumbers', 'urls', 'bankAccounts'].includes(type)) return;
     setBlacklist(prev => ({
       ...prev,
       [type]: Array.from(new Set([...prev[type], value]))
     }));
-  }, []);
+    try {
+      const updatedList = Array.from(new Set([...blacklist[type], value]));
+      await updateDoc(doc(db, "system", "blacklist"), {
+        [type]: updatedList
+      });
+    } catch (e) {
+      console.warn("⚠️ [Firestore] Failed to update blacklist in cloud:", e?.message);
+    }
+  }, [blacklist]);
+
 
   const contextValue = useMemo(() => ({
     reportsList, addReport, updateReportStatus,
