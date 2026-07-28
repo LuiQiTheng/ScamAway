@@ -65,6 +65,16 @@ export function extractIndicators(text) {
   };
 }
 
+const WHATSAPP_DOMAINS = new Set(['wa.me', 'api.whatsapp.com', 'whatsapp.com']);
+
+function isWhatsAppDomain(domain = '') {
+  return WHATSAPP_DOMAINS.has(domain.toLowerCase());
+}
+
+function hasAny(text, patterns) {
+  return patterns.some((pattern) => pattern.test(text));
+}
+
 /**
  * Runs the hybrid scoring algorithm on extracted inputs (Blacklist + Gemini AI)
  * @param {string} text - Message content
@@ -153,36 +163,94 @@ export async function analyzeScamRisk(text, metadata = {}) {
     score = 85; 
   }
 
-  // 2. RULE LAYER & SOCIAL ENGINEERING KEYWORDS
+  // 2. CONTEXT-AWARE RULE LAYER
+  // A word such as "urgent" or the presence of a link is not enough on its own.
+  // The engine looks for an instruction, time pressure, payment, credential, or
+  // impersonation context before increasing the risk substantially.
   let ruleContribution = 0;
-  
-  const urgencyKeywords = ['urgent', 'urgently', '30 minutes', 'within 24 hours', 'immediately', 'expire', 'fast', 'segera', 'cepat', 'now', 'sekarang', 'terkini', 'hari ini', 'masa terhad', 'limited time', 'hours', 'hrs', 'mins', '24 hours'];
-  const secrecyKeywords = ['secret', 'secrecy', 'dont tell', 'don\'t tell', 'dont let', 'don\'t let', 'rahsia', 'jangan beritahu', 'keep it secret', 'keep this secret', 'between us', 'don\'t call', 'jangan call', 'jangan hubungi'];
-  const credentialKeywords = ['otp', 'login', 'verify password', 'username', 'click here to update', 'update account', 'suspended', 'tac code', 'kod tac', 'kata laluan', 'sahkan id', 'log masuk', 'banking details', 'update your banking'];
-  const falseGuaranteeKeywords = ['100% true', '100% safe', 'no risk', 'without risk', 'guarantee', 'guaranteed', 'dijamin', '100% untung', 'tanpa risiko', 'pasti untung', 'syariah patuh', 'patuh syariah'];
-  const baitKeywords = ['congratulations', 'won rm', 'free gift', 'earn daily', 'part-time job', 'bonus', 'rewards', 'reward', 'komisen', 'gaji', 'untung', 'tahniah', 'kerja sambilan', 'hadiah', 'percuma', 'tebus', 'refund', 'tax refund', 'income tax'];
-  const fearThreatKeywords = ['fined', 'fine', 'denda', 'jail', 'penjara', 'arrest', 'arrested', 'warrant', 'warant', 'waran tangkap', 'saman', 'blacklisted', 'tax debt', 'cukai', 'lhdn penalty', 'lock account', 'account frozen', 'akaun dibeku', 'court action', 'legal action', 'tindakan undang-undang'];
-  
-  const familyEmergencyKeywords = ['mum', 'dad', 'mak', 'ayah', 'ibu', 'bapa', 'abang', 'adik', 'fell into water', 'rosak', 'damaged phone', 'new number', 'friend\'s account', 'friend\'s phone', 'tukar nombor', 'telefon rosak', 'masuk hospital', 'kemalangan'];
-  const authorityKeywords = ['police', 'polis', 'court', 'mahkamah', 'lhdn', 'jpj', 'saman', 'arrest warrant', 'pos laju', 'poslaju', 'courier tax', 'customs', 'kastam', 'sprm', 'mcmc', 'skmm', 'bank negara', 'bnm', 'kwsp', 'epf'];
 
-  const lowerText = text.toLowerCase();
+  const isJobPost = hasAny(text, [
+    /\b(?:urgent\s+)?hiring\b/i,
+    /\bjob\s+(?:offer|opening|vacancy|posting)\b/i,
+    /\b(?:full[- ]?time|part[- ]?time|internship|vacancy|recruiter|recruitment|positions?)\b/i,
+    /\b(?:send|submit)\s+(?:your\s+)?(?:resume|cv)\b/i,
+    /\b(?:wfh|work\s+from\s+home|hybrid)\b/i,
+    /\b(?:kerja|jawatan|pengambilan|latihan industri)\b/i
+  ]);
 
-  const hasUrgency = urgencyKeywords.some(kw => lowerText.includes(kw)) || /within\s*\d+\s*(hours?|hrs?|mins?|minutes?|days?)/i.test(text);
-  const hasSecrecy = secrecyKeywords.some(kw => lowerText.includes(kw));
-  const hasCreds = credentialKeywords.some(kw => lowerText.includes(kw));
-  const hasFalseGuarantee = falseGuaranteeKeywords.some(kw => lowerText.includes(kw));
-  const hasBait = baitKeywords.some(kw => lowerText.includes(kw));
-  const hasFearThreat = fearThreatKeywords.some(kw => lowerText.includes(kw));
-  const hasFamilyEmergency = familyEmergencyKeywords.some(kw => lowerText.includes(kw));
-  const hasAuthority = authorityKeywords.some(kw => lowerText.includes(kw));
+  const hasDirectPressure = hasAny(text, [
+    /\b(?:act|apply|pay|reply|respond|transfer|click|verify|submit|contact)\s+(?:now|immediately|urgently)\b/i,
+    /\b(?:pay|transfer|click|verify|submit).{1,60}\b(?:now|immediately|urgently)\b/i,
+    /\bwithin\s*\d+\s*(?:hours?|hrs?|minutes?|mins?|days?)\b/i,
+    /\b(?:today only|last chance|limited time|before it expires)\b/i,
+    /\b(?:or|otherwise)\s+(?:your\s+)?(?:account|parcel|application).{0,30}(?:blocked|suspended|cancelled|returned|rejected)\b/i,
+    /\b(?:bayar|klik|pindah|balas|mohon|hubungi|sahkan)\s+(?:sekarang|segera)\b/i,
+    /\bdalam\s+\d+\s*(?:minit|jam|hari)\b/i
+  ]);
 
-  if (hasAuthority) {
+  const hasSecrecy = hasAny(text, [
+    /\b(?:keep (?:it|this) secret|between us|don'?t tell|don'?t call)\b/i,
+    /\b(?:rahsia|jangan beritahu|jangan hubungi)\b/i
+  ]);
+  const hasCreds = hasAny(text, [
+    /\b(?:otp|tac code|kod tac|password|kata laluan|banking details)\b/i,
+    /\b(?:verify|update|submit|share)\s+(?:your\s+)?(?:login|password|banking|account)\b/i
+  ]);
+  const hasPrizeOrRefundBait = hasAny(text, [
+    /\b(?:congratulations|tahniah).{0,35}(?:won|winner|reward|gift|hadiah)\b/i,
+    /\b(?:tax refund|cash refund|refund portal|tebus hadiah|hadiah percuma)\b/i
+  ]);
+  const hasImpossibleReturn = hasAny(text, [
+    /\b(?:guaranteed|dijamin|pasti)\s+(?:profit|return|income|untung)\b/i,
+    /\b(?:100%\s+untung|no risk|without risk|tanpa risiko)\b/i
+  ]);
+  const hasFearThreat = hasAny(text, [
+    /\b(?:fined|jail|arrested?|warrant|blacklisted|tax debt|account frozen|court action|legal action)\b/i,
+    /\b(?:denda|penjara|waran tangkap|akaun dibeku|tindakan undang-undang)\b/i
+  ]);
+  const hasFamilyEmergency = hasAny(text, [
+    /\b(?:mum|dad|mak|ayah|ibu|bapa|abang|adik).{0,80}(?:new number|phone.{0,10}(?:lost|broken|damaged)|hospital|accident)\b/i,
+    /\b(?:telefon rosak|tukar nombor|masuk hospital|kemalangan|akaun kawan)\b/i
+  ]);
+  const hasAuthority = hasAny(text, [
+    /\b(?:police|polis|court|mahkamah|lhdn|jpj|pos laju|poslaju|customs|kastam|sprm|mcmc|skmm|bank negara|bnm|kwsp|epf)\b/i
+  ]);
+
+  const hasJobAdvanceFee = isJobPost && hasAny(text, [
+    /\b(?:registration|processing|training|starter|security)\s+(?:fee|deposit)\b/i,
+    /\b(?:pay|deposit|transfer)\s+rm\s*\d+/i,
+    /\b(?:pay|transfer).{0,45}(?:to start|before you start|unlock|first task)\b/i,
+    /\b(?:bayar|deposit|pindah).{0,30}(?:untuk mula|yuran pendaftaran|tugasan pertama)\b/i
+  ]);
+  const hasHighDailyIncomeClaim = hasAny(text, [
+    /\b(?:earn|income|salary|gaji).{0,25}rm\s*\d+(?:\s*[-–]\s*\d+)?\s*(?:daily|per day|sehari)\b/i
+  ]);
+  const hasEasyTaskClaim = hasAny(text, [
+    /\b(?:easy|simple)\s+(?:online\s+)?(?:job|task|work)\b/i,
+    /\b(?:like products|post reviews|process orders|click orders|no experience needed)\b/i
+  ]);
+  const hasUnrealisticJobIncome = isJobPost &&
+    (hasImpossibleReturn || (hasHighDailyIncomeClaim && hasEasyTaskClaim));
+
+  const whatsappDomains = analysis.urls.filter(isWhatsAppDomain);
+  const hasWhatsAppLink = whatsappDomains.length > 0;
+  const hasOnlyWhatsAppLinks = analysis.urls.length > 0 &&
+    analysis.urls.every(isWhatsAppDomain);
+  const hasCorporateEmail = /[\w.+-]+@(?!gmail\.com|yahoo\.com|hotmail\.com|outlook\.com|protonmail\.com)[\w.-]+\.[a-z]{2,}/i.test(text);
+  const hasNamedBusinessEntity = /\b(?:sdn\.?\s*bhd\.?|berhad|enterprise|plc|ltd\.?|inc\.?)\b/i.test(text);
+  const hasNonWhatsAppWebSource = analysis.urls.some((domain) => !isWhatsAppDomain(domain));
+  const hasEmployerIdentitySource = hasCorporateEmail || hasNamedBusinessEntity || hasNonWhatsAppWebSource;
+  const hasStrongJobRisk = hasJobAdvanceFee || hasCreds || hasUnrealisticJobIncome ||
+    (hasDirectPressure && (analysis.hasPaymentKeywords || hasFearThreat));
+
+  if (hasAuthority && (hasFearThreat || hasCreds || hasDirectPressure || analysis.hasPaymentKeywords)) {
     ruleContribution += 25;
     explanations.push({
       category: "impersonation",
-      label: lang === 'ms' ? "Penyamaran Pihak Berkuasa / Kerajaan" : "Authority / Government Impersonation",
-      text: lang === 'ms' ? "Menyamar sebagai agensi rasmi (LHDN, JPJ, Polis) atau portal cukai untuk mewujudkan kuasa palsu." : "Impersonates official agencies (LHDN, Inland Revenue Board, Police) or refund portals to establish fake authority.",
+      label: lang === 'ms' ? "Kemungkinan Penyamaran Pihak Berkuasa" : "Possible Authority Impersonation",
+      text: lang === 'ms'
+        ? "Nama agensi rasmi digunakan bersama tekanan, ancaman, permintaan bayaran atau permintaan maklumat sensitif."
+        : "An official agency name is combined with pressure, threats, payment requests, or requests for sensitive information.",
       weight: 25
     });
   }
@@ -191,61 +259,169 @@ export async function analyzeScamRisk(text, metadata = {}) {
     ruleContribution += 30;
     explanations.push({
       category: "credentials",
-      label: lang === 'ms' ? "Pola Penuaian Kredensial / Perbankan" : "Credential / Banking Details Harvesting Pattern",
-      text: lang === 'ms' ? "Meminta anda mengemas kini atau menyerahkan butiran perbankan sensitif pada pautan tidak rasmi." : "Prompts you to update or submit sensitive banking details/credentials on an unofficial domain link.",
+      label: lang === 'ms' ? "Permintaan Maklumat Sulit" : "Sensitive Information Request",
+      text: lang === 'ms'
+        ? "Mesej meminta OTP, TAC, kata laluan atau butiran perbankan yang tidak patut dikongsi."
+        : "The message requests an OTP, TAC, password, or banking details that should not be shared.",
       weight: 30
     });
   }
 
-  if (hasUrgency) {
+  if (hasDirectPressure) {
     ruleContribution += 20;
     explanations.push({
       category: "urgency",
-      label: lang === 'ms' ? "Tekanan Kedesakan Dikesan" : "Urgency Pressure Detected",
-      text: lang === 'ms' ? "Penghantar menekan anda untuk bertindak serta-merta (cth. 'dalam 24 jam') untuk memintas semakan keselamatan." : "The sender pressures you to act immediately (e.g. 'within 24 hours') to bypass safety checks.",
+      label: lang === 'ms' ? "Tekanan Untuk Bertindak Segera" : "Immediate Action Pressure",
+      text: lang === 'ms'
+        ? "Mesej memberikan arahan segera, had masa atau akibat untuk menghalang semakan yang teliti."
+        : "The message gives an immediate instruction, deadline, or consequence that discourages careful verification.",
       weight: 20
     });
   }
 
-  if (hasBait) {
+  if (hasFearThreat) {
+    ruleContribution += 25;
+    explanations.push({
+      category: "threat",
+      label: lang === 'ms' ? "Ancaman Undang-undang atau Akaun" : "Legal or Account Threat",
+      text: lang === 'ms'
+        ? "Ancaman tangkapan, tindakan undang-undang atau pembekuan akaun digunakan untuk menimbulkan ketakutan."
+        : "Arrest, legal-action, or account-freeze language is used to create fear.",
+      weight: 25
+    });
+  }
+
+  if (hasFamilyEmergency) {
+    ruleContribution += 30;
+    explanations.push({
+      category: "impersonation",
+      label: lang === 'ms' ? "Umpan Penyamaran Keluarga" : "Family Impersonation Pattern",
+      text: lang === 'ms'
+        ? "Mesej menggunakan nombor baharu, telefon rosak atau kecemasan keluarga untuk meminta bantuan tanpa pengesahan."
+        : "The message uses a new number, broken phone, or family emergency to request help without verification.",
+      weight: 30
+    });
+  }
+
+  if (hasSecrecy && (hasFamilyEmergency || analysis.hasPaymentKeywords)) {
     ruleContribution += 15;
     explanations.push({
-      category: "bait",
-      label: lang === 'ms' ? "Umpan Pemulangan Cukai / Kewangan" : "Financial / Tax Refund Bait",
-      text: lang === 'ms' ? "Menggunakan umpan pemulangan wang/cukai untuk memancing anda membuka pautan asing." : "Uses tax refund or financial payout bait to trick you into opening untrusted links.",
+      category: "secrecy",
+      label: lang === 'ms' ? "Diminta Merahsiakan Urusan" : "Secrecy Request",
+      text: lang === 'ms'
+        ? "Penghantar meminta anda tidak menghubungi atau memberitahu orang lain."
+        : "The sender asks you not to call or tell anyone else.",
       weight: 15
     });
   }
 
+  if (hasPrizeOrRefundBait || hasImpossibleReturn) {
+    ruleContribution += hasImpossibleReturn ? 30 : 15;
+    explanations.push({
+      category: "bait",
+      label: lang === 'ms' ? "Janji Kewangan Tidak Realistik" : "Unrealistic Financial Promise",
+      text: lang === 'ms'
+        ? "Ganjaran, pemulangan wang atau pulangan terjamin digunakan untuk menarik tindakan tanpa pengesahan."
+        : "A reward, refund, or guaranteed return is used to encourage action without verification.",
+      weight: hasImpossibleReturn ? 30 : 15
+    });
+  }
+
+  if (hasJobAdvanceFee) {
+    ruleContribution += 35;
+    explanations.push({
+      category: "payment",
+      label: lang === 'ms' ? "Bayaran Pendahuluan Untuk Mendapat Kerja" : "Advance Fee to Start a Job",
+      text: lang === 'ms'
+        ? "Iklan pekerjaan meminta yuran, deposit atau bayaran sebelum kerja bermula—tanda utama penipuan pekerjaan."
+        : "The job post requests a fee, deposit, or payment before work begins—a major job-scam warning sign.",
+      weight: 35
+    });
+  }
+
+  if (hasUnrealisticJobIncome) {
+    ruleContribution += 20;
+    explanations.push({
+      category: "job",
+      label: lang === 'ms' ? "Janji Pendapatan Kerja Tidak Realistik" : "Unrealistic Job Income Claim",
+      text: lang === 'ms'
+        ? "Pendapatan harian yang tinggi dijanjikan untuk tugasan yang sangat mudah atau tanpa pengalaman."
+        : "High daily income is promised for extremely simple tasks or no experience.",
+      weight: 20
+    });
+  }
+
   if (!matchedBlacklistIndicator) {
-    score += ruleContribution;
-    if (analysis.urls.length > 0) {
-      score += 15;
+    if (hasWhatsAppLink) {
+      ruleContribution += 4;
       explanations.push({
-        category: "technical",
-        label: lang === 'ms' ? "Pautan Boleh Klik Terkandung" : "External Link Contained",
-        text: lang === 'ms' ? `Mengandungi pautan luar (${analysis.urls[0]}) yang bukan domain rasmi.` : `Contains an external link (${analysis.urls[0]}) which is not an official domain.`,
-        weight: 15
+        category: "contact",
+        label: lang === 'ms' ? "Pautan Hubungan WhatsApp" : "WhatsApp Contact Link",
+        text: lang === 'ms'
+          ? `Pautan ${whatsappDomains[0]} hanya membuka perbualan WhatsApp. Ia bukan bukti penipuan, tetapi identiti perekrut masih perlu disahkan melalui sumber rasmi.`
+          : `The ${whatsappDomains[0]} link only opens a WhatsApp conversation. It is not proof of a scam, but the recruiter should still be verified through an official source.`,
+        weight: 4
       });
     }
+
+    if (isJobPost && !hasEmployerIdentitySource) {
+      ruleContribution += 6;
+      explanations.push({
+        category: "verification",
+        label: lang === 'ms' ? "Maklumat Majikan Perlu Disahkan" : "Employer Details Need Verification",
+        text: lang === 'ms'
+          ? "Iklan tidak menyediakan laman kerjaya rasmi, e-mel korporat atau nama entiti perniagaan yang boleh disemak. Ini tidak bermaksud penipuan, tetapi kesahihannya belum dapat dipastikan."
+          : "The post does not provide an official careers page, corporate email, or checkable business entity. This does not mean it is a scam, but its legitimacy is not yet confirmed.",
+        weight: 6
+      });
+    }
+
+    const otherDomains = analysis.urls.filter((domain) => !isWhatsAppDomain(domain));
+    if (otherDomains.length > 0) {
+      ruleContribution += 12;
+      explanations.push({
+        category: "technical",
+        label: lang === 'ms' ? "Pautan Luar Perlu Disahkan" : "External Link Requires Verification",
+        text: lang === 'ms'
+          ? `Pautan (${otherDomains[0]}) perlu dibandingkan dengan laman rasmi organisasi sebelum dibuka.`
+          : `The link (${otherDomains[0]}) should be compared with the organisation's official website before it is opened.`,
+        weight: 12
+      });
+    }
+
+    score += ruleContribution;
   }
 
   // 3. TRUE AI SEMANTIC ANALYSIS (Gemini API)
   try {
     const geminiResult = await analyzeTextWithGemini(text, lang);
-    if (geminiResult && geminiResult.score) {
-      // Take the max of rule score or AI score
-      score = Math.max(score, geminiResult.score);
-      
+    if (geminiResult && Number.isFinite(Number(geminiResult.score))) {
+      let semanticScore = Number(geminiResult.score);
+
+      // A normal job advertisement with only a WhatsApp contact must not be
+      // escalated to high risk unless there is another concrete scam signal.
+      if (isJobPost && !hasStrongJobRisk) {
+        semanticScore = Math.min(semanticScore, 29);
+      }
+
+      score = Math.max(score, semanticScore);
+
       if (geminiResult.explanations && Array.isArray(geminiResult.explanations)) {
-        geminiResult.explanations.forEach(exp => {
-           explanations.push({
-             category: exp.category || 'ai_insight',
-             label: `✨ AI: ${exp.label}`,
-             text: exp.text,
-             weight: exp.weight || 0
-           });
-        });
+        geminiResult.explanations
+          .filter((exp) => {
+            const category = String(exp.category || '').toLowerCase();
+            if (isJobPost && !hasDirectPressure && category === 'urgency') return false;
+            if (isJobPost && hasOnlyWhatsAppLinks && !hasStrongJobRisk && category === 'phishing') return false;
+            return true;
+          })
+          .forEach((exp) => {
+            explanations.push({
+              category: exp.category || 'ai_insight',
+              label: `AI: ${exp.label}`,
+              text: exp.text,
+              weight: exp.weight || 0
+            });
+          });
       }
     }
   } catch (err) {
@@ -306,6 +482,20 @@ export async function analyzeScamRisk(text, metadata = {}) {
       "Contact the official company or family member using a verified channel.",
       "Share this result with a trusted guardian or support circle."
     ];
+  } else if (isJobPost && !hasStrongJobRisk) {
+    riskBand = lang === 'ms' ? "Perlu Pengesahan" : "Needs verification";
+    bandColor = "caution";
+    recommendedActions = lang === 'ms' ? [
+      "Minta nama penuh syarikat dan semak pendaftarannya melalui SSM atau laman rasmi.",
+      "Sahkan jawatan melalui laman kerjaya atau e-mel korporat syarikat—bukan melalui profil WhatsApp sahaja.",
+      "Minta temu duga yang boleh disahkan dan jangan bayar yuran, deposit atau kos latihan untuk mendapatkan kerja.",
+      "Jangan kongsi OTP, kata laluan, butiran bank atau salinan dokumen pengenalan sebelum identiti majikan disahkan."
+    ] : [
+      "Ask for the full company name and verify its registration through SSM or the official website.",
+      "Confirm the vacancy through the company's careers page or corporate email—not only a WhatsApp profile.",
+      "Request a verifiable interview and never pay a fee, deposit, or training charge to obtain a job.",
+      "Do not share OTPs, passwords, banking details, or identity-document copies before the employer is verified."
+    ];
   } else if (score >= 30) {
     riskBand = lang === 'ms' ? "Awas" : "Caution";
     bandColor = "caution";
@@ -330,6 +520,10 @@ export async function analyzeScamRisk(text, metadata = {}) {
   if (evidenceCount >= 3) confidence = lang === 'ms' ? "Tinggi" : "High";
   else if (evidenceCount >= 1) confidence = lang === 'ms' ? "Sederhana" : "Medium";
 
+  if (isJobPost && !hasStrongJobRisk && !matchedBlacklistIndicator) {
+    confidence = lang === 'ms' ? "Sederhana" : "Medium";
+  }
+
   return {
     score,
     riskBand,
@@ -338,6 +532,11 @@ export async function analyzeScamRisk(text, metadata = {}) {
     explanations,
     indicators: analysis,
     indicatorsMatched,
+    context: {
+      type: isJobPost ? 'job_post' : 'general',
+      verificationStatus: isJobPost && !hasStrongJobRisk ? 'unverified' : 'risk_assessed',
+      hasWhatsAppLink
+    },
     recommendedActions
   };
 }

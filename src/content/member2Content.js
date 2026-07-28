@@ -18,6 +18,21 @@ export const QUICK_TEST_PRESETS = [
     text: 'Hi, I am a Shopee hiring manager. Earn RM500 daily by liking products from home. No interview needed. Pay a RM100 activation deposit and WhatsApp 60123456789 now.',
   },
   {
+    id: 'job-post-verification',
+    label: {
+      en: 'Test Job Post to Verify',
+      ms: 'Uji Iklan Kerja Untuk Disahkan',
+    },
+    tone: 'caution',
+    text: `Urgent Hiring (Full-time / Part-time)
+Penang, Melaka, Negeri Sembilan, KL, Selangor & Johor
+WFH / Hybrid / Office
+Positions: Admin, Customer Service, Sales, Accountant, Content Creator, UX/UI and Web Developer.
+Internship available for Finance, Marketing, Business, Accounting and HR.
+Requirements: SPM pass, able to speak/read/write Chinese, Malaysian only.
+Send resume to Mingxing: wa.me/60162518403`,
+  },
+  {
     id: 'lhdn',
     label: {
       en: 'Test Fake LHDN Text',
