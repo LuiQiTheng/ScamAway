@@ -6,6 +6,7 @@ import {
   Square, RefreshCw, Send, AlertCircle, Sparkles
 } from 'lucide-react';
 import { analyzeScamRisk, DEMO_SCREENSHOTS } from '../utils/rulesEngine';
+import { QUICK_TEST_PRESETS } from '../content/member2Content';
 import ReportModal from './ReportModal';
 import { useAppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -133,6 +134,13 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
   const handleScanText = () => {
     if (!inputText.trim()) return;
     triggerScanAnimation(inputText);
+  };
+
+  const handleQuickTest = (preset) => {
+    setActiveTab('text');
+    setInputText(preset.text);
+    setScanResult(null);
+    setScanSteps([]);
   };
 
   const handleScanUrl = () => {
@@ -332,6 +340,32 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
           {/* Tab Content */}
           {activeTab === 'text' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="quick-test-panel">
+                <div className="quick-test-heading">
+                  <Sparkles size={17} aria-hidden="true" />
+                  <div>
+                    <strong>{lang === 'ms' ? 'Ujian Pantas Demo' : 'Demo Quick Tests'}</strong>
+                    <span>
+                      {lang === 'ms'
+                        ? 'Pilih contoh untuk mengisi pengimbas secara automatik.'
+                        : 'Choose an example to fill the scanner automatically.'}
+                    </span>
+                  </div>
+                </div>
+                <div className="quick-test-grid">
+                  {QUICK_TEST_PRESETS.map((preset) => (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      className={`quick-test-button ${preset.tone}`}
+                      onClick={() => handleQuickTest(preset)}
+                    >
+                      {preset.label[lang] || preset.label.en}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <textarea
                 className="input-field"
                 rows={isElderlyMode ? 5 : 4}
@@ -654,7 +688,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
         isOpen={isReportOpen}
         onClose={() => setIsReportOpen(false)}
         scanResult={scanResult}
-        originalText={inputText || urlInput || qrInput}
+        originalText={textToReport}
         onSubmitReport={addReport}
       />
 
