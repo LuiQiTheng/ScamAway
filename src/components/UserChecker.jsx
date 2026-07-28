@@ -277,7 +277,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
 
       {/* Control Board: Assistant header */}
       <div className="glass-panel" style={{ padding: '1.25rem 2rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-        <Sparkles color={isKidMode ? '#a855f7' : 'var(--primary)'} size={22} />
+        <Sparkles color={isKidMode ? 'var(--primary)' : 'var(--primary)'} size={22} />
         <div>
           <h3 style={{ fontSize: isElderlyMode ? '1.4rem' : '1.1rem', color: '#fff' }}>
             {isKidMode ? t('scanner.assistant_kid') : t('scanner.assistant')}

@@ -151,7 +151,7 @@ export default function App() {
                 fontSize: '0.75rem',
                 fontWeight: 600,
                 cursor: 'pointer',
-                background: userMode === 'kid' ? '#a855f7' : 'transparent',
+                background: userMode === 'kid' ? 'var(--primary)' : 'transparent',
                 color: userMode === 'kid' ? '#fff' : 'var(--text-muted)',
                 transition: 'all 0.2s ease'
               }}
