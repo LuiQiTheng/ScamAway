@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Shield, Check, X, AlertTriangle, MessageSquare, ShieldAlert, Award, FileText, Send, UserCheck, Search, Filter, BarChart2 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
+import { extractIndicators } from '../utils/rulesEngine';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export default function ModeratorDashboard() {
@@ -19,8 +20,10 @@ export default function ModeratorDashboard() {
   // New features state
   const [activeSubTab, setActiveSubTab] = useState('queue'); // queue, blacklist, audit
   const [filterStatus, setFilterStatus] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterCategory, setFilterCategory] = useState('all');
   const [auditLogs, setAuditLogs] = useState([]);
-  
+
   // Blacklist Management State
   const [newBlacklistItem, setNewBlacklistItem] = useState('');
   const [newBlacklistType, setNewBlacklistType] = useState('urls');
@@ -99,11 +102,30 @@ export default function ModeratorDashboard() {
     ).length;
   };
 
-  const filteredReports = reportsList.filter(r => {
-    if (filterStatus === 'all') return true;
-    if (filterStatus === 'pending') return r.status === 'unverified' || r.status === 'under_review';
-    return r.status === filterStatus;
-  });
+  const availableCategories = Array.from(
+    new Set(reportsList.map(r => r.category || r.type).filter(Boolean))
+  );
+
+  const filteredReports = reportsList
+    .filter(r => {
+      if (filterStatus === 'all') return true;
+      if (filterStatus === 'pending') return r.status === 'unverified' || r.status === 'under_review';
+      return r.status === filterStatus;
+    })
+    .filter(r => {
+      if (filterCategory === 'all') return true;
+      return (r.category || r.type || '').toLowerCase() === filterCategory.toLowerCase();
+    })
+    .filter(r => {
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase();
+      const text = (r.text || '').toLowerCase();
+      const id = (r.id || '').toString().toLowerCase();
+      const category = (r.category || '').toLowerCase();
+      const type = (r.type || '').toLowerCase();
+      const reporter = (r.submittedBy || r.reporterId || '').toLowerCase();
+      return text.includes(q) || id.includes(q) || category.includes(q) || type.includes(q) || reporter.includes(q);
+    });
 
   const handleAddManualBlacklist = (e) => {
     e.preventDefault();
@@ -170,17 +192,42 @@ export default function ModeratorDashboard() {
               </div>
               
               {activeSubTab === 'queue' && (
-                <select 
-                  className="input-field" 
-                  style={{ width: 'auto', padding: '0.5rem 1rem' }}
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                >
-                  <option value="all">{t('admin.filter_all')}</option>
-                  <option value="pending">{t('admin.filter_pending')}</option>
-                  <option value="confirmed">{t('admin.filter_confirmed')}</option>
-                  <option value="rejected">{t('admin.filter_rejected')}</option>
-                </select>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0.25rem 0.75rem' }}>
+                    <Search size={14} color="var(--text-muted)" style={{ marginRight: '0.5rem' }} />
+                    <input 
+                      type="text" 
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder={t('admin.search_placeholder')}
+                      style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '0.85rem', outline: 'none', width: '160px' }}
+                    />
+                  </div>
+                  <select 
+                    className="input-field" 
+                    style={{ width: 'auto', padding: '0.4rem 0.75rem', fontSize: '0.85rem' }}
+                    value={filterCategory}
+                    onChange={(e) => setFilterCategory(e.target.value)}
+                  >
+                    <option value="all">{t('admin.all_categories')}</option>
+                    {availableCategories.map(cat => (
+                      <option key={cat} value={cat}>
+                        {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                  <select 
+                    className="input-field" 
+                    style={{ width: 'auto', padding: '0.4rem 0.75rem', fontSize: '0.85rem' }}
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                  >
+                    <option value="all">{t('admin.filter_all')}</option>
+                    <option value="pending">{t('admin.filter_pending')}</option>
+                    <option value="confirmed">{t('admin.filter_confirmed')}</option>
+                    <option value="rejected">{t('admin.filter_rejected')}</option>
+                  </select>
+                </div>
               )}
             </div>
 
@@ -188,7 +235,7 @@ export default function ModeratorDashboard() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {filteredReports.length === 0 ? (
                   <div style={{ padding: '2rem 0', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                    {t('admin.no_reports')}
+                    {searchQuery.trim() || filterCategory !== 'all' || filterStatus !== 'all' ? t('admin.no_reports_search') : t('admin.no_reports')}
                   </div>
                 ) : (
                   filteredReports.slice(0, 10).map(report => ( // Basic Pagination / Limiting for MVP
@@ -404,6 +451,38 @@ export default function ModeratorDashboard() {
                     {selectedReport.text}
                   </div>
                 </div>
+
+                {/* Extracted Scam Indicators */}
+                {(() => {
+                  const indicators = extractIndicators(selectedReport.text);
+                  const hasIndicators = indicators.urls.length > 0 || indicators.phones.length > 0 || indicators.hasPaymentKeywords;
+                  if (!hasIndicators) return null;
+
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <strong style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                        Extracted Threat Indicators
+                      </strong>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
+                        {indicators.urls.map(url => (
+                          <span key={url} className="badge badge-caution" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', padding: '0.35rem 0.75rem' }}>
+                            🌐 {url}
+                          </span>
+                        ))}
+                        {indicators.phones.map(phone => (
+                          <span key={phone} className="badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', padding: '0.35rem 0.75rem', background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', border: '1px solid rgba(168, 85, 247, 0.3)' }}>
+                            📞 {phone}
+                          </span>
+                        ))}
+                        {indicators.hasPaymentKeywords && (
+                          <span className="badge badge-high" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', padding: '0.35rem 0.75rem' }}>
+                            💵 {indicators.extractedPayment ? `${indicators.extractedPayment} Requested` : 'Payment Request Detected'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Technical duplicate audit */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>

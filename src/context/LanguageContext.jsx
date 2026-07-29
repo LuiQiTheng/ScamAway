@@ -13,7 +13,20 @@ const translations = {
     "nav.elderly": "Elderly Mode",
     "nav.submit_report": "Submit Report",
     "nav.moderator": "Admin Moderation",
+    "nav.trends": "Scam Trends",
 
+    // Trends Dashboard
+    "trends.title": "Scam Analytics & Trend Intelligence",
+    "trends.subtitle": "Real-time insights across community reports & blacklists",
+    "trends.kpi_total": "Total Reports",
+    "trends.kpi_pending": "Pending Review",
+    "trends.kpi_confirmed": "Confirmed Scams",
+    "trends.kpi_blacklist": "Blacklist Entries",
+    "trends.chart_category": "Scam Category Breakdown",
+    "trends.chart_status": "Report Resolution Status",
+    "trends.chart_timeline": "Report Volume Over Time",
+    "trends.no_data": "No report data available to display trends.",
+    
     // Admin Dashboard
     "admin.queue": "Case Queue",
     "admin.blacklists": "Blacklists",
@@ -34,6 +47,9 @@ const translations = {
     "admin.filter_pending": "Pending Review",
     "admin.filter_confirmed": "Confirmed Scams",
     "admin.filter_rejected": "Rejected",
+    "admin.search_placeholder": "Search text, ID, category, or user...",
+    "admin.all_categories": "All Categories",
+    "admin.no_reports_search": "No reports found. Try changing your search or filters.",
     "admin.no_reports": "No active reports match this filter.",
     "admin.ai_score": "AI Risk Score",
     "admin.add_blacklist": "Add to Blacklist",
@@ -244,7 +260,20 @@ const translations = {
     "nav.elderly": "Mod Warga Emas",
     "nav.submit_report": "Hantar Laporan",
     "nav.moderator": "Moderasi Admin",
+    "nav.trends": "Trend Scam",
 
+    // Trends Dashboard
+    "trends.title": "Analitik Scam & Inteligen Trend",
+    "trends.subtitle": "Wawasan masa nyata merentasi laporan komuniti & senarai hitam",
+    "trends.kpi_total": "Jumlah Laporan",
+    "trends.kpi_pending": "Menunggu Semakan",
+    "trends.kpi_confirmed": "Scam Disahkan",
+    "trends.kpi_blacklist": "Kemasukan Senarai Hitam",
+    "trends.chart_category": "Pecahan Kategori Penipuan",
+    "trends.chart_status": "Status Kelulusan Laporan",
+    "trends.chart_timeline": "Jumlah Laporan Mengikut Masa",
+    "trends.no_data": "Tiada data laporan tersedia untuk memaparkan trend.",
+    
     // Admin Dashboard
     "admin.queue": "Gilir Kes",
     "admin.blacklists": "Senarai Hitam",
@@ -265,6 +294,9 @@ const translations = {
     "admin.filter_pending": "Menunggu Semakan",
     "admin.filter_confirmed": "Scam Disahkan",
     "admin.filter_rejected": "Ditolak",
+    "admin.search_placeholder": "Cari teks, ID, kategori, atau pengguna...",
+    "admin.all_categories": "Semua Kategori",
+    "admin.no_reports_search": "Tiada laporan ditemui. Cuba tukar carian atau penapis anda.",
     "admin.no_reports": "Tiada laporan aktif yang sepadan dengan penapis ini.",
     "admin.ai_score": "Skor Risiko AI",
     "admin.add_blacklist": "Tambah ke Senarai Hitam",
