@@ -292,7 +292,7 @@ export default function ModeratorDashboard() {
                         report.status === 'confirmed' ? 'badge-low' : 
                         report.status === 'rejected' ? 'badge-high' : 'badge-caution'
                       }`} style={{ textTransform: 'capitalize' }}>
-                        {report.status.replace('_', ' ')}
+                        {t(`status.${report.status}`) || report.status.replace('_', ' ')}
                       </span>
                     </div>
                   </div>

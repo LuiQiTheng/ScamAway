@@ -8,18 +8,22 @@
   --bg-dark: #070a13;
   --bg-card: rgba(17, 24, 39, 0.7);
   --bg-card-hover: rgba(26, 36, 56, 0.85);
-  
+
   /* Primary Accent: Neon Cyan */
   --primary: #06b6d4;
   --primary-glow: rgba(6, 182, 212, 0.35);
   --primary-dark: #0891b2;
 
   /* Status Colors */
-  --color-low: #10b981;        /* Safe/Green */
-  --color-caution: #f59e0b;    /* Warning/Orange */
-  --color-high: #ef4444;       /* High Risk/Red */
-  --color-critical: #7f1d1d;   /* Critical/Dark Red */
-  
+  --color-low: #10b981;
+  /* Safe/Green */
+  --color-caution: #f59e0b;
+  /* Warning/Orange */
+  --color-high: #ef4444;
+  /* High Risk/Red */
+  --color-critical: #7f1d1d;
+  /* Critical/Dark Red */
+
   /* Neutral Palette */
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
@@ -49,13 +53,18 @@ body {
   font-family: var(--font-sans);
   min-height: 100vh;
   overflow-x: hidden;
-  background-image: 
+  background-image:
     radial-gradient(circle at 10% 20%, rgba(6, 182, 212, 0.08) 0%, transparent 40%),
     radial-gradient(circle at 90% 80%, rgba(99, 102, 241, 0.08) 0%, transparent 45%);
   background-attachment: fixed;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--font-heading);
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -82,22 +91,28 @@ h1, h2, h3, h4, h5, h6 {
   width: 8px;
   height: 8px;
 }
+
 ::-webkit-scrollbar-track {
   background: var(--bg-dark);
 }
+
 ::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.1);
   border-radius: 4px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: var(--primary);
 }
 
 /* Animations */
 @keyframes pulse-glow {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 0 15px rgba(6, 182, 212, 0.3);
   }
+
   50% {
     box-shadow: 0 0 25px rgba(6, 182, 212, 0.6);
   }
@@ -107,9 +122,11 @@ h1, h2, h3, h4, h5, h6 {
   0% {
     top: 0%;
   }
+
   50% {
     top: 100%;
   }
+
   100% {
     top: 0%;
   }
@@ -122,25 +139,63 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Elderly Mode Global Helper Classes */
 .elderly-mode {
-  font-size: 1.25rem !important; /* Embiggen text */
+  font-size: 1.25rem !important;
+  /* Embiggen text */
 }
+
 .elderly-mode h1 {
   font-size: 2.5rem !important;
 }
+
 .elderly-mode h2 {
   font-size: 2rem !important;
 }
+
 .elderly-mode h3 {
   font-size: 1.6rem !important;
 }
-.elderly-mode p, .elderly-mode span, .elderly-mode li, .elderly-mode button, .elderly-mode input, .elderly-mode textarea {
+
+.elderly-mode p,
+.elderly-mode span,
+.elderly-mode li,
+.elderly-mode button,
+.elderly-mode input,
+.elderly-mode textarea {
   font-size: 1.35rem !important;
   line-height: 1.6 !important;
 }
+
 .elderly-mode button {
-  padding: 18px 28px !important; /* Larger clickable areas */
+  padding: 18px 28px !important;
+  /* Larger clickable areas */
   min-height: 56px;
 }
+
+.elderly-mode .category-pill {
+  font-size: 1.15rem !important;
+  padding: 10px 18px !important;
+  min-height: auto !important;
+  line-height: 1.3 !important;
+}
+
+/* Kid / Teen Mode Playful & Vibrant Styling */
+.kid-mode .glass-panel {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: var(--glass-shadow) !important;
+  border-radius: 16px !important;
+}
+
+.kid-mode .badge-high {
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: var(--color-high) !important;
+  border: 1px solid rgba(236, 72, 153, 0.4) !important;
+}
+
+.kid-mode .btn-secondary {
+  border-radius: 12px !important;
+}
+
+
 
 /* Layout and Navigation Components */
 .app-container {
@@ -193,7 +248,8 @@ h1, h2, h3, h4, h5, h6 {
   gap: 0.5rem;
 }
 
-.nav-link:hover, .nav-link.active {
+.nav-link:hover,
+.nav-link.active {
   color: var(--text-primary);
   background: rgba(255, 255, 255, 0.05);
 }
@@ -314,6 +370,7 @@ select option,
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -327,34 +384,45 @@ select option,
     gap: 1rem;
     padding: 1rem;
   }
-  
+
   .nav-links {
     flex-wrap: wrap;
     justify-content: center;
   }
 
   .elderly-mode {
-    font-size: 1.1rem !important; 
+    font-size: 1.1rem !important;
   }
+
   .elderly-mode h1 {
     font-size: 2rem !important;
   }
+
   .elderly-mode h2 {
     font-size: 1.75rem !important;
   }
+
   .elderly-mode h3 {
     font-size: 1.4rem !important;
   }
-  .elderly-mode p, .elderly-mode span, .elderly-mode li, .elderly-mode button, .elderly-mode input, .elderly-mode textarea {
+
+  .elderly-mode p,
+  .elderly-mode span,
+  .elderly-mode li,
+  .elderly-mode button,
+  .elderly-mode input,
+  .elderly-mode textarea {
     font-size: 1.15rem !important;
   }
 }
 
 @media (max-width: 480px) {
-  .btn-primary, .btn-secondary {
+
+  .btn-primary,
+  .btn-secondary {
     width: 100%;
   }
-  
+
   .glass-panel {
     padding: 1rem !important;
   }

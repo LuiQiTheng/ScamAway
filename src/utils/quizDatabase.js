@@ -917,7 +917,12 @@ export const QUIZ_POOL = [
  * Uses the current date string as a stable seed to ensure 
  * the same questions are returned throughout the day.
  */
-export const getDailyQuestions = () => {
+export const getDailyQuestions = (isRandom = false) => {
+  if (isRandom) {
+    // Return truly randomized questions for repeated playthroughs
+    return [...QUIZ_POOL].sort(() => 0.5 - Math.random()).slice(0, 15);
+  }
+
   const today = new Date().toISOString().split('T')[0]; // "YYYY-MM-DD"
   
   // Simple deterministic shuffle based on the date string

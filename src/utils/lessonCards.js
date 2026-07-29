@@ -32,22 +32,6 @@ export const LESSON_CARDS = [
     advisory: "Advise family members to never accept unannounced COD parcels without calling the purchaser first to verify.",
     advisory_ms: "Nasihatkan ahli keluarga supaya jangan menerima bungkusan COD tanpa menelefon pembeli terlebih dahulu."
   },
-  {
-    id: 103,
-    title: "DHL Customs Clearance Tax Phishing Email",
-    title_ms: "E-mel Pancingan Data Cukai Kastam DHL",
-    category: "Courier & Delivery",
-    isDailyFeatured: false,
-    summary: "Phishing email claiming an international shipment requires clearance tax payment before release.",
-    summary_ms: "E-mel mendakwa penghantaran antarabangsa memerlukan pembayaran cukai pelepasan kastam sebelum dilepaskan.",
-    exampleMessage: "DHL Express: Your shipment #9410291 is pending customs clearance. A mandatory RM45.00 duty fee is required: dhl-customs-my.net/pay",
-    psychology: "Impersonates international courier brands to panic online shoppers waiting for overseas imports.",
-    psychology_ms: "Menyamar sebagai jenama kurier antarabangsa untuk menakutkan pembeli dalam talian yang menunggu barangan.",
-    redFlags: ["Non-official email domain (e.g. notice@dhl-customs-my.net)", "Direct link to payment form requesting card CVV"],
-    redFlags_ms: ["Domain e-mel tidak rasmi", "Pautan terus ke borang pembayaran yang meminta CVV kad"],
-    advisory: "Verify shipment status directly on the official dhl.com portal using your master tracking number.",
-    advisory_ms: "Sahkan status penghantaran secara terus di portal rasmi dhl.com menggunakan nombor penjejakan anda."
-  },
 
   // --- Category 2: Job & Task Scams ---
   {
@@ -97,6 +81,22 @@ export const LESSON_CARDS = [
     redFlags_ms: ["Tiada temuduga rasmi", "Memerlukan bayaran deposit keselamatan"],
     advisory: "Agoda and Google do not hire freelance reviewers via WhatsApp or charge reviewer security deposits.",
     advisory_ms: "Agoda dan Google tidak pernah mengupah pengulas bebas melalui WhatsApp atau mengenakan deposit."
+  },
+  {
+    id: 204,
+    title: "Crypto Trading Agent Task Scam",
+    title_ms: "Scam Ejen Perdagangan Kripto",
+    category: "Job & Task Scams",
+    isDailyFeatured: false,
+    summary: "Victims are asked to execute trades on a fake exchange platform to receive commissions, then asked to top-up funds.",
+    summary_ms: "Mangsa diminta melakukan perdagangan di platform kripto palsu untuk komisen, kemudian diminta menambah deposit.",
+    exampleMessage: "Crypto-Task: Help trade BTC/USDT. We provide the capital, you earn 10% daily commission. Contact Telegram: @crypto_task_manager",
+    psychology: "Gives a false sense of control by letting victims see fake increasing profits on their dashboard, urging them to put in real money.",
+    psychology_ms: "Memberi kawalan palsu dengan membiarkan mangsa melihat keuntungan meningkat, mendorong mereka memasukkan wang sebenar.",
+    redFlags: ["Unregulated fake crypto exchange", "Must pay tax/fees to withdraw 'earned' commissions"],
+    redFlags_ms: ["Bursa kripto palsu tidak dikawal", "Perlu bayar cukai untuk pengeluaran"],
+    advisory: "Never use crypto exchange platforms recommended by random strangers on messaging apps.",
+    advisory_ms: "Jangan gunakan bursa kripto yang disyorkan oleh orang tidak dikenali di Telegram."
   },
 
   // --- Category 3: Threat & Govt Impersonation ---
