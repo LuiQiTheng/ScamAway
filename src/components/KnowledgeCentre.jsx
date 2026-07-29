@@ -194,6 +194,10 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
   const modalRef = useRef(null);
 
   useEffect(() => {
+    if (activeModalCard && modalRef.current) {
+      modalRef.current.focus();
+    }
+
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' && activeModalCard) setActiveModalCard(null);
       if (e.key === 'Tab' && activeModalCard && modalRef.current) {
@@ -223,10 +227,10 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
   }, [activeModalCard]);
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2rem', width: '100%', margin: '0 auto', padding: '1rem' }} className={`mode-${userMode} ${isElderlyMode ? 'elderly-mode' : ''} ${isKidMode ? 'kid-mode' : ''}`}>
+    <div className={`page-shell knowledge-page mode-${userMode} ${isElderlyMode ? 'elderly-mode' : ''} ${isKidMode ? 'kid-mode' : ''}`}>
 
       {/* Quiz Section */}
-      <div className="glass-panel" style={{ padding: '1.5rem 1.75rem' }}>
+      <div className="glass-panel knowledge-quiz-panel">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
           <h2 style={{ fontSize: isElderlyMode ? '1.6rem' : '1.35rem', fontWeight: 700, color: '#fff', marginBottom: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Award size={24} color="var(--primary)" />
@@ -258,8 +262,8 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
         </div>
 
         {!isQuizStarted ? (
-          <div className="fade-in" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.5rem', padding: '0.5rem 0' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flex: 1, minWidth: '280px' }}>
+          <div className="fade-in quiz-intro" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.5rem', padding: '0.5rem 0' }}>
+            <div className="quiz-intro-copy" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flex: 1 }}>
               <div style={{
                 background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(59, 130, 246, 0.05) 100%)',
                 padding: '0.85rem',
@@ -461,7 +465,7 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
       </div>
 
       {/* SECTION B: Categorized Malaysian Scam Pattern Intelligence Library */}
-      <div className="glass-panel" style={{ padding: '1.5rem 1.75rem' }}>
+      <div className="glass-panel knowledge-library-panel">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
           <div>
             <h2 style={{ fontSize: isElderlyMode ? '1.6rem' : '1.35rem', fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -476,8 +480,10 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
 
         {/* Search Bar */}
         <div style={{ position: 'relative', marginBottom: '1.25rem' }}>
+          <label htmlFor="knowledge-search" className="sr-only">{t('knowledge.search_placeholder')}</label>
           <Search size={18} color="var(--text-muted)" style={{ position: 'absolute', top: '12px', left: '14px' }} />
           <input
+            id="knowledge-search"
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -488,7 +494,7 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
         </div>
 
         {/* Category Filter Pills */}
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+        <div className="knowledge-filter-pills" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
           {categories.map(cat => {
             const count = cat.id === 'All' ? LESSON_CARDS.length : LESSON_CARDS.filter(c => c.category === cat.id).length;
             return (
@@ -504,6 +510,7 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
                   color: selectedCategory === cat.id ? '#fff' : 'var(--text-secondary)',
                   border: selectedCategory === cat.id ? 'none' : '1px solid var(--border-color)'
                 }}
+                aria-pressed={selectedCategory === cat.id}
               >
                 {t(cat.labelKey)} ({count})
               </button>
@@ -512,9 +519,9 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
         </div>
 
         {/* Knowledge Cards Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: isElderlyMode ? '1fr' : 'repeat(3, minmax(0, 1fr))', gap: '1.25rem' }}>
+        <div className="knowledge-card-grid">
           {visibleCards.map(card => (
-            <div key={card.id} style={{
+            <div key={card.id} className="knowledge-card" style={{
               background: 'rgba(255,255,255,0.02)',
               border: '1px solid var(--border-color)',
               borderRadius: '12px',
@@ -524,7 +531,7 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
               justifyContent: 'space-between'
             }}>
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <div className="knowledge-card-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                   <span className="badge badge-caution" style={{ fontSize: '0.65rem' }}>{translateCategory(card.category)}</span>
                   {card.isDailyFeatured && (
                     <span style={{ fontSize: '0.65rem', color: 'var(--primary)', fontWeight: 600 }}>{t('knowledge.highlight')}</span>
@@ -620,7 +627,7 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
 
       {/* Case Study Deep Dive Modal */}
       {activeModalCard && (
-        <div style={{
+        <div className="knowledge-modal-backdrop" style={{
           position: 'fixed',
           top: 0,
           left: 0,
@@ -638,6 +645,9 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
             ref={modalRef}
             role="dialog"
             aria-modal="true"
+            aria-labelledby="knowledge-case-title"
+            tabIndex="-1"
+            className="knowledge-modal"
             style={{
               background: '#0d1322',
               border: '1px solid var(--primary)',
@@ -653,13 +663,14 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
               <span className="badge badge-caution">{translateCategory(activeModalCard.category)}</span>
               <button
                 onClick={() => setActiveModalCard(null)}
+                aria-label={lang === 'ms' ? 'Tutup kajian kes' : 'Close case study'}
                 style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1.5rem', cursor: 'pointer' }}
               >
                 ✕
               </button>
             </div>
 
-            <h2 style={{ color: '#fff', fontSize: '1.4rem', marginBottom: '1rem' }}>{getCardText(activeModalCard, 'title')}</h2>
+            <h2 id="knowledge-case-title" style={{ color: '#fff', fontSize: '1.4rem', marginBottom: '1rem' }}>{getCardText(activeModalCard, 'title')}</h2>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div>

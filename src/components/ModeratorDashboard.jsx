@@ -135,10 +135,10 @@ export default function ModeratorDashboard() {
   };
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2rem', maxWidth: '1200px', margin: '0 auto', padding: '1rem' }}>
+    <div className="page-shell moderator-page">
       
       {/* Overview stats header */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
+      <div className="admin-stats-grid">
         <div className="glass-panel" style={{ padding: '1.5rem', borderLeft: '4px solid var(--primary)' }}>
           <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{t('admin.pending_queue')}</span>
           <h2 style={{ fontSize: '2rem', color: '#fff', marginTop: '0.5rem' }}>
@@ -157,57 +157,62 @@ export default function ModeratorDashboard() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '2rem', alignItems: 'start' }}>
+      <div className="admin-layout">
         
         {/* Left Side: Incident List and Review details */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div className="admin-column" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           
-          <div className="glass-panel" style={{ padding: '2rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
-              <div style={{ display: 'flex', gap: '1rem' }}>
+          <div className="glass-panel admin-workspace" style={{ padding: '2rem' }}>
+            <div className="admin-workspace-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', flexWrap: 'wrap' }}>
+              <div className="admin-tabs">
                 <button 
                   onClick={() => setActiveSubTab('queue')}
                   className={`nav-link ${activeSubTab === 'queue' ? 'active' : ''}`}
+                  aria-pressed={activeSubTab === 'queue'}
                 >
                   <Shield size={18} /> {t('admin.queue')}
                 </button>
                 <button 
                   onClick={() => setActiveSubTab('blacklist')}
                   className={`nav-link ${activeSubTab === 'blacklist' ? 'active' : ''}`}
+                  aria-pressed={activeSubTab === 'blacklist'}
                 >
                   <Filter size={18} /> {t('admin.blacklists')}
                 </button>
                 <button 
                   onClick={() => setActiveSubTab('audit')}
                   className={`nav-link ${activeSubTab === 'audit' ? 'active' : ''}`}
+                  aria-pressed={activeSubTab === 'audit'}
                 >
                   <FileText size={18} /> {t('admin.audit')}
                 </button>
                 <button 
                   onClick={() => setActiveSubTab('analytics')}
                   className={`nav-link ${activeSubTab === 'analytics' ? 'active' : ''}`}
+                  aria-pressed={activeSubTab === 'analytics'}
                 >
                   <BarChart2 size={18} /> {t('admin.analytics')}
                 </button>
               </div>
-              
+
               {activeSubTab === 'queue' && (
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0.25rem 0.75rem' }}>
-                    <Search size={14} color="var(--text-muted)" style={{ marginRight: '0.5rem' }} />
-                    <input 
-                      type="text" 
+                <div className="admin-queue-filters">
+                  <label className="admin-search-field">
+                    <Search size={16} color="var(--text-muted)" aria-hidden="true" />
+                    <input
+                      className="admin-search-input"
+                      type="search"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder={t('admin.search_placeholder')}
-                      style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '0.85rem', outline: 'none', width: '160px' }}
+                      aria-label={t('admin.search_placeholder')}
                     />
-                  </div>
-                  <select 
-                    className="input-field" 
-                    style={{ width: 'auto', padding: '0.4rem 0.75rem', fontSize: '0.85rem' }}
+                  </label>
+                  <select
+                    className="input-field admin-filter"
                     value={filterCategory}
                     onChange={(e) => setFilterCategory(e.target.value)}
+                    aria-label={t('admin.all_categories')}
                   >
                     <option value="all">{t('admin.all_categories')}</option>
                     {availableCategories.map(cat => (
@@ -216,11 +221,11 @@ export default function ModeratorDashboard() {
                       </option>
                     ))}
                   </select>
-                  <select 
-                    className="input-field" 
-                    style={{ width: 'auto', padding: '0.4rem 0.75rem', fontSize: '0.85rem' }}
+                  <select
+                    className="input-field admin-filter"
                     value={filterStatus}
                     onChange={(e) => setFilterStatus(e.target.value)}
+                    aria-label={t('admin.filter_all')}
                   >
                     <option value="all">{t('admin.filter_all')}</option>
                     <option value="pending">{t('admin.filter_pending')}</option>
@@ -242,6 +247,16 @@ export default function ModeratorDashboard() {
                   <div 
                     key={report.id}
                     onClick={() => setSelectedReport(report)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        setSelectedReport(report);
+                      }
+                    }}
+                    role="button"
+                    tabIndex="0"
+                    aria-pressed={selectedReport?.id === report.id}
+                    className="admin-report-card"
                     style={{
                       padding: '1.25rem',
                       background: selectedReport?.id === report.id ? 'rgba(6, 182, 212, 0.08)' : 'rgba(255, 255, 255, 0.02)',
@@ -256,7 +271,7 @@ export default function ModeratorDashboard() {
                       gap: '1rem'
                     }}
                   >
-                    <div style={{ flex: 1, minWidth: '280px' }}>
+                    <div className="admin-report-copy" style={{ flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                         <span className="badge badge-caution" style={{ fontSize: '0.7rem' }}>{report.category}</span>
                         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>ID: #{report.id.toString().slice(-6)}</span>
@@ -276,7 +291,7 @@ export default function ModeratorDashboard() {
                       </p>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div className="admin-report-status" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                       <div>
                         <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', textAlign: 'right' }}>{t('admin.ai_score')}</span>
                         <strong style={{ 
@@ -542,7 +557,7 @@ export default function ModeratorDashboard() {
         </div>
 
         {/* Right Side: Community Alert Publisher & User Reputation */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div className="admin-column" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           
           {/* Broadcaster */}
           <div className="glass-panel" style={{ padding: '1.5rem' }}>
