@@ -6,7 +6,7 @@ export default function LoginScreen({ onLogin }) {
   const { t, lang } = useLanguage();
 
   return (
-    <div style={{
+    <div className="login-page" style={{
       minHeight: '100vh',
       display: 'flex',
       alignItems: 'center',
@@ -15,7 +15,7 @@ export default function LoginScreen({ onLogin }) {
       background: 'radial-gradient(circle at 50% 50%, #0f172a 0%, #020617 100%)',
       fontFamily: "'Inter', sans-serif"
     }}>
-      <div className="fade-in" style={{
+      <div className="fade-in login-card" style={{
         width: '100%',
         maxWidth: '500px',
         background: 'rgba(255, 255, 255, 0.03)',
@@ -65,6 +65,7 @@ export default function LoginScreen({ onLogin }) {
           {/* User Role Button */}
           <button
             onClick={() => onLogin('user')}
+            className="login-role-button"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -112,6 +113,7 @@ export default function LoginScreen({ onLogin }) {
           {/* Admin Role Button */}
           <button
             onClick={() => onLogin('admin')}
+            className="login-role-button"
             style={{
               display: 'flex',
               alignItems: 'center',

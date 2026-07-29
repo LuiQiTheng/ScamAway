@@ -72,6 +72,7 @@ export default function App() {
               <button
                 onClick={() => setActiveTab('check')}
                 className={`nav-link ${activeTab === 'check' ? 'active' : ''}`}
+                aria-current={activeTab === 'check' ? 'page' : undefined}
                 style={{ fontSize: isElderlyMode ? '1.25rem' : '0.9rem' }}
               >
                 🛡️ {t('nav.scanner')}
@@ -79,6 +80,7 @@ export default function App() {
               <button
                 onClick={() => setActiveTab('knowledge')}
                 className={`nav-link ${activeTab === 'knowledge' ? 'active' : ''}`}
+                aria-current={activeTab === 'knowledge' ? 'page' : undefined}
                 style={{ fontSize: isElderlyMode ? '1.25rem' : '0.9rem' }}
               >
                 🧠 {t('nav.knowledge')}
@@ -86,6 +88,7 @@ export default function App() {
               <button
                 onClick={() => setActiveTab('profile')}
                 className={`nav-link ${activeTab === 'profile' ? 'active' : ''}`}
+                aria-current={activeTab === 'profile' ? 'page' : undefined}
                 style={{ fontSize: isElderlyMode ? '1.25rem' : '0.9rem' }}
               >
                 👤 {t('nav.profile')}
@@ -95,6 +98,7 @@ export default function App() {
             <button
               onClick={() => setActiveTab('moderator')}
               className={`nav-link ${activeTab === 'moderator' ? 'active' : ''}`}
+              aria-current={activeTab === 'moderator' ? 'page' : undefined}
               style={{ fontSize: isElderlyMode ? '1.25rem' : '0.9rem' }}
             >
               👮 {t('nav.moderator')}
@@ -102,7 +106,7 @@ export default function App() {
           )}
         </nav>
 
-        <div className="flex-row items-center gap-sm" style={{ flexWrap: 'wrap' }}>
+        <div className="app-control-group">
           {/* Mode Selector Segmented Pill Control */}
           {userRole !== 'admin' && (
             <div 
@@ -119,6 +123,7 @@ export default function App() {
               <button
                 onClick={() => handleSetUserMode('normal')}
                 title={t('mode.normal')}
+                aria-pressed={activeMode === 'normal'}
                 style={{
                   padding: '0.3rem 0.6rem',
                   borderRadius: '16px',
@@ -136,6 +141,7 @@ export default function App() {
               <button
                 onClick={() => handleSetUserMode('elderly')}
                 title={t('mode.elderly')}
+                aria-pressed={activeMode === 'elderly'}
                 style={{
                   padding: '0.3rem 0.6rem',
                   borderRadius: '16px',
@@ -153,6 +159,7 @@ export default function App() {
               <button
                 onClick={() => handleSetUserMode('kid')}
                 title={t('mode.kid')}
+                aria-pressed={activeMode === 'kid'}
                 style={{
                   padding: '0.3rem 0.6rem',
                   borderRadius: '16px',
@@ -173,6 +180,7 @@ export default function App() {
           {/* Language Toggle */}
           <button
             onClick={toggleLanguage}
+            aria-label={lang === 'en' ? 'Switch language to Bahasa Malaysia' : 'Tukar bahasa kepada English'}
             style={{
               display: 'flex', alignItems: 'center', gap: '0.25rem',
               background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-color)',
@@ -207,7 +215,7 @@ export default function App() {
       </header>
 
       {/* Main Content Layout */}
-      <main className="w-full" style={{ flex: 1, padding: '2rem 1.5rem', maxWidth: '1100px', margin: '0 auto' }}>
+      <main className="app-main">
         {activeTab === 'check' && (
           <UserChecker
             userMode={userMode}

@@ -252,7 +252,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
   };
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2rem', width: '100%', margin: '0 auto', padding: '1rem' }} className={isElderlyMode ? 'elderly-mode' : ''}>
+    <div className={`page-shell scanner-page ${isElderlyMode ? 'elderly-mode' : ''}`}>
 
       {/* Broadcast Campus Alert Banner */}
       {activeAlert && (
@@ -284,7 +284,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
       )}
 
       {/* Control Board: Assistant header */}
-      <div className="glass-panel" style={{ padding: '1.5rem 1.75rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+      <div className="glass-panel scanner-assistant-card" style={{ padding: '1.5rem 1.75rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
         <Sparkles color={isKidMode ? 'var(--primary)' : 'var(--primary)'} size={22} />
         <div>
           <h3 style={{ fontSize: isElderlyMode ? '1.4rem' : '1.1rem', fontWeight: 600, color: '#fff' }}>
@@ -296,41 +296,49 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2rem' }}>
+      <div className="scanner-content-grid" style={{ gap: '2rem' }}>
 
         {/* Input Console */}
-        <div className="glass-panel" style={{ padding: '1.5rem 1.75rem' }}>
+        <div className="glass-panel scanner-input-panel" style={{ padding: '1.5rem 1.75rem' }}>
           <h2 style={{ fontSize: isElderlyMode ? '1.6rem' : '1.35rem', fontWeight: 700, color: '#fff', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Shield size={24} color="var(--primary)" />
             {t('scanner.title')}
           </h2>
 
           {/* Form Tabs */}
-          <div style={{ display: 'flex', borderBottom: '1px solid var(--border-color)', marginBottom: '1.5rem', overflowX: 'auto' }}>
+          <div className="scanner-tabs" role="tablist" aria-label="Scam evidence type" style={{ marginBottom: '1.5rem' }}>
             <button
               onClick={() => { setActiveTab('text'); setScanResult(null); }}
-              className={`nav-link ${activeTab === 'text' ? 'active' : ''}`}
+              className={`nav-link scanner-method-tab ${activeTab === 'text' ? 'active' : ''}`}
+              role="tab"
+              aria-selected={activeTab === 'text'}
               style={{ fontSize: isElderlyMode ? '1.15rem' : '0.9rem' }}
             >
               <Clipboard size={16} /> {t('scanner.text_paste')}
             </button>
             <button
               onClick={() => { setActiveTab('screenshot'); setScanResult(null); }}
-              className={`nav-link ${activeTab === 'screenshot' ? 'active' : ''}`}
+              className={`nav-link scanner-method-tab ${activeTab === 'screenshot' ? 'active' : ''}`}
+              role="tab"
+              aria-selected={activeTab === 'screenshot'}
               style={{ fontSize: isElderlyMode ? '1.15rem' : '0.9rem' }}
             >
               <Upload size={16} /> {t('scanner.upload_btn')}
             </button>
             <button
               onClick={() => { setActiveTab('qr'); setScanResult(null); }}
-              className={`nav-link ${activeTab === 'qr' ? 'active' : ''}`}
+              className={`nav-link scanner-method-tab ${activeTab === 'qr' ? 'active' : ''}`}
+              role="tab"
+              aria-selected={activeTab === 'qr'}
               style={{ fontSize: isElderlyMode ? '1.15rem' : '0.9rem' }}
             >
               <QrCode size={16} /> {t('scanner.qr_btn')}
             </button>
             <button
               onClick={() => { setActiveTab('url'); setScanResult(null); }}
-              className={`nav-link ${activeTab === 'url' ? 'active' : ''}`}
+              className={`nav-link scanner-method-tab ${activeTab === 'url' ? 'active' : ''}`}
+              role="tab"
+              aria-selected={activeTab === 'url'}
               style={{ fontSize: isElderlyMode ? '1.15rem' : '0.9rem' }}
             >
               <Link size={16} /> {t('scanner.url_btn')}
@@ -339,7 +347,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
 
           {/* Tab Content */}
           {activeTab === 'text' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div role="tabpanel" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div className="quick-test-panel">
                 <div className="quick-test-heading">
                   <Sparkles size={17} aria-hidden="true" />
@@ -366,17 +374,27 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                 </div>
               </div>
 
+              <label className="form-label" htmlFor="scam-message-input">
+                {lang === 'ms' ? 'Mesej atau konteks untuk diperiksa' : 'Message or context to check'}
+              </label>
               <textarea
+                id="scam-message-input"
                 className="input-field"
                 rows={isElderlyMode ? 5 : 4}
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 placeholder={t('scanner.placeholder')}
+                aria-describedby="scam-message-hint"
                 style={{ resize: 'vertical' }}
               />
+              <span id="scam-message-hint" className="form-hint">
+                {lang === 'ms'
+                  ? 'Jangan masukkan kata laluan, OTP, atau maklumat bank sebenar.'
+                  : 'Do not enter real passwords, OTPs, or banking details.'}
+              </span>
               <button
                 onClick={handleScanText}
-                className="btn-primary"
+                className="btn-primary scan-primary-action"
                 disabled={!inputText.trim() || isScanning}
                 style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
               >
@@ -387,7 +405,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
           )}
 
           {activeTab === 'screenshot' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <div role="tabpanel" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
               {/* Presets for Demo */}
               <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '1rem', borderRadius: '10px', border: '1px dashed var(--border-color)' }}>
@@ -435,6 +453,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                   type="file"
                   accept="image/*"
                   onChange={handleFileUpload}
+                  aria-label={t('scanner.upload_title')}
                   style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }}
                 />
                 <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
@@ -454,7 +473,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
           )}
 
           {activeTab === 'qr' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <div role="tabpanel" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div style={{
                 minHeight: '180px',
                 background: '#090d16',
@@ -480,8 +499,9 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>{t('scanner.paste_qr')}</label>
+                <label htmlFor="qr-content-input" className="form-label">{t('scanner.paste_qr')}</label>
                 <input
+                  id="qr-content-input"
                   type="text"
                   value={qrInput}
                   onChange={(e) => setQrInput(e.target.value)}
@@ -501,10 +521,11 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
           )}
 
           {activeTab === 'url' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <div role="tabpanel" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>{t('scanner.url_label')}</label>
+                <label htmlFor="url-check-input" className="form-label">{t('scanner.url_label')}</label>
                 <input
+                  id="url-check-input"
                   type="text"
                   value={urlInput}
                   onChange={(e) => setUrlInput(e.target.value)}
@@ -514,8 +535,9 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>{t('scanner.phone_label')}</label>
+                <label htmlFor="phone-check-input" className="form-label">{t('scanner.phone_label')}</label>
                 <input
+                  id="phone-check-input"
                   type="text"
                   value={phoneInput}
                   onChange={(e) => setPhoneInput(e.target.value)}

@@ -90,11 +90,11 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
   };
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2rem', width: '100%', margin: '0 auto', padding: '1rem' }} className={`fade-in mode-${userMode} ${isElderlyMode ? 'elderly-mode' : ''} ${isKidMode ? 'kid-mode' : ''}`}>
+    <div className={`page-shell profile-page fade-in mode-${userMode} ${isElderlyMode ? 'elderly-mode' : ''} ${isKidMode ? 'kid-mode' : ''}`}>
 
       {/* Notifications Card */}
       <div className="glass-panel" style={{ padding: '1.5rem 1.75rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+        <div className="profile-notification-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
           <h2 style={{ fontSize: isElderlyMode ? '1.6rem' : '1.35rem', fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
             <Bell size={24} color="#3b82f6" />
             {lang === 'ms' ? 'Pemberitahuan Laporan' : 'Report Notifications'}
@@ -106,7 +106,7 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
           </h2>
 
           {activeNotifications.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div className="profile-notification-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               {activeNotifications.some(n => !readIds.includes(n.id)) && (
                 <button
                   onClick={handleMarkAllRead}
@@ -341,13 +341,14 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
       </div>
 
       {/* Reports Table Card */}
-      <div className="glass-panel" style={{ padding: '1.5rem 1.75rem' }}>
+      <div className="glass-panel profile-reports-panel" style={{ padding: '1.5rem 1.75rem' }}>
         <h2 style={{ fontSize: isElderlyMode ? '1.6rem' : '1.35rem', fontWeight: 700, color: '#fff', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Clock size={24} color="var(--primary)" />
           {t('profile.title')}
         </h2>
         
-        <table style={{ width: '100%', borderCollapse: 'collapse', color: 'var(--text-secondary)' }}>
+        <div className="profile-report-table-wrap" role="region" aria-label={t('profile.title')} tabIndex="0">
+        <table className="profile-report-table" style={{ color: 'var(--text-secondary)' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
               <th style={{ padding: '1rem', color: '#fff' }}>{t('profile.table_date')}</th>
@@ -359,21 +360,21 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
           <tbody>
             {myReports.length === 0 ? (
               <tr>
-                <td colSpan="4" style={{ textAlign: 'center', padding: '2rem' }}>{t('profile.no_reports')}</td>
+                <td className="profile-empty-cell" colSpan="4" style={{ textAlign: 'center', padding: '2rem' }}>{t('profile.no_reports')}</td>
               </tr>
             ) : (
               myReports.map(report => (
                 <tr key={report.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                  <td style={{ padding: '1rem', fontSize: '0.85rem' }}>
+                  <td data-label={t('profile.table_date')} style={{ padding: '1rem', fontSize: '0.85rem' }}>
                     {new Date(report.timestamp).toLocaleDateString()}
                   </td>
-                  <td style={{ padding: '1rem', fontSize: '0.85rem', textTransform: 'capitalize' }}>
+                  <td data-label={t('profile.table_category')} style={{ padding: '1rem', fontSize: '0.85rem', textTransform: 'capitalize' }}>
                     {report.category}
                   </td>
-                  <td style={{ padding: '1rem', fontSize: '0.85rem', maxWidth: '300px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <td data-label={t('profile.table_content')} style={{ padding: '1rem', fontSize: '0.85rem', maxWidth: '300px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     "{report.text}"
                   </td>
-                  <td style={{ padding: '1rem' }}>
+                  <td data-label={t('profile.status')} style={{ padding: '1rem' }}>
                     {report.status === 'confirmed' && <span style={{ color: 'var(--color-low)', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem' }}><CheckCircle size={14} /> {t('profile.confirmed')}</span>}
                     {report.status === 'rejected' && <span style={{ color: 'var(--color-high)', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem' }}><XCircle size={14} /> {t('profile.rejected')}</span>}
                     {(report.status === 'unverified' || report.status === 'under_review') && <span style={{ color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem' }}><Clock size={14} /> {t('profile.pending')}</span>}
@@ -383,6 +384,7 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );
