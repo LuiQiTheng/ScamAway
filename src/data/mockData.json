@@ -1,0 +1,102 @@
+[
+  {
+    "id": "scam_report_001",
+    "type": "parcel",
+    "text": "RM0 Pos Laju: Bungkusan anda (MY88492019) ditahan di pusat agihan kerana alamat tidak lengkap. Sila kemaskini maklumat dan bayar yuran RM2.50 di https://pos-laju.info/claim-fee/2.50",
+    "status": "pending",
+    "submittedBy": "rep_101",
+    "date": "2026-07-28T09:15:00.000Z",
+    "riskScore": 76,
+    "evidence": "Uses fake Pos Laju domain (pos-laju.info), urgent payment pressure (RM2.50 fee), and unverified external link."
+  },
+  {
+    "id": "scam_report_002",
+    "type": "job",
+    "text": "TAHNIAH! Anda terpilih untuk bekerja sambilan secara dalam talian dengan Shopee. Pendapatan Harian RM300-RM800. Sila bayar deposit pendaftaran RM50 untuk memulakan tugasan pertama anda. WhatsApp +6011-8762512.",
+    "status": "pending",
+    "submittedBy": "rep_102",
+    "date": "2026-07-28T10:45:00.000Z",
+    "riskScore": 85,
+    "evidence": "Demands upfront registration deposit (RM50) for part-time work, unrealistic daily returns, and uses personal mobile number (+6011-8762512)."
+  },
+  {
+    "id": "scam_report_003",
+    "type": "banking",
+    "text": "Maybank Alert: Akaun Maybank2u anda telah digantung sementara atas sebab keselamatan. Sila log masuk serta-merta untuk mengesahkan identiti anda di http://maybank-secure-login.xyz",
+    "status": "pending",
+    "submittedBy": "rep_103",
+    "date": "2026-07-28T11:20:00.000Z",
+    "riskScore": 92,
+    "evidence": "Phishing domain (maybank-secure-login.xyz) mimicking official bank portal, credential harvesting threat, and account suspension scare tactic."
+  },
+  {
+    "id": "scam_report_004",
+    "type": "social media",
+    "text": "Mak, ini nombor baharu saya. Telefon saya jatuh dalam air. Tolong pindahkan RM1,200 dengan segera ke akaun kawan saya 164228910239 untuk bayar bil hospital. Jangan telefon nombor lama ya.",
+    "status": "pending",
+    "submittedBy": "rep_104",
+    "date": "2026-07-28T14:05:00.000Z",
+    "riskScore": 90,
+    "evidence": "Family impersonation ('damaged phone/new number'), secrecy directive ('don't call old number'), and direct peer-to-peer bank account transfer request."
+  },
+  {
+    "id": "scam_report_005",
+    "type": "government",
+    "text": "LHDN MALAYSIA: Anda mempunyai tunggakan cukai pendapatan berjumlah RM3,450.00. Tindakan undang-undang dan saman mahkamah akan diambil dalam 24 jam. Sila jelaskan di https://lhdn-refund.org",
+    "status": "pending",
+    "submittedBy": "rep_105",
+    "date": "2026-07-28T16:30:00.000Z",
+    "riskScore": 88,
+    "evidence": "Impersonates LHDN government agency, uses high-pressure legal/arrest threats within 24 hours, and links to unauthorized third-party URL (lhdn-refund.org)."
+  },
+  {
+    "id": "scam_report_006",
+    "type": "phishing",
+    "text": "Touch 'n Go eWallet: Tahniah! Anda layak menerima kredit e-Tunai Bantuan Kerajaan RM150. Tebus serta-merta dengan memasukkan PIN dan kod OTP anda di https://tng-claim-rewards.com",
+    "status": "pending",
+    "submittedBy": "rep_106",
+    "date": "2026-07-29T08:10:00.000Z",
+    "riskScore": 95,
+    "evidence": "OTP and PIN harvesting attempt, government aid lure, and fake eWallet domain (tng-claim-rewards.com)."
+  },
+  {
+    "id": "scam_report_007",
+    "type": "ecommerce",
+    "text": "Seller on Facebook Marketplace offers iPhone 15 Pro Max for RM1,500. Insists on direct bank transfer outside Shopee/Lazada platform guarantee to get special 50% discount.",
+    "status": "pending",
+    "submittedBy": "rep_107",
+    "date": "2026-07-29T09:50:00.000Z",
+    "riskScore": 70,
+    "evidence": "Bypasses platform escrow protection, offers unrealistic price discount (50% off), and demands direct peer bank transfer."
+  },
+  {
+    "id": "scam_report_008",
+    "type": "investment",
+    "text": "Skim Pelaburan Syariah Terjamin: Melabur RM500 dan terima pulangan RM5,000 dalam masa 3 jam! 100% tanpa risiko dan patuh syariah. Sertai kumpulan Telegram kami sekarang.",
+    "status": "pending",
+    "submittedBy": "rep_108",
+    "date": "2026-07-29T11:15:00.000Z",
+    "riskScore": 98,
+    "evidence": "Impossible ROI financial multiplier (10x payout in 3 hours), false '100% zero-risk' claim, and unverified Telegram group solicitation."
+  },
+  {
+    "id": "scam_report_009",
+    "type": "phishing",
+    "text": "JPJ Malaysia: Saman tertunggak anda bagi kenderaan VXX8899 mendapat diskaun 70%. Bayar RM30 sahaja sebelum tengah malam di portal rasmi https://jpj-saman-diskaun.net",
+    "status": "pending",
+    "submittedBy": "rep_109",
+    "date": "2026-07-29T13:40:00.000Z",
+    "riskScore": 80,
+    "evidence": "Spoofed JPJ traffic saman portal (jpj-saman-diskaun.net), midnight urgency tactic, and unauthorized discount claim."
+  },
+  {
+    "id": "scam_report_010",
+    "type": "banking",
+    "text": "CIMB Clicks: We detected an unauthorized transaction of RM2,450.00 to account 564210923049. If this was not you, cancel immediately at https://cimb-sec-verify.com",
+    "status": "pending",
+    "submittedBy": "rep_110",
+    "date": "2026-07-29T15:00:00.000Z",
+    "riskScore": 91,
+    "evidence": "Fake unauthorized transaction panic trigger, malicious domain (cimb-sec-verify.com), and credential theft attempt."
+  }
+]

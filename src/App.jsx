@@ -5,6 +5,7 @@ import UserChecker from './components/UserChecker';
 import ModeratorDashboard from './components/ModeratorDashboard';
 import KnowledgeCentre from './components/KnowledgeCentre';
 import UserProfile from './components/UserProfile';
+import TrendsDashboard from './components/TrendsDashboard';
 import LoginScreen from './components/LoginScreen';
 
 export default function App() {
@@ -92,6 +93,13 @@ export default function App() {
                 style={{ fontSize: isElderlyMode ? '1.25rem' : '0.9rem' }}
               >
                 👤 {t('nav.profile')}
+              </button>
+              <button 
+                onClick={() => setActiveTab('trends')} 
+                className={`nav-link ${activeTab === 'trends' ? 'active' : ''}`}
+                style={{ fontSize: isElderlyMode ? '1.15rem' : '0.9rem' }}
+              >
+                📈 {t('nav.trends')}
               </button>
             </>
           ) : (
@@ -239,6 +247,10 @@ export default function App() {
             isElderlyMode={isElderlyMode}
             isKidMode={isKidMode}
           />
+        )}
+
+        {activeTab === 'trends' && (
+          <TrendsDashboard />
         )}
 
         {activeTab === 'moderator' && (

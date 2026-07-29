@@ -305,6 +305,12 @@ h6 {
   transition: all var(--transition-fast);
 }
 
+select option,
+.input-field option {
+  background-color: #0f172a;
+  color: #ffffff;
+}
+
 .input-field:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 2px var(--primary-glow);

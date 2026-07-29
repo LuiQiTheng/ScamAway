@@ -104,7 +104,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
     steps.forEach((step, idx) => {
       setTimeout(() => {
         setScanSteps(prev => [...prev, step]);
-      }, (idx + 1) * 600);
+      }, (idx + 1) * 150);
     });
 
     setTimeout(async () => {
@@ -128,7 +128,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
 
       setScanResult(res);
       setIsScanning(false);
-    }, steps.length * 650);
+    }, steps.length * 150 + 200);
   };
 
   const handleScanText = () => {
@@ -626,7 +626,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                         <strong style={{ color: '#fff', fontSize: '0.9rem' }}>⚠️ {exp.label}</strong>
                         <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{t('result.weight')}: +{exp.weight}%</span>
                       </div>
-                      <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{exp.text}</p>
+                      <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>{exp.text}</p>
                     </div>
                   ))
                 ) : (

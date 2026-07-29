@@ -175,7 +175,11 @@ export async function analyzeScamRisk(text, metadata = {}) {
     /\b(?:full[- ]?time|part[- ]?time|internship|vacancy|recruiter|recruitment|positions?)\b/i,
     /\b(?:send|submit)\s+(?:your\s+)?(?:resume|cv)\b/i,
     /\b(?:wfh|work\s+from\s+home|hybrid)\b/i,
-    /\b(?:kerja|jawatan|pengambilan|latihan industri)\b/i
+    /\b(?:kerja|jawatan|pengambilan|latihan industri)\b/i,
+    // New exact matches for Task scams
+    /\b(?:task|tugasan)\s+\d+/i,
+    /\b(?:review|like)\s+(?:videos?|hotels?|products?)/i,
+    /\b(?:shopee|lazada|tiktok|youtube|agoda)\s+(?:hr|marketing|agent)/i
   ]);
 
   const hasDirectPressure = hasAny(text, [
@@ -216,44 +220,126 @@ export async function analyzeScamRisk(text, metadata = {}) {
     /\b(?:police|polis|court|mahkamah|lhdn|jpj|pos laju|poslaju|customs|kastam|sprm|mcmc|skmm|bank negara|bnm|kwsp|epf)\b/i
   ]);
 
-  const hasJobAdvanceFee = isJobPost && hasAny(text, [
+  // Unlinked job advance fee detection
+  const hasJobAdvanceFee = hasAny(text, [
     /\b(?:registration|processing|training|starter|security)\s+(?:fee|deposit)\b/i,
     /\b(?:pay|deposit|transfer)\s+rm\s*\d+/i,
     /\b(?:pay|transfer).{0,45}(?:to start|before you start|unlock|first task)\b/i,
-    /\b(?:bayar|deposit|pindah).{0,30}(?:untuk mula|yuran pendaftaran|tugasan pertama)\b/i
+    /\b(?:bayar|deposit|pindah).{0,30}(?:untuk mula|yuran pendaftaran|tugasan pertama)\b/i,
+    /\bdeposit\s+(?:to\s+)?unlock\b/i
   ]);
+
   const hasHighDailyIncomeClaim = hasAny(text, [
-    /\b(?:earn|income|salary|gaji).{0,25}rm\s*\d+(?:\s*[-–]\s*\d+)?\s*(?:daily|per day|sehari)\b/i
+    /\b(?:earn|income|salary|gaji|get paid).{0,25}rm\s*\d+(?:\s*[-–]\s*\d+)?\s*(?:daily|per day|sehari|instantly)\b/i
   ]);
+  
   const hasEasyTaskClaim = hasAny(text, [
     /\b(?:easy|simple)\s+(?:online\s+)?(?:job|task|work)\b/i,
     /\b(?:like products|post reviews|process orders|click orders|no experience needed)\b/i
   ]);
-  const hasUnrealisticJobIncome = isJobPost &&
-    (hasImpossibleReturn || (hasHighDailyIncomeClaim && hasEasyTaskClaim));
+
+  // New Scam Library Archetype Detections
+  const isCourierScam = hasAny(text, [
+    /\b(?:parcel|bungkusan).{0,50}(?:held|ditahan|sorting hub|tax|cukai|fee|processing fee)\b/i,
+    /\b(?:ninja\s*van|pos\s*laju|j&t).{0,50}(?:cod|cash amount due|cash-on-delivery)\b/i
+  ]);
+
+  const isInvestmentScam = hasAny(text, [
+    /\b(?:pelaburan|investment|insider trading|cryptoai|arbitrage)\b/i,
+    /\b(?:guaranteed allocation|pre-ipo|bursa insider|1000%\s*profit)\b/i
+  ]);
+
+  const isEmergencyScam = hasAny(text, [
+    /\b(?:fon\s+jatuh\s+air|masuk\s+hospital|kemalangan)\b/i,
+    /\b(?:kena\s+tangkap|diculik|polis\s+bail|wang\s+jaminan|tahan\s+di\s+balai)\b/i
+  ]);
+
+  const hasUnrealisticJobIncome = isJobPost && (hasImpossibleReturn || (hasHighDailyIncomeClaim && hasEasyTaskClaim));
 
   const whatsappDomains = analysis.urls.filter(isWhatsAppDomain);
   const hasWhatsAppLink = whatsappDomains.length > 0;
-  const hasOnlyWhatsAppLinks = analysis.urls.length > 0 &&
-    analysis.urls.every(isWhatsAppDomain);
+  const hasOnlyWhatsAppLinks = analysis.urls.length > 0 && analysis.urls.every(isWhatsAppDomain);
   const hasCorporateEmail = /[\w.+-]+@(?!gmail\.com|yahoo\.com|hotmail\.com|outlook\.com|protonmail\.com)[\w.-]+\.[a-z]{2,}/i.test(text);
   const hasNamedBusinessEntity = /\b(?:sdn\.?\s*bhd\.?|berhad|enterprise|plc|ltd\.?|inc\.?)\b/i.test(text);
   const hasNonWhatsAppWebSource = analysis.urls.some((domain) => !isWhatsAppDomain(domain));
   const hasEmployerIdentitySource = hasCorporateEmail || hasNamedBusinessEntity || hasNonWhatsAppWebSource;
-  const hasStrongJobRisk = hasJobAdvanceFee || hasCreds || hasUnrealisticJobIncome ||
-    (hasDirectPressure && (analysis.hasPaymentKeywords || hasFearThreat));
+  
+  const hasStrongJobRisk = hasJobAdvanceFee || hasCreds || hasUnrealisticJobIncome || (hasDirectPressure && (analysis.hasPaymentKeywords || hasFearThreat));
 
-  if (hasAuthority && (hasFearThreat || hasCreds || hasDirectPressure || analysis.hasPaymentKeywords)) {
-    ruleContribution += 25;
+  // --- CORE SCAM ARCHETYPE SCORING (Guarantees >= 85) ---
+  let hitCoreScamArchetype = false;
+
+  if (isJobPost || hasJobAdvanceFee || hasHighDailyIncomeClaim) {
+    if (hasJobAdvanceFee || hasSecrecy || hasUnrealisticJobIncome) {
+      ruleContribution += 55;
+      hitCoreScamArchetype = true;
+      explanations.push({
+        category: "payment",
+        label: lang === 'ms' ? "Penipuan Pendahuluan Tugasan" : "Advance Fee Task Scam",
+        text: lang === 'ms' 
+          ? "Tawaran tidak sah yang memerlukan anda mendeposit wang untuk 'membuka' tugas atau gaji." 
+          : "Illegitimate offer requiring you to deposit money to 'unlock' tasks or payouts.",
+        weight: 55
+      });
+    }
+  }
+
+  if (isCourierScam) {
+    ruleContribution += 55;
+    hitCoreScamArchetype = true;
     explanations.push({
-      category: "impersonation",
-      label: lang === 'ms' ? "Kemungkinan Penyamaran Pihak Berkuasa" : "Possible Authority Impersonation",
-      text: lang === 'ms'
-        ? "Nama agensi rasmi digunakan bersama tekanan, ancaman, permintaan bayaran atau permintaan maklumat sensitif."
-        : "An official agency name is combined with pressure, threats, payment requests, or requests for sensitive information.",
-      weight: 25
+      category: "phishing",
+      label: lang === 'ms' ? "Penipuan Kurier Palsu" : "Fake Courier Scam",
+      text: lang === 'ms' 
+        ? "Mesej kurier mencurigakan mendesak bayaran cukai/COD luar jangkaan untuk bungkusan tidak sah." 
+        : "Suspicious courier message demanding unexpected fees/COD for an unverified parcel.",
+      weight: 55
     });
   }
+
+  if (isInvestmentScam && (hasImpossibleReturn || text.match(/\brm\s*\d+/i))) {
+    ruleContribution += 55;
+    hitCoreScamArchetype = true;
+    explanations.push({
+      category: "other",
+      label: lang === 'ms' ? "Skim Pelaburan Mustahil" : "Impossible Investment Scheme",
+      text: lang === 'ms' 
+        ? "Menawarkan pulangan yang tidak realistik atau jaminan yang selalunya berakhir dengan kerugian total." 
+        : "Offers completely unrealistic returns or guarantees which always result in a total loss.",
+      weight: 55
+    });
+  }
+
+  if (isEmergencyScam) {
+    ruleContribution += 60;
+    hitCoreScamArchetype = true;
+    explanations.push({
+      category: "urgency",
+      label: lang === 'ms' ? "Pemerasan Kecemasan" : "Emergency Extortion",
+      text: lang === 'ms' 
+        ? "Mengeksploitasi panik melalui dakwaan kecemasan perubatan, penculikan, atau amaran tangkapan polis." 
+        : "Exploits panic via false claims of medical emergencies, kidnappings, or police detentions.",
+      weight: 60
+    });
+  }
+
+  if (hasAuthority && (hasFearThreat || hasCreds || hasDirectPressure || analysis.hasPaymentKeywords)) {
+    ruleContribution += 55;
+    hitCoreScamArchetype = true;
+    explanations.push({
+      category: "impersonation",
+      label: lang === 'ms' ? "Penyamaran Pihak Berkuasa (Macau Scam)" : "Authority Impersonation (Macau Scam)",
+      text: lang === 'ms'
+        ? "Nama agensi rasmi digunakan bersama tekanan, ancaman, atau amaran waran untuk merampas wang."
+        : "An official agency name is combined with pressure, threats, or warrant warnings to extort money.",
+      weight: 55
+    });
+  }
+
+  if (hitCoreScamArchetype) {
+    score = Math.max(score, 85);
+  }
+
 
   if (hasCreds) {
     ruleContribution += 30;
