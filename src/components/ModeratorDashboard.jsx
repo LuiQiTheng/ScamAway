@@ -2,7 +2,12 @@ import React, { useState } from 'react';
 import { Shield, Check, X, AlertTriangle, MessageSquare, ShieldAlert, Award, FileText, Send, UserCheck, Search, Filter, BarChart2 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
-import { extractIndicators } from '../utils/rulesEngine';
+import {
+  extractIndicators,
+  normalizeBankAccount,
+  normalizeHostname,
+  normalizePhone,
+} from '../utils/rulesEngine';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export default function ModeratorDashboard() {
@@ -37,28 +42,9 @@ export default function ModeratorDashboard() {
       updateReputation(report.reporterId, decision === 'confirmed');
     }
 
-    // Add indicators to blacklists if confirmed
-    if (decision === 'confirmed' && report) {
-      // Find matches of URL/phone to push into local blacklist
-      const urlRegex = /(pos-laju\.info|maybank|shopee|tnb|lhdn|[a-zA-Z0-9-]+\.[a-zA-Z]{2,})/gi;
-      const urls = report.text.match(urlRegex);
-      if (urls) {
-        urls.forEach(url => {
-          if (!blacklist.urls.includes(url.toLowerCase())) {
-            addBlacklistItem('urls', url.toLowerCase());
-          }
-        });
-      }
-      const phoneRegex = /(\+?6?01[0-9]-?[0-9]{7,8})/g;
-      const phones = report.text.match(phoneRegex);
-      if (phones) {
-        phones.forEach(p => {
-          if (!blacklist.phoneNumbers.includes(p)) {
-            addBlacklistItem('phoneNumbers', p);
-          }
-        });
-      }
-    }
+    // Confirming a report does not prove that every phone number or domain
+    // inside it is malicious. Indicators must be reviewed and added manually
+    // in the Blacklists tab so legitimate company details are not poisoned.
 
     // Log action to audit trail
     setAuditLogs(prev => [{
@@ -136,7 +122,14 @@ export default function ModeratorDashboard() {
   const handleAddManualBlacklist = (e) => {
     e.preventDefault();
     if (!newBlacklistItem.trim()) return;
-    addBlacklistItem(newBlacklistType, newBlacklistItem.trim().toLowerCase());
+    const normalizers = {
+      urls: normalizeHostname,
+      phoneNumbers: normalizePhone,
+      bankAccounts: normalizeBankAccount,
+    };
+    const normalizedValue = normalizers[newBlacklistType](newBlacklistItem);
+    if (!normalizedValue) return;
+    addBlacklistItem(newBlacklistType, normalizedValue);
     setNewBlacklistItem('');
   };
 

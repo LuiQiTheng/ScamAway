@@ -1,5 +1,111 @@
 import { analyzeTextWithGemini } from './aiEngine';
 
+const WHATSAPP_DOMAINS = new Set(['wa.me', 'api.whatsapp.com', 'whatsapp.com']);
+const NON_UNIQUE_COMMUNITY_DOMAINS = new Set([
+  ...WHATSAPP_DOMAINS,
+  't.me',
+  'telegram.me',
+]);
+
+function getIndicatorValue(entry) {
+  if (typeof entry === 'string') return entry;
+  return entry?.value || entry?.indicator || '';
+}
+
+export function normalizePhone(value = '') {
+  const digits = String(value).replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.startsWith('60')) return `+${digits}`;
+  if (digits.startsWith('0')) return `+6${digits}`;
+  if (digits.startsWith('1')) return `+60${digits}`;
+  return `+${digits}`;
+}
+
+export function normalizeHostname(value = '') {
+  const trimmed = String(value)
+    .trim()
+    .replace(/^[("'`<\u005b]+/, '')
+    .replace(/[)"'`>\],;.!?]+$/, '');
+
+  if (!trimmed) return '';
+
+  try {
+    const candidate = /^[a-z][a-z\d+.-]*:\/\//i.test(trimmed)
+      ? trimmed
+      : `https://${trimmed}`;
+    return new URL(candidate).hostname
+      .toLowerCase()
+      .replace(/\.$/, '')
+      .replace(/^www\./, '');
+  } catch {
+    return '';
+  }
+}
+
+export function normalizeBankAccount(value = '') {
+  return String(value).replace(/\D/g, '');
+}
+
+function extractBankAccountCandidates(text = '') {
+  return [
+    ...new Set(
+      (String(text).match(/\b(?:\d[\s-]?){8,16}\b/g) || [])
+        .map(normalizeBankAccount)
+        .filter((value) => value.length >= 8),
+    ),
+  ];
+}
+
+function domainMatches(candidate, listed) {
+  const candidateHost = normalizeHostname(candidate);
+  const listedHost = normalizeHostname(getIndicatorValue(listed));
+  if (!candidateHost || !listedHost) return false;
+  return candidateHost === listedHost || candidateHost.endsWith(`.${listedHost}`);
+}
+
+const NEGATION_BEFORE_PATTERN =
+  /\b(?:never|no|not|without|do\s+not|don'?t|does\s+not|doesn'?t|will\s+not|won'?t|jangan|tidak\s+perlu|tak\s+perlu|tiada|tanpa)\b[^.!?\n;]{0,70}$/i;
+const NEGATION_AFTER_PATTERN =
+  /^[^.!?\n;]{0,24}\b(?:not|required\s+not|not\s+required|tidak\s+diperlukan|tidak\s+perlu|tiada)\b/i;
+
+function isNegatedMatch(clause, match) {
+  const before = clause.slice(Math.max(0, match.index - 70), match.index);
+  const after = clause.slice(match.index + match[0].length, match.index + match[0].length + 35);
+  return NEGATION_BEFORE_PATTERN.test(before) || NEGATION_AFTER_PATTERN.test(after);
+}
+
+function hasAffirmativePattern(text, patterns) {
+  const clauses = String(text)
+    .split(/[.!?\n;]+/)
+    .flatMap((clause) =>
+      clause.split(/\b(?:but|however|yet|instead|tetapi|namun|sebaliknya)\b/i),
+    );
+
+  return clauses.some((clause) =>
+    patterns.some((pattern) => {
+      const flags = pattern.flags.includes('g') ? pattern.flags : `${pattern.flags}g`;
+      const matcher = new RegExp(pattern.source, flags);
+      let match = matcher.exec(clause);
+
+      while (match) {
+        if (!isNegatedMatch(clause, match)) return true;
+        if (match[0] === '') matcher.lastIndex += 1;
+        match = matcher.exec(clause);
+      }
+
+      return false;
+    }),
+  );
+}
+
+function isWhatsAppDomain(domain = '') {
+  return WHATSAPP_DOMAINS.has(normalizeHostname(domain));
+}
+
+function hasAny(text, patterns) {
+  return patterns.some((pattern) => pattern.test(text));
+}
+
 // Demo mock screenshots database for OCR simulation
 export const DEMO_SCREENSHOTS = {
   pos_laju_scam: {
@@ -45,34 +151,64 @@ export const DEMO_SCREENSHOTS = {
  */
 export function extractIndicators(text) {
   const urlRegex = /(https?:\/\/[^\s]+|([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,})/gi;
-  const phoneRegex = /(\+?6?01[0-9]-?[0-9]{7,8}|\+?6?0[3-9]-?[0-9]{7})/g;
+  const phoneRegex = /(?:\+?6[\s-]?)?0?1\d(?:[\s-]?\d){7,8}/g;
   const paymentRegex = /(RM\s*\d+(\.\d{2})?|\b\d+,\d{3}\s*(RM|ringgit)?|bank\s*transfer|pay\b)/gi;
 
-  const foundUrls = text.match(urlRegex) || [];
-  const foundPhones = text.match(phoneRegex) || [];
+  const foundUrls = String(text).match(urlRegex) || [];
+  const foundPhones = String(text).match(phoneRegex) || [];
   
-  // Basic cleaning of domains
-  const cleanedUrls = foundUrls.map(url => {
-    let domain = url.replace(/https?:\/\//i, '').split('/')[0];
-    return domain.toLowerCase();
-  });
+  const cleanedUrls = foundUrls.map(normalizeHostname).filter(Boolean);
+  const phones = [...new Set(foundPhones.map((phone) => phone.trim()))];
 
   return {
     urls: [...new Set(cleanedUrls)],
-    phones: [...new Set(foundPhones.map(p => p.trim()))],
+    phones,
+    normalizedPhones: [...new Set(phones.map(normalizePhone).filter(Boolean))],
     hasPaymentKeywords: paymentRegex.test(text),
     extractedPayment: text.match(/(RM\s*\d+(\.\d{2})?)/gi)?.[0] || null
   };
 }
 
-const WHATSAPP_DOMAINS = new Set(['wa.me', 'api.whatsapp.com', 'whatsapp.com']);
+function collectComparableIndicators(text, metadata = {}) {
+  const extracted = extractIndicators(text);
+  const phoneDigits = new Set(extracted.normalizedPhones.map(normalizeBankAccount));
+  const domains = extracted.urls
+    .map(normalizeHostname)
+    .filter((domain) => domain && !NON_UNIQUE_COMMUNITY_DOMAINS.has(domain));
+  const qrHost = normalizeHostname(metadata.qrCode || '');
+  if (qrHost && !NON_UNIQUE_COMMUNITY_DOMAINS.has(qrHost)) domains.push(qrHost);
 
-function isWhatsAppDomain(domain = '') {
-  return WHATSAPP_DOMAINS.has(domain.toLowerCase());
+  return {
+    domains: [...new Set(domains)],
+    phones: [...new Set(extracted.normalizedPhones)],
+    bankAccounts: extractBankAccountCandidates(text).filter(
+      (account) => !phoneDigits.has(account),
+    ),
+  };
 }
 
-function hasAny(text, patterns) {
-  return patterns.some((pattern) => pattern.test(text));
+export function findMatchingVerifiedReports(text, reports = [], metadata = {}) {
+  const submitted = collectComparableIndicators(text, metadata);
+
+  return reports
+    .filter((report) => report?.status === 'confirmed')
+    .map((report) => {
+      const reportText = report.originalText || report.text || '';
+      const known = collectComparableIndicators(reportText, {
+        qrCode: report.qrCode || report.qrDestination,
+      });
+      const matchedIndicators = [
+        ...submitted.domains.filter((value) => known.domains.includes(value)),
+        ...submitted.phones.filter((value) => known.phones.includes(value)),
+        ...submitted.bankAccounts.filter((value) => known.bankAccounts.includes(value)),
+      ];
+
+      return {
+        id: report.id ?? report.firebaseId,
+        matchedIndicators: [...new Set(matchedIndicators)],
+      };
+    })
+    .filter((match) => match.matchedIndicators.length > 0);
 }
 
 /**
@@ -91,52 +227,71 @@ export async function analyzeScamRisk(text, metadata = {}) {
   // Track if we hit a critical blacklist match that forces base high-risk
   let matchedBlacklistIndicator = false;
 
-  const blacklist = metadata.blacklist || { phoneNumbers: [], urls: [], bankAccounts: [] };
+  const blacklist = {
+    phoneNumbers: metadata.blacklist?.phoneNumbers || [],
+    urls: metadata.blacklist?.urls || [],
+    bankAccounts: metadata.blacklist?.bankAccounts || [],
+  };
 
   // 1. SENDER REPUTATION & BLACKLIST MATCHES (Instant Rule Engine)
-  if (analysis.phones.length > 0) {
-    const isBlacklistedPhone = analysis.phones.some(phone => 
-      blacklist.phoneNumbers.includes(phone)
+  if (analysis.normalizedPhones.length > 0) {
+    const normalizedBlacklistedPhones = blacklist.phoneNumbers
+      .map((entry) => normalizePhone(getIndicatorValue(entry)))
+      .filter(Boolean);
+    const matchedPhone = analysis.normalizedPhones.find((phone) =>
+      normalizedBlacklistedPhones.includes(phone),
     );
 
-    if (isBlacklistedPhone) {
+    if (matchedPhone) {
       matchedBlacklistIndicator = true;
       explanations.push({
         category: "reputation",
-        label: lang === 'ms' ? "Nombor Telefon Disenarai Hitam" : "Blacklisted Phone Number",
-        text: lang === 'ms' ? "Nombor telefon ini sepadan dengan penghantar pancingan data tempatan/nasional yang dilaporkan." : "The phone number matches reported local/national phishing dispatchers.",
+        label: lang === 'ms' ? "Penunjuk Nombor Telefon Tersenarai" : "Listed Phone Indicator",
+        text: lang === 'ms'
+          ? "Nombor telefon sepadan dengan penunjuk dalam senarai ScamShield semasa. Semak sumber dan tarikh rekod sebelum membuat keputusan."
+          : "The phone number matches an indicator in ScamShield's current list. Check the record source and date before acting.",
         weight: 35
       });
-      indicatorsMatched.push(...analysis.phones);
+      indicatorsMatched.push(matchedPhone);
     }
   }
 
   // Check account blacklist
-  const matchedBlacklistAccount = blacklist.bankAccounts.find(acc => text.includes(acc));
+  const phoneDigits = new Set(analysis.normalizedPhones.map(normalizeBankAccount));
+  const bankAccountCandidates = extractBankAccountCandidates(text).filter(
+    (account) => !phoneDigits.has(account),
+  );
+  const matchedBlacklistAccount = blacklist.bankAccounts.find((entry) =>
+    bankAccountCandidates.includes(normalizeBankAccount(getIndicatorValue(entry))),
+  );
   if (matchedBlacklistAccount) {
+    const accountValue = normalizeBankAccount(getIndicatorValue(matchedBlacklistAccount));
     matchedBlacklistIndicator = true;
     explanations.push({
       category: "payment",
-      label: lang === 'ms' ? "Akaun Bank Disenarai Hitam" : "Blacklisted Bank Account",
-      text: lang === 'ms' ? `Akaun bank yang disenaraikan (${matchedBlacklistAccount}) ditandakan dalam pangkalan data akaun keldai rasmi.` : `The bank account listed (${matchedBlacklistAccount}) is flagged in the official mule bank account database.`,
+      label: lang === 'ms' ? "Penunjuk Akaun Bank Tersenarai" : "Listed Bank Account Indicator",
+      text: lang === 'ms'
+        ? `Akaun (${accountValue}) sepadan dengan penunjuk dalam senarai ScamShield semasa. Semak sumber rekod sebelum membuat keputusan.`
+        : `The account (${accountValue}) matches an indicator in ScamShield's current list. Check the record source before acting.`,
       weight: 45
     });
-    indicatorsMatched.push(matchedBlacklistAccount);
+    indicatorsMatched.push(accountValue);
   }
 
   // URL blacklist check
   if (analysis.urls.length > 0) {
-    const suspiciousDomains = blacklist.urls;
-    const matchedBadDomain = analysis.urls.find(url => 
-      suspiciousDomains.some(bad => url.includes(bad) || bad.includes(url))
+    const matchedBadDomain = analysis.urls.find((url) =>
+      blacklist.urls.some((listed) => domainMatches(url, listed)),
     );
 
     if (matchedBadDomain) {
       matchedBlacklistIndicator = true;
       explanations.push({
         category: "technical",
-        label: lang === 'ms' ? "Domain Disenarai Hitam" : "Malicious Blacklisted Domain",
-        text: lang === 'ms' ? `Pautan (${matchedBadDomain}) menghala ke laman web penipuan/phishing yang disahkan dalam direktori kami.` : `The link (${matchedBadDomain}) points to a verified scam/phishing site in our directory.`,
+        label: lang === 'ms' ? "Penunjuk Domain Tersenarai" : "Listed Domain Indicator",
+        text: lang === 'ms'
+          ? `Domain (${matchedBadDomain}) sepadan dengan penunjuk dalam senarai ScamShield semasa. Semak sumber dan tarikh rekod sebelum membuat keputusan.`
+          : `The domain (${matchedBadDomain}) matches an indicator in ScamShield's current list. Check the record source and date before acting.`,
         weight: 40
       });
       indicatorsMatched.push(matchedBadDomain);
@@ -145,16 +300,19 @@ export async function analyzeScamRisk(text, metadata = {}) {
 
   // QR destination check
   if (qrDestination) {
-    const isSuspiciousQr = blacklist.urls.some(bad => qrDestination.includes(bad));
-    if (isSuspiciousQr) {
+    const qrHost = normalizeHostname(qrDestination);
+    const matchedQrDomain = blacklist.urls.find((listed) => domainMatches(qrHost, listed));
+    if (matchedQrDomain) {
       matchedBlacklistIndicator = true;
       explanations.push({
         category: "technical",
-        label: lang === 'ms' ? "Pautan Destinasi QR Penipuan" : "Scam QR Destination Link",
-        text: lang === 'ms' ? `Kod QR yang diimbas menghala ke domain yang disenarai hitam: ${qrDestination}.` : `Scanned QR code points to a blacklisted domain: ${qrDestination}.`,
+        label: lang === 'ms' ? "Penunjuk Domain QR Tersenarai" : "Listed QR Domain Indicator",
+        text: lang === 'ms'
+          ? `Kod QR menghala ke domain (${qrHost}) yang sepadan dengan senarai ScamShield semasa. Semak sumber rekod sebelum membuat keputusan.`
+          : `The QR code points to a domain (${qrHost}) that matches ScamShield's current list. Check the record source before acting.`,
         weight: 35
       });
-      indicatorsMatched.push(qrDestination);
+      indicatorsMatched.push(qrHost);
     }
   }
 
@@ -182,7 +340,7 @@ export async function analyzeScamRisk(text, metadata = {}) {
     /\b(?:shopee|lazada|tiktok|youtube|agoda)\s+(?:hr|marketing|agent)/i
   ]);
 
-  const hasDirectPressure = hasAny(text, [
+  const hasDirectPressure = hasAffirmativePattern(text, [
     /\b(?:act|apply|pay|reply|respond|transfer|click|verify|submit|contact)\s+(?:now|immediately|urgently)\b/i,
     /\b(?:pay|transfer|click|verify|submit).{1,60}\b(?:now|immediately|urgently)\b/i,
     /\bwithin\s*\d+\s*(?:hours?|hrs?|minutes?|mins?|days?)\b/i,
@@ -192,23 +350,24 @@ export async function analyzeScamRisk(text, metadata = {}) {
     /\bdalam\s+\d+\s*(?:minit|jam|hari)\b/i
   ]);
 
-  const hasSecrecy = hasAny(text, [
+  const hasSecrecy = hasAffirmativePattern(text, [
     /\b(?:keep (?:it|this) secret|between us|don'?t tell|don'?t call)\b/i,
     /\b(?:rahsia|jangan beritahu|jangan hubungi)\b/i
   ]);
-  const hasCreds = hasAny(text, [
-    /\b(?:otp|tac code|kod tac|password|kata laluan|banking details)\b/i,
-    /\b(?:verify|update|submit|share)\s+(?:your\s+)?(?:login|password|banking|account)\b/i
+  const hasCreds = hasAffirmativePattern(text, [
+    /\b(?:share|send|provide|enter|submit|verify|update|give)\s+(?:your\s+)?(?:otp|tac(?:\s+code)?|password|login|banking details|account credentials)\b/i,
+    /\b(?:otp|tac(?:\s+code)?|password|banking details).{0,30}\b(?:required|needed|send|share|provide|enter)\b/i,
+    /\b(?:kongsi|hantar|masukkan|berikan|sahkan)\s+(?:kod\s+)?(?:otp|tac|kata laluan|butiran bank)\b/i
   ]);
-  const hasPrizeOrRefundBait = hasAny(text, [
+  const hasPrizeOrRefundBait = hasAffirmativePattern(text, [
     /\b(?:congratulations|tahniah).{0,35}(?:won|winner|reward|gift|hadiah)\b/i,
     /\b(?:tax refund|cash refund|refund portal|tebus hadiah|hadiah percuma)\b/i
   ]);
-  const hasImpossibleReturn = hasAny(text, [
+  const hasImpossibleReturn = hasAffirmativePattern(text, [
     /\b(?:guaranteed|dijamin|pasti)\s+(?:profit|return|income|untung)\b/i,
     /\b(?:100%\s+untung|no risk|without risk|tanpa risiko)\b/i
   ]);
-  const hasFearThreat = hasAny(text, [
+  const hasFearThreat = hasAffirmativePattern(text, [
     /\b(?:fined|jail|arrested?|warrant|blacklisted|tax debt|account frozen|court action|legal action)\b/i,
     /\b(?:denda|penjara|waran tangkap|akaun dibeku|tindakan undang-undang)\b/i
   ]);
@@ -217,15 +376,21 @@ export async function analyzeScamRisk(text, metadata = {}) {
     /\b(?:telefon rosak|tukar nombor|masuk hospital|kemalangan|akaun kawan)\b/i
   ]);
   const hasAuthority = hasAny(text, [
-    /\b(?:police|polis|court|mahkamah|lhdn|jpj|pos laju|poslaju|customs|kastam|sprm|mcmc|skmm|bank negara|bnm|kwsp|epf)\b/i
+    /\b(?:police|polis|court|mahkamah|lhdn|jpj|customs|kastam|sprm|mcmc|skmm|bank negara|bnm|kwsp|epf)\b/i
   ]);
 
-  // Unlinked job advance fee detection
-  const hasJobAdvanceFee = hasAny(text, [
+  const hasPaymentRequest = hasAffirmativePattern(text, [
+    /\b(?:pay|transfer|deposit|send)\s+(?:me|us|them|to|into|rm\s*\d+|\d{2,})\b/i,
+    /\b(?:pay|transfer|deposit|bayar|pindah)\s+(?:now|immediately|sekarang|segera)\b/i,
+    /\b(?:payment|fee|deposit|cod)\b(?!.{0,30}\b(?:not|never)\b).{0,30}\b(?:required|due|must be paid|to release|to unlock|to start)\b/i,
+    /\b(?:bayar|pindah|deposit|hantar)\s+(?:kepada|ke|rm\s*\d+|\d{2,})\b/i,
+    /\b(?:bayaran|yuran|deposit)\b(?!.{0,30}\b(?:tidak|tiada|tak)\b).{0,30}\b(?:diperlukan|perlu dibayar|untuk pelepasan|untuk mula)\b/i
+  ]);
+
+  const hasJobAdvanceFee = isJobPost && hasAffirmativePattern(text, [
     /\b(?:registration|processing|training|starter|security)\s+(?:fee|deposit)\b/i,
-    /\b(?:pay|deposit|transfer)\s+rm\s*\d+/i,
-    /\b(?:pay|transfer).{0,45}(?:to start|before you start|unlock|first task)\b/i,
-    /\b(?:bayar|deposit|pindah).{0,30}(?:untuk mula|yuran pendaftaran|tugasan pertama)\b/i,
+    /\b(?:pay|deposit|transfer).{0,55}(?:to start|before you start|unlock|activate|first task|obtain the job)\b/i,
+    /\b(?:bayar|deposit|pindah).{0,45}(?:untuk mula|yuran pendaftaran|aktifkan|tugasan pertama|dapatkan kerja)\b/i,
     /\bdeposit\s+(?:to\s+)?unlock\b/i
   ]);
 
@@ -238,20 +403,24 @@ export async function analyzeScamRisk(text, metadata = {}) {
     /\b(?:like products|post reviews|process orders|click orders|no experience needed)\b/i
   ]);
 
-  // New Scam Library Archetype Detections
-  const isCourierScam = hasAny(text, [
-    /\b(?:parcel|bungkusan).{0,50}(?:held|ditahan|sorting hub|tax|cukai|fee|processing fee)\b/i,
-    /\b(?:ninja\s*van|pos\s*laju|j&t).{0,50}(?:cod|cash amount due|cash-on-delivery)\b/i
+  const isCourierContext = hasAny(text, [
+    /\b(?:parcel|bungkusan|courier|delivery|redelivery|cod|cash-on-delivery)\b/i,
+    /\b(?:ninja\s*van|pos\s*laju|poslaju|j&t|dhl|fedex)\b/i
+  ]);
+  const hasParcelProblemClaim = hasAffirmativePattern(text, [
+    /\b(?:parcel|bungkusan|delivery).{0,55}(?:held|ditahan|failed|gagal|invalid address|customs|kastam|returned|cancelled)\b/i,
+    /\b(?:sorting hub|clearance|redelivery).{0,35}(?:fee|payment|required|failed)\b/i
   ]);
 
-  const isInvestmentScam = hasAny(text, [
+  const isInvestmentContext = hasAny(text, [
     /\b(?:pelaburan|investment|insider trading|cryptoai|arbitrage)\b/i,
     /\b(?:guaranteed allocation|pre-ipo|bursa insider|1000%\s*profit)\b/i
   ]);
 
-  const isEmergencyScam = hasAny(text, [
+  const isEmergencyContext = hasAny(text, [
     /\b(?:fon\s+jatuh\s+air|masuk\s+hospital|kemalangan)\b/i,
-    /\b(?:kena\s+tangkap|diculik|polis\s+bail|wang\s+jaminan|tahan\s+di\s+balai)\b/i
+    /\b(?:kena\s+tangkap|diculik|polis\s+bail|wang\s+jaminan|tahan\s+di\s+balai)\b/i,
+    /\b(?:hospital|accident|kidnapped|detained|bail money|medical emergency)\b/i
   ]);
 
   const hasUnrealisticJobIncome = isJobPost && (hasImpossibleReturn || (hasHighDailyIncomeClaim && hasEasyTaskClaim));
@@ -263,16 +432,37 @@ export async function analyzeScamRisk(text, metadata = {}) {
   const hasNamedBusinessEntity = /\b(?:sdn\.?\s*bhd\.?|berhad|enterprise|plc|ltd\.?|inc\.?)\b/i.test(text);
   const hasNonWhatsAppWebSource = analysis.urls.some((domain) => !isWhatsAppDomain(domain));
   const hasEmployerIdentitySource = hasCorporateEmail || hasNamedBusinessEntity || hasNonWhatsAppWebSource;
-  
-  const hasStrongJobRisk = hasJobAdvanceFee || hasCreds || hasUnrealisticJobIncome || (hasDirectPressure && (analysis.hasPaymentKeywords || hasFearThreat));
+  const hasRiskyPressure = hasDirectPressure && (
+    hasPaymentRequest ||
+    hasCreds ||
+    hasFearThreat ||
+    hasPrizeOrRefundBait ||
+    hasFamilyEmergency ||
+    hasNonWhatsAppWebSource
+  );
+  const isCourierScam = isCourierContext &&
+    hasParcelProblemClaim &&
+    hasPaymentRequest &&
+    (hasRiskyPressure || hasNonWhatsAppWebSource || Boolean(qrDestination));
+  const isInvestmentScam = isInvestmentContext && hasImpossibleReturn;
+  const isEmergencyScam = isEmergencyContext &&
+    hasPaymentRequest &&
+    (hasSecrecy || hasRiskyPressure || hasFamilyEmergency);
+  const hasAuthorityExtortion = hasAuthority &&
+    hasFearThreat &&
+    (hasPaymentRequest || hasCreds);
+  const hasStrongJobRisk = hasJobAdvanceFee ||
+    hasCreds ||
+    hasUnrealisticJobIncome ||
+    (hasRiskyPressure && hasPaymentRequest);
 
-  // --- CORE SCAM ARCHETYPE SCORING (Guarantees >= 85) ---
-  let hitCoreScamArchetype = false;
+  // --- CORE SCAM ARCHETYPE SCORING ---
+  // Each evidence contribution is added once. Scores are not artificially
+  // floored and then incremented by the same evidence a second time.
 
-  if (isJobPost || hasJobAdvanceFee || hasHighDailyIncomeClaim) {
-    if (hasJobAdvanceFee || hasSecrecy || hasUnrealisticJobIncome) {
+  if (isJobPost) {
+    if (hasJobAdvanceFee || hasUnrealisticJobIncome || (hasSecrecy && hasPaymentRequest)) {
       ruleContribution += 55;
-      hitCoreScamArchetype = true;
       explanations.push({
         category: "payment",
         label: lang === 'ms' ? "Penipuan Pendahuluan Tugasan" : "Advance Fee Task Scam",
@@ -286,7 +476,6 @@ export async function analyzeScamRisk(text, metadata = {}) {
 
   if (isCourierScam) {
     ruleContribution += 55;
-    hitCoreScamArchetype = true;
     explanations.push({
       category: "phishing",
       label: lang === 'ms' ? "Penipuan Kurier Palsu" : "Fake Courier Scam",
@@ -297,9 +486,8 @@ export async function analyzeScamRisk(text, metadata = {}) {
     });
   }
 
-  if (isInvestmentScam && (hasImpossibleReturn || text.match(/\brm\s*\d+/i))) {
+  if (isInvestmentScam) {
     ruleContribution += 55;
-    hitCoreScamArchetype = true;
     explanations.push({
       category: "other",
       label: lang === 'ms' ? "Skim Pelaburan Mustahil" : "Impossible Investment Scheme",
@@ -312,7 +500,6 @@ export async function analyzeScamRisk(text, metadata = {}) {
 
   if (isEmergencyScam) {
     ruleContribution += 60;
-    hitCoreScamArchetype = true;
     explanations.push({
       category: "urgency",
       label: lang === 'ms' ? "Pemerasan Kecemasan" : "Emergency Extortion",
@@ -323,9 +510,8 @@ export async function analyzeScamRisk(text, metadata = {}) {
     });
   }
 
-  if (hasAuthority && (hasFearThreat || hasCreds || hasDirectPressure || analysis.hasPaymentKeywords)) {
+  if (hasAuthorityExtortion) {
     ruleContribution += 55;
-    hitCoreScamArchetype = true;
     explanations.push({
       category: "impersonation",
       label: lang === 'ms' ? "Penyamaran Pihak Berkuasa (Macau Scam)" : "Authority Impersonation (Macau Scam)",
@@ -335,11 +521,6 @@ export async function analyzeScamRisk(text, metadata = {}) {
       weight: 55
     });
   }
-
-  if (hitCoreScamArchetype) {
-    score = Math.max(score, 85);
-  }
-
 
   if (hasCreds) {
     ruleContribution += 30;
@@ -353,7 +534,7 @@ export async function analyzeScamRisk(text, metadata = {}) {
     });
   }
 
-  if (hasDirectPressure) {
+  if (hasRiskyPressure) {
     ruleContribution += 20;
     explanations.push({
       category: "urgency",
@@ -377,7 +558,7 @@ export async function analyzeScamRisk(text, metadata = {}) {
     });
   }
 
-  if (hasFamilyEmergency) {
+  if (hasFamilyEmergency && hasPaymentRequest) {
     ruleContribution += 30;
     explanations.push({
       category: "impersonation",
@@ -389,7 +570,7 @@ export async function analyzeScamRisk(text, metadata = {}) {
     });
   }
 
-  if (hasSecrecy && (hasFamilyEmergency || analysis.hasPaymentKeywords)) {
+  if (hasSecrecy && hasPaymentRequest) {
     ruleContribution += 15;
     explanations.push({
       category: "secrecy",
@@ -515,17 +696,30 @@ export async function analyzeScamRisk(text, metadata = {}) {
   }
 
 
-  // 3. COMMUNITY FUSION (Weight: 15% - adds bonus to final score)
-  const verifiedReports = metadata.verifiedReportsCount || 0;
+  // 4. COMMUNITY FUSION
+  // Only exact canonical phone/domain/account matches are eligible. A global
+  // report count or a shared brand word is not evidence about this submission.
+  const matchedVerifiedReports = Array.isArray(metadata.matchedVerifiedReports)
+    ? metadata.matchedVerifiedReports.filter(
+        (report) => Array.isArray(report.matchedIndicators) && report.matchedIndicators.length > 0,
+      )
+    : [];
+  const verifiedReports = matchedVerifiedReports.length;
   if (verifiedReports > 0) {
     const commBonus = verifiedReports >= 3 ? 15 : 8;
+    const communityIndicators = [
+      ...new Set(matchedVerifiedReports.flatMap((report) => report.matchedIndicators)),
+    ];
     score += commBonus;
     explanations.push({
       category: "community",
-      label: lang === 'ms' ? "Makluman Komuniti Aktif" : "Active Community Alerts",
-      text: lang === 'ms' ? `Sepadan dengan ${verifiedReports} laporan yang disahkan oleh moderator warga tempatan.` : `Matches ${verifiedReports} reports confirmed by local citizen moderators.`,
+      label: lang === 'ms' ? "Padanan Penunjuk Komuniti" : "Community Indicator Match",
+      text: lang === 'ms'
+        ? `Penunjuk yang sama (${communityIndicators.join(', ')}) muncul dalam ${verifiedReports} laporan yang disahkan moderator.`
+        : `The same indicator (${communityIndicators.join(', ')}) appears in ${verifiedReports} moderator-confirmed report${verifiedReports === 1 ? '' : 's'}.`,
       weight: commBonus
     });
+    indicatorsMatched.push(...communityIndicators);
   }
 
   // Keep score capped between 0 and 100
