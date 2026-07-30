@@ -1,4 +1,6 @@
 import { analyzeTextWithGemini } from './aiEngine';
+import { validateAiAnalysis } from './aiValidation';
+import { getRiskBand } from './riskScale';
 
 const WHATSAPP_DOMAINS = new Set(['wa.me', 'api.whatsapp.com', 'whatsapp.com']);
 const NON_UNIQUE_COMMUNITY_DOMAINS = new Set([
@@ -218,6 +220,7 @@ export function findMatchingVerifiedReports(text, reports = [], metadata = {}) {
  */
 export async function analyzeScamRisk(text, metadata = {}) {
   let score = 0;
+  let acceptedAiAnalysis = false;
   let explanations = [];
   const indicatorsMatched = [];
   const analysis = extractIndicators(text);
@@ -344,7 +347,7 @@ export async function analyzeScamRisk(text, metadata = {}) {
     /\b(?:working|bekerja)\s+\d+\s*(?:hr|hour|jam)\b/i
   ]);
 
-  const hasDirectPressure = hasAny(text, [
+  const hasDirectPressure = hasAffirmativePattern(text, [
     /\b(?:act|apply|pay|reply|respond|transfer|click|verify|submit|contact)\s+(?:now|immediately|urgently|segera|sekarang)\b/i,
     /\b(?:pay|transfer|click|verify|submit|bayar|pindah).{1,60}(?:now|immediately|urgently|segera|sekarang)\b/i,
     /\bwithin\s*\d+\s*(?:hours?|hrs?|minutes?|mins?|days?)\b/i,
@@ -365,18 +368,18 @@ export async function analyzeScamRisk(text, metadata = {}) {
     /\b(?:otp|tac(?:\s+code)?|password|banking details).{0,30}\b(?:required|needed|send|share|provide|enter)\b/i,
     /\b(?:kongsi|hantar|masukkan|berikan|sahkan)\s+(?:kod\s+)?(?:otp|tac|kata laluan|butiran bank)\b/i
   ]);
-  const hasPrizeOrRefundBait = hasAny(text, [
+  const hasPrizeOrRefundBait = hasAffirmativePattern(text, [
     /\b(?:congratulations|tahniah).{0,35}(?:won|winner|reward|gift|hadiah)\b/i,
     /\b(?:tax refund|cash refund|refund portal|tebus hadiah|hadiah percuma)\b/i
   ]);
-  const hasImpossibleReturn = hasAny(text, [
+  const hasImpossibleReturn = hasAffirmativePattern(text, [
     /\b(?:guaranteed|dijamin|pasti)\s+(?:profit|return|income|untung|allocation|pulangan)\b/i,
     /\b(?:100%|1000%)\s*(?:untung|profit|return|sah|legit)\b/i,
     /\b(?:no risk|without risk|tanpa risiko|zero risk|sifar risiko)\b/i,
     /\b(?:\d+%\s+daily\s+(?:profit|commission|return))\b/i,
     /\b(?:earn|untung)\s+\d+%\s+(?:daily|setiap hari|automatically)\b/i
   ]);
-  const hasFearThreat = hasAny(text, [
+  const hasFearThreat = hasAffirmativePattern(text, [
     /\b(?:fined|jail|arrested?|warrant|blacklisted|tax debt|account frozen|court action|legal action)\b/i,
     /\b(?:denda|penjara|waran tangkap|akaun dibeku|dibekukan|tindakan undang-undang|digantung|lokap)\b/i,
     /\b(?:tangkap|ditangkap|ditahan|cuci wang|pengedaran dadah)\b/i,
@@ -391,7 +394,7 @@ export async function analyzeScamRisk(text, metadata = {}) {
     /\b(?:police|polis|court|mahkamah|lhdn|jpj|pos\s*laju|poslaju|customs|kastam|sprm|mcmc|skmm|bank negara|bnm|kwsp|epf|pdrm|ipk|sarjan|sergeant)\b/i
   ]);
 
-  const hasPaymentRequest = hasAny(text, [
+  const hasPaymentRequest = hasAffirmativePattern(text, [
     /\b(?:pay|transfer|deposit|send)\s+(?:me|us|them|to|into|rm\s*\d+|\d{2,})\b/i,
     /\b(?:pay|transfer|deposit|bayar|pindah)\s+(?:now|immediately|sekarang|segera)\b/i,
     /\b(?:payment|fee|deposit|cod)\b.{0,40}\b(?:required|due|must be paid|to release|to unlock|to start|diperlukan)\b/i,
@@ -486,7 +489,7 @@ export async function analyzeScamRisk(text, metadata = {}) {
     (hasImpossibleReturn || hasHighDailyIncomeClaim || hasPaymentRequest);
 
   const isEmergencyScam = isEmergencyContext &&
-    (hasPaymentRequest || hasSecrecy || hasFamilyEmergency || hasFearThreat);
+    (hasPaymentRequest || hasSecrecy || hasFearThreat);
 
   const hasAuthorityExtortion = hasAuthority &&
     (hasFearThreat || hasDirectPressure) &&
@@ -706,14 +709,18 @@ export async function analyzeScamRisk(text, metadata = {}) {
       });
     }
 
-    score += ruleContribution;
+    if (!hitCoreArchetype) {
+      score += ruleContribution;
+    }
   }
 
   // 3. TRUE AI SEMANTIC ANALYSIS (Gemini API)
   try {
     const geminiResult = await analyzeTextWithGemini(text, lang);
-    if (geminiResult && Number.isFinite(Number(geminiResult.score))) {
-      let semanticScore = Number(geminiResult.score);
+    const validatedGeminiResult = validateAiAnalysis(geminiResult, text, lang);
+    if (validatedGeminiResult) {
+      acceptedAiAnalysis = true;
+      let semanticScore = validatedGeminiResult.score;
 
       // A normal job advertisement with only a WhatsApp contact must not be
       // escalated to high risk unless there is another concrete scam signal.
@@ -723,8 +730,8 @@ export async function analyzeScamRisk(text, metadata = {}) {
 
       score = Math.max(score, semanticScore);
 
-      if (geminiResult.explanations && Array.isArray(geminiResult.explanations)) {
-        geminiResult.explanations
+      if (validatedGeminiResult.explanations.length > 0) {
+        validatedGeminiResult.explanations
           .filter((exp) => {
             const category = String(exp.category || '').toLowerCase();
             if (isJobPost && !hasDirectPressure && category === 'urgency') return false;
@@ -736,7 +743,8 @@ export async function analyzeScamRisk(text, metadata = {}) {
               category: exp.category || 'ai_insight',
               label: `AI: ${exp.label}`,
               text: exp.text,
-              weight: exp.weight || 0
+              weight: exp.weight || 0,
+              evidence: exp.evidence,
             });
           });
       }
@@ -776,8 +784,9 @@ export async function analyzeScamRisk(text, metadata = {}) {
   score = Math.min(100, Math.max(0, score));
 
   // Determine risk band
-  let riskBand = lang === 'ms' ? "Bukti Rendah" : "Low evidence";
-  let bandColor = "low";
+  const scaleBand = getRiskBand(score, lang);
+  let riskBand = scaleBand.label;
+  let bandColor = scaleBand.color;
   let recommendedActions = lang === 'ms' ? [
     "Sahkan identiti pengirim secara bebas.",
     "Jangan muat turun sebarang lampiran atau klik pada pautan yang bersarang."
@@ -826,7 +835,7 @@ export async function analyzeScamRisk(text, metadata = {}) {
       "Request a verifiable interview and never pay a fee, deposit, or training charge to obtain a job.",
       "Do not share OTPs, passwords, banking details, or identity-document copies before the employer is verified."
     ];
-  } else if (score >= 30) {
+  } else if (score >= 40) {
     riskBand = lang === 'ms' ? "Awas" : "Caution";
     bandColor = "caution";
     recommendedActions = lang === 'ms' ? [
@@ -836,29 +845,45 @@ export async function analyzeScamRisk(text, metadata = {}) {
       "Pause before clicking. The message utilizes pressure tactics.",
       "Check if the message uses unofficial communication channels (e.g. Gmail instead of corporate domain)."
     ];
+  } else if (score >= 20) {
+    riskBand = lang === 'ms' ? "Perlu Pengesahan" : "Needs verification";
+    bandColor = "caution";
+    recommendedActions = lang === 'ms' ? [
+      "Sahkan identiti pengirim melalui laman atau nombor rasmi.",
+      "Jangan bayar atau kongsi maklumat sensitif sehingga permintaan itu disahkan."
+    ] : [
+      "Verify the sender through an official website or phone number.",
+      "Do not pay or share sensitive information until the request is confirmed."
+    ];
   }
 
-  // Calculate confidence score based on the amount of evidence provided
-  let confidence = lang === 'ms' ? "Rendah" : "Low";
-  let evidenceCount = (analysis.urls.length > 0 ? 1 : 0) + 
-                      (analysis.phones.length > 0 ? 1 : 0) + 
-                      (qrDestination ? 1 : 0) +
-                      (verifiedReports > 0 ? 1 : 0) +
-                      (matchedBlacklistIndicator ? 1 : 0) +
-                      (explanations.length > 0 ? 2 : 0); // Boost confidence if AI or rules found something
-  
-  if (evidenceCount >= 3) confidence = lang === 'ms' ? "Tinggi" : "High";
-  else if (evidenceCount >= 1) confidence = lang === 'ms' ? "Sederhana" : "Medium";
+  // Evidence strength describes how many independent signal sources were
+  // available. It is not the probability that the message is a scam.
+  const evidenceSources = new Set();
+  if (analysis.urls.length > 0) evidenceSources.add('url');
+  if (analysis.phones.length > 0) evidenceSources.add('phone');
+  if (qrDestination) evidenceSources.add('qr');
+  if (verifiedReports > 0) evidenceSources.add('community');
+  if (matchedBlacklistIndicator) evidenceSources.add('reputation');
+  if (ruleContribution > 0) evidenceSources.add('rules');
+  if (acceptedAiAnalysis) evidenceSources.add('ai');
+
+  let evidenceStrength = lang === 'ms' ? "Rendah" : "Low";
+  if (evidenceSources.size >= 3) evidenceStrength = lang === 'ms' ? "Tinggi" : "High";
+  else if (evidenceSources.size >= 1) evidenceStrength = lang === 'ms' ? "Sederhana" : "Medium";
 
   if (isJobPost && !hasStrongJobRisk && !matchedBlacklistIndicator) {
-    confidence = lang === 'ms' ? "Sederhana" : "Medium";
+    evidenceStrength = lang === 'ms' ? "Sederhana" : "Medium";
   }
 
   return {
     score,
+    riskIndex: score,
     riskBand,
     bandColor,
-    confidence,
+    evidenceStrength,
+    // Compatibility alias for reports created before Phase 2.
+    confidence: evidenceStrength,
     explanations,
     indicators: analysis,
     indicatorsMatched,
