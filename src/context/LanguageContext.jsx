@@ -15,6 +15,17 @@ const translations = {
     "nav.moderator": "Admin Moderation",
     "nav.trends": "Scam Trends",
 
+    // Login
+    "login.welcome": "Welcome to ScamShield AI",
+    "login.subtitle": "Please select your role to log into the system.",
+    "login.user": "Citizen / User",
+    "login.user_desc": "Access scanner & reporting profile",
+    "login.admin": "Moderator / Admin",
+    "login.admin_desc": "Manage reports & review dashboard",
+
+    //Logout
+    "app.logout": "Log Out",
+
     // Trends Dashboard
     "trends.title": "Scam Analytics & Trend Intelligence",
     "trends.subtitle": "Real-time insights across community reports & blacklists",
@@ -26,7 +37,9 @@ const translations = {
     "trends.chart_status": "Report Resolution Status",
     "trends.chart_timeline": "Report Volume Over Time",
     "trends.no_data": "No report data available to display trends.",
-    
+    "trends.tooltip_count": "Count",
+    "trends.tooltip_reports": "Reports",
+
     // Admin Dashboard
     "admin.queue": "Case Queue",
     "admin.blacklists": "Blacklists",
@@ -212,6 +225,7 @@ const translations = {
     "scanner.clear": "Clear",
     "scanner.open_camera": "Open Camera Scanner",
     "scanner.paste_qr": "Or Paste QR Raw Target URL",
+    "scanner.qr_placeholder": "e.g., https://pos-laju.info/pay-fee/2.50",
     "scanner.verify_qr": "Verify URL Code",
     "scanner.url_label": "URL / Web Address",
     "scanner.phone_label": "Sender Phone Number (Optional)",
@@ -220,6 +234,9 @@ const translations = {
     "scanner.security_check": "Security Check Running",
     "scanner.stop_readout": "Stop Readout",
     "scanner.read_aloud": "Read Aloud",
+    "scanner.url_placeholder": "e.g. maybank-secure-login.xyz or pos-laju.info",
+    "scanner.phone_placeholder": "e.g. +6011-8762512",
+    "scanner.ocr_failed": "Error extracting text. Please type manually.",
 
     // App Footer & Roles
     "app.role_user": "👤 User",
@@ -263,6 +280,17 @@ const translations = {
     "nav.moderator": "Moderasi Admin",
     "nav.trends": "Trend Scam",
 
+    // Login
+    "login.welcome": "Selamat Datang ke ScamShield AI",
+    "login.subtitle": "Sila pilih peranan anda untuk log masuk ke sistem.",
+    "login.user": "Pengguna Biasa",
+    "login.user_desc": "Akses pengimbas & profil pelaporan",
+    "login.admin": "Moderator / Admin",
+    "login.admin_desc": "Urus laporan & pusat tinjauan",
+
+    //Logout
+    "app.logout": "Log Keluar",
+    
     // Trends Dashboard
     "trends.title": "Analitik Scam & Inteligen Trend",
     "trends.subtitle": "Wawasan masa nyata merentasi laporan komuniti & senarai hitam",
@@ -274,7 +302,9 @@ const translations = {
     "trends.chart_status": "Status Kelulusan Laporan",
     "trends.chart_timeline": "Jumlah Laporan Mengikut Masa",
     "trends.no_data": "Tiada data laporan tersedia untuk memaparkan trend.",
-    
+    "trends.tooltip_count": "Jumlah",
+    "trends.tooltip_reports": "Laporan",
+
     // Admin Dashboard
     "admin.queue": "Gilir Kes",
     "admin.blacklists": "Senarai Hitam",
@@ -460,6 +490,7 @@ const translations = {
     "scanner.clear": "Kosongkan",
     "scanner.open_camera": "Buka Pengimbas Kamera",
     "scanner.paste_qr": "Atau Tampal URL Sasaran Mentah QR",
+    "scanner.qr_placeholder": "cth., https://pos-laju.info/pay-fee/2.50",
     "scanner.verify_qr": "Sahkan Kod URL",
     "scanner.url_label": "URL / Alamat Web",
     "scanner.phone_label": "Nombor Telefon Penghantar (Pilihan)",
@@ -468,7 +499,10 @@ const translations = {
     "scanner.security_check": "Pemeriksaan Keselamatan Berjalan",
     "scanner.stop_readout": "Hentikan Bacaan",
     "scanner.read_aloud": "Baca Kuat",
-
+    "scanner.url_placeholder": "cth. maybank-secure-login.xyz atau pos-laju.info",
+    "scanner.phone_placeholder": "cth. +6011-8762512",
+    "scanner.ocr_failed": "Gagal mengekstrak teks. Sila taip secara manual.",
+    
     // App Footer & Roles
     "app.role_user": "👤 Pengguna",
     "app.role_admin": "👮 Admin",

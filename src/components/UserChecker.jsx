@@ -212,7 +212,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
       triggerScanAnimation(extractedText);
     } catch (error) {
       console.error("OCR Error:", error);
-      triggerScanAnimation("Error extracting text. Please type manually.");
+      triggerScanAnimation(t("scanner.ocr_failed"));
     }
   };
 
@@ -534,7 +534,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                   value={qrInput}
                   onChange={(e) => setQrInput(e.target.value)}
                   className="input-field"
-                  placeholder="e.g., https://pos-laju.info/pay-fee/2.50"
+                  placeholder={t("scanner.qr_placeholder")}
                 />
                 <button
                   onClick={() => triggerScanAnimation(`Manual QR redirect code: ${qrInput}`, { qrCode: qrInput })}
@@ -558,7 +558,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                   value={urlInput}
                   onChange={(e) => setUrlInput(e.target.value)}
                   className="input-field"
-                  placeholder="e.g. maybank-secure-login.xyz or pos-laju.info"
+                  placeholder={t("scanner.url_placeholder")}
                 />
               </div>
 
@@ -570,7 +570,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                   value={phoneInput}
                   onChange={(e) => setPhoneInput(e.target.value)}
                   className="input-field"
-                  placeholder="e.g. +6011-8762512"
+                  placeholder={t("scanner.phone_placeholder")}
                 />
               </div>
 
@@ -625,7 +625,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                   onClick={speakResult}
                   className="btn-secondary"
                   style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: isElderlyMode ? '1.1rem' : '0.85rem' }}
-                  title="Read result out loud"
+                  title={t("scanner.read_aloud")}
                 >
                   {isPlayingAudio ? <VolumeX size={18} color="var(--primary)" /> : <Volume2 size={18} color="var(--primary)" />}
                   {isPlayingAudio ? t('scanner.stop_readout') : t('scanner.read_aloud')}

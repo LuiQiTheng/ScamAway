@@ -12,7 +12,7 @@ import {
 
 export default function TrendsDashboard() {
   const { reportsList, blacklist } = useAppContext();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
 
   // 1. KPI Computations
   const stats = useMemo(() => {
@@ -47,7 +47,10 @@ export default function TrendsDashboard() {
       const d = new Date(key);
       return {
         rawDate: key,
-        date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        date: d.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        }),
         reports: dateMap[key]
       };
     });
@@ -63,11 +66,18 @@ export default function TrendsDashboard() {
       return acc;
     }, {});
 
-    return Object.keys(counts).map(key => ({
-      category: key.charAt(0).toUpperCase() + key.slice(1),
-      count: counts[key]
-    }));
-  }, [reportsList]);
+  return Object.keys(counts).map(key => ({
+    category:
+      key === "phishing"
+        ? t("report.cat_phishing")
+        : key === "parcel"
+        ? t("report.cat_parcel")
+        : key === "job"
+        ? t("report.cat_job")
+        : key,
+    count: counts[key]
+  }));
+}, [reportsList, t]);
 
   // 4. Status Distribution Data
   const statusData = useMemo(() => {
@@ -80,11 +90,23 @@ export default function TrendsDashboard() {
     }, {});
 
     return [
-      { name: 'Confirmed', value: counts['confirmed'] || 0, color: 'var(--color-low)' },
-      { name: 'Pending', value: counts['pending'] || 0, color: 'var(--color-caution)' },
-      { name: 'Rejected', value: counts['rejected'] || 0, color: 'var(--color-high)' }
+      {
+        name: t("status.confirmed"),
+        value: counts["confirmed"] || 0,
+        color: "var(--color-low)"
+      },
+      {
+        name: t("status.under_review"),
+        value: counts["pending"] || 0,
+        color: "var(--color-caution)"
+      },
+      {
+        name: t("status.rejected"),
+        value: counts["rejected"] || 0,
+        color: "var(--color-high)"
+      }
     ].filter(d => d.value > 0);
-  }, [reportsList]);
+  }, [reportsList, t]);
 
   // Empty State Fallback
   if (!reportsList || reportsList.length === 0) {
@@ -164,7 +186,15 @@ export default function TrendsDashboard() {
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                 <XAxis dataKey="date" stroke="var(--text-muted)" fontSize={12} />
                 <YAxis stroke="var(--text-muted)" fontSize={12} allowDecimals={false} />
-                <Tooltip contentStyle={{ background: '#0f172a', border: '1px solid var(--border-color)', borderRadius: '8px', color: '#fff' }} />
+                <Tooltip
+                    formatter={(value) => [value, t("trends.tooltip_reports")]}
+                    contentStyle={{
+                      background: "#0f172a",
+                      border: "1px solid var(--border-color)",
+                      borderRadius: "8px",
+                      color: "#fff"
+                    }}
+                  />
                 <Line type="monotone" dataKey="reports" stroke="var(--primary)" strokeWidth={3} dot={{ fill: 'var(--primary)', r: 5 }} activeDot={{ r: 8 }} />
               </LineChart>
             </ResponsiveContainer>
@@ -187,7 +217,15 @@ export default function TrendsDashboard() {
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                 <XAxis dataKey="category" stroke="var(--text-muted)" fontSize={12} />
                 <YAxis stroke="var(--text-muted)" fontSize={12} allowDecimals={false} />
-                <Tooltip contentStyle={{ background: '#0f172a', border: '1px solid var(--border-color)', borderRadius: '8px', color: '#fff' }} />
+                <Tooltip
+                  formatter={(value) => [value, t("trends.tooltip_count")]}
+                  contentStyle={{
+                    background: "#0f172a",
+                    border: "1px solid var(--border-color)",
+                    borderRadius: "8px",
+                    color: "#fff"
+                  }}
+                />                
                 <Bar dataKey="count" fill="var(--primary)" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>

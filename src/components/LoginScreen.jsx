@@ -3,7 +3,7 @@ import { ShieldAlert, User, ShieldAlert as AdminIcon, ArrowRight } from 'lucide-
 import { useLanguage } from '../context/LanguageContext';
 
 export default function LoginScreen({ onLogin }) {
-  const { t, lang } = useLanguage();
+  const { t, lang, toggleLanguage } = useLanguage();
 
   return (
     <div className="login-page" style={{
@@ -15,19 +15,56 @@ export default function LoginScreen({ onLogin }) {
       background: 'radial-gradient(circle at 50% 50%, #0f172a 0%, #020617 100%)',
       fontFamily: "'Inter', sans-serif"
     }}>
-      <div className="fade-in login-card" style={{
-        width: '100%',
-        maxWidth: '500px',
-        background: 'rgba(255, 255, 255, 0.03)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        borderRadius: '24px',
-        padding: '3rem 2.5rem',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
-      }}>
-        
-        {/* Header / Logo */}
+
+      <div>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            marginBottom: "1.25rem",
+            fontSize: "0.9rem",
+            fontWeight: 500,
+            gap: "0.35rem",
+          }}
+        >
+          <span
+            onClick={() => lang !== "en" && toggleLanguage()}
+            style={{
+              cursor: "pointer",
+              color: lang === "en" ? "#3b82f6" : "var(--text-secondary)",
+              fontWeight: lang === "en" ? 700 : 400,
+            }}
+          >
+            English
+          </span>
+
+          <span style={{ color: "var(--text-muted)" }}>|</span>
+
+          <span
+            onClick={() => lang !== "ms" && toggleLanguage()}
+            style={{
+              cursor: "pointer",
+              color: lang === "ms" ? "#3b82f6" : "var(--text-secondary)",
+              fontWeight: lang === "ms" ? 700 : 400,
+            }}
+          >
+            Bahasa Melayu
+          </span>
+        </div>
+
+        <div className="fade-in login-card" style={{
+          width: '100%',
+          maxWidth: '550px',
+          background: 'rgba(255, 255, 255, 0.03)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: '24px',
+          padding: '3rem 2.5rem',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+        }}>
+
+          {/* Header / Logo */}
         <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
           <div style={{
             display: 'inline-flex',
@@ -50,12 +87,10 @@ export default function LoginScreen({ onLogin }) {
             marginBottom: '0.5rem',
             letterSpacing: '-0.02em'
           }}>
-            Welcome to ScamShield AI
+            {t("login.welcome")}
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-            {lang === 'ms' 
-              ? 'Sila pilih peranan anda untuk log masuk ke sistem.' 
-              : 'Please select your role to log into the system.'}
+            {t("login.subtitle")}
           </p>
         </div>
 
@@ -100,10 +135,10 @@ export default function LoginScreen({ onLogin }) {
               </div>
               <div>
                 <h3 style={{ color: '#fff', fontSize: '1.1rem', fontWeight: 600, marginBottom: '0.2rem' }}>
-                  {lang === 'ms' ? 'Pengguna Biasa' : 'Citizen / User'}
+                  {t("login.user")}
                 </h3>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: 0 }}>
-                  {lang === 'ms' ? 'Akses pengimbas & profil pelaporan' : 'Access scanner & reporting profile'}
+                  {t("login.user_desc")}
                 </p>
               </div>
             </div>
@@ -148,17 +183,17 @@ export default function LoginScreen({ onLogin }) {
               </div>
               <div>
                 <h3 style={{ color: '#fff', fontSize: '1.1rem', fontWeight: 600, marginBottom: '0.2rem' }}>
-                  {lang === 'ms' ? 'Moderator / Admin' : 'Moderator / Admin'}
+                  {t("login.admin")}
                 </h3>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: 0 }}>
-                  {lang === 'ms' ? 'Urus laporan & pusat tinjauan' : 'Manage reports & review dashboard'}
+                  {t("login.admin_desc")}
                 </p>
               </div>
             </div>
             <ArrowRight size={18} color="var(--text-muted)" />
           </button>
-
         </div>
+      </div>
         
         <div style={{ textAlign: 'center', marginTop: '2rem' }}>
           <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)' }}>
