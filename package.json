@@ -8,7 +8,8 @@
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:accuracy": "vitest run src/tests/accuracyBenchmark.test.js src/tests/evaluationMetrics.test.js src/tests/rulesEngine.test.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
