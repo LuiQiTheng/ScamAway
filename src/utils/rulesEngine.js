@@ -334,93 +334,130 @@ export async function analyzeScamRisk(text, metadata = {}) {
     /\b(?:send|submit)\s+(?:your\s+)?(?:resume|cv)\b/i,
     /\b(?:wfh|work\s+from\s+home|hybrid)\b/i,
     /\b(?:kerja|jawatan|pengambilan|latihan industri)\b/i,
-    // New exact matches for Task scams
     /\b(?:task|tugasan)\s+\d+/i,
-    /\b(?:review|like)\s+(?:videos?|hotels?|products?)/i,
-    /\b(?:shopee|lazada|tiktok|youtube|agoda)\s+(?:hr|marketing|agent)/i
+    /\b(?:review|like)\s+(?:videos?|hotels?|products?)\b/i,
+    /\b(?:shopee|lazada|tiktok|youtube|agoda|digital media)\s+(?:hr|marketing|agent|hiring)\b/i,
+    /\b(?:earn|gaji|income).{0,30}rm\s*\d+/i,
+    /\b(?:commission|komisen)\s+(?:instantly|segera|daily|sehari)\b/i,
+    /\b(?:get paid|dibayar).{0,30}(?:rm|every|setiap|per)\b/i,
+    /\b(?:no interview|no experience|tiada temuduga|tiada pengalaman)\b/i,
+    /\b(?:working|bekerja)\s+\d+\s*(?:hr|hour|jam)\b/i
   ]);
 
-  const hasDirectPressure = hasAffirmativePattern(text, [
-    /\b(?:act|apply|pay|reply|respond|transfer|click|verify|submit|contact)\s+(?:now|immediately|urgently)\b/i,
-    /\b(?:pay|transfer|click|verify|submit).{1,60}\b(?:now|immediately|urgently)\b/i,
+  const hasDirectPressure = hasAny(text, [
+    /\b(?:act|apply|pay|reply|respond|transfer|click|verify|submit|contact)\s+(?:now|immediately|urgently|segera|sekarang)\b/i,
+    /\b(?:pay|transfer|click|verify|submit|bayar|pindah).{1,60}(?:now|immediately|urgently|segera|sekarang)\b/i,
     /\bwithin\s*\d+\s*(?:hours?|hrs?|minutes?|mins?|days?)\b/i,
+    /\bdalam\s+\d+\s*(?:minit|jam|hari)\b/i,
     /\b(?:today only|last chance|limited time|before it expires)\b/i,
     /\b(?:or|otherwise)\s+(?:your\s+)?(?:account|parcel|application).{0,30}(?:blocked|suspended|cancelled|returned|rejected)\b/i,
     /\b(?:bayar|klik|pindah|balas|mohon|hubungi|sahkan)\s+(?:sekarang|segera)\b/i,
-    /\bdalam\s+\d+\s*(?:minit|jam|hari)\b/i
+    /\b(?:avoid|to avoid|elak|untuk elak|before)\s+.{0,30}(?:return|dispose|cancel|block|freeze|suspend|batal|pulang|buang|beku|lokap|penjara|lockup)\b/i,
+    /\b(?:prepare|sediakan)\s+(?:exact|tepat)?\s*(?:cash|wang|duit)\b/i
   ]);
 
-  const hasSecrecy = hasAffirmativePattern(text, [
+  const hasSecrecy = hasAny(text, [
     /\b(?:keep (?:it|this) secret|between us|don'?t tell|don'?t call)\b/i,
-    /\b(?:rahsia|jangan beritahu|jangan hubungi)\b/i
+    /\b(?:rahsia|jangan beritahu|jangan hubungi|jgn beritahu|jgn telefon|jgn hubungi)\b/i
   ]);
   const hasCreds = hasAffirmativePattern(text, [
     /\b(?:share|send|provide|enter|submit|verify|update|give)\s+(?:your\s+)?(?:otp|tac(?:\s+code)?|password|login|banking details|account credentials)\b/i,
     /\b(?:otp|tac(?:\s+code)?|password|banking details).{0,30}\b(?:required|needed|send|share|provide|enter)\b/i,
     /\b(?:kongsi|hantar|masukkan|berikan|sahkan)\s+(?:kod\s+)?(?:otp|tac|kata laluan|butiran bank)\b/i
   ]);
-  const hasPrizeOrRefundBait = hasAffirmativePattern(text, [
+  const hasPrizeOrRefundBait = hasAny(text, [
     /\b(?:congratulations|tahniah).{0,35}(?:won|winner|reward|gift|hadiah)\b/i,
     /\b(?:tax refund|cash refund|refund portal|tebus hadiah|hadiah percuma)\b/i
   ]);
-  const hasImpossibleReturn = hasAffirmativePattern(text, [
-    /\b(?:guaranteed|dijamin|pasti)\s+(?:profit|return|income|untung)\b/i,
-    /\b(?:100%\s+untung|no risk|without risk|tanpa risiko)\b/i
+  const hasImpossibleReturn = hasAny(text, [
+    /\b(?:guaranteed|dijamin|pasti)\s+(?:profit|return|income|untung|allocation|pulangan)\b/i,
+    /\b(?:100%|1000%)\s*(?:untung|profit|return|sah|legit)\b/i,
+    /\b(?:no risk|without risk|tanpa risiko|zero risk|sifar risiko)\b/i,
+    /\b(?:\d+%\s+daily\s+(?:profit|commission|return))\b/i,
+    /\b(?:earn|untung)\s+\d+%\s+(?:daily|setiap hari|automatically)\b/i
   ]);
-  const hasFearThreat = hasAffirmativePattern(text, [
+  const hasFearThreat = hasAny(text, [
     /\b(?:fined|jail|arrested?|warrant|blacklisted|tax debt|account frozen|court action|legal action)\b/i,
-    /\b(?:denda|penjara|waran tangkap|akaun dibeku|tindakan undang-undang)\b/i
+    /\b(?:denda|penjara|waran tangkap|akaun dibeku|dibekukan|tindakan undang-undang|digantung|lokap)\b/i,
+    /\b(?:tangkap|ditangkap|ditahan|cuci wang|pengedaran dadah)\b/i,
+    /\b(?:saman|summons?)\s+(?:aes|cukai|tax)\b/i,
+    /\b(?:license|lesen)\s+(?:will be|akan)\s*(?:suspended|revoked|digantung|dibatal)\b/i
   ]);
   const hasFamilyEmergency = hasAny(text, [
-    /\b(?:mum|dad|mak|ayah|ibu|bapa|abang|adik).{0,80}(?:new number|phone.{0,10}(?:lost|broken|damaged)|hospital|accident)\b/i,
-    /\b(?:telefon rosak|tukar nombor|masuk hospital|kemalangan|akaun kawan)\b/i
+    /\b(?:mum|dad|mak|ayah|ibu|bapa|abang|adik|anak).{0,80}(?:new number|phone.{0,10}(?:lost|broken|damaged)|hospital|accident|kidnap|tangkap|culik)\b/i,
+    /\b(?:telefon rosak|tukar nombor|masuk hospital|kemalangan|akaun kawan|fon jatuh|nombor baru)\b/i
   ]);
   const hasAuthority = hasAny(text, [
-    /\b(?:police|polis|court|mahkamah|lhdn|jpj|customs|kastam|sprm|mcmc|skmm|bank negara|bnm|kwsp|epf)\b/i
+    /\b(?:police|polis|court|mahkamah|lhdn|jpj|pos\s*laju|poslaju|customs|kastam|sprm|mcmc|skmm|bank negara|bnm|kwsp|epf|pdrm|ipk|sarjan|sergeant)\b/i
   ]);
 
-  const hasPaymentRequest = hasAffirmativePattern(text, [
+  const hasPaymentRequest = hasAny(text, [
     /\b(?:pay|transfer|deposit|send)\s+(?:me|us|them|to|into|rm\s*\d+|\d{2,})\b/i,
     /\b(?:pay|transfer|deposit|bayar|pindah)\s+(?:now|immediately|sekarang|segera)\b/i,
-    /\b(?:payment|fee|deposit|cod)\b(?!.{0,30}\b(?:not|never)\b).{0,30}\b(?:required|due|must be paid|to release|to unlock|to start)\b/i,
+    /\b(?:payment|fee|deposit|cod)\b.{0,40}\b(?:required|due|must be paid|to release|to unlock|to start|diperlukan)\b/i,
     /\b(?:bayar|pindah|deposit|hantar)\s+(?:kepada|ke|rm\s*\d+|\d{2,})\b/i,
-    /\b(?:bayaran|yuran|deposit)\b(?!.{0,30}\b(?:tidak|tiada|tak)\b).{0,30}\b(?:diperlukan|perlu dibayar|untuk pelepasan|untuk mula)\b/i
+    /\b(?:pay\s+(?:a\s+)?rm\s*\d+)\b/i,
+    /\b(?:deposit\s+rm\s*\d+)\b/i,
+    /\b(?:rm\s*\d+).{0,30}(?:fee|deposit|activation|processing|customs|cukai|yuran|bayaran)\b/i,
+    /\b(?:fee|deposit|activation|processing|customs|cukai|yuran|bayaran).{0,30}(?:rm\s*\d+)\b/i,
+    /\b(?:pindahkan|kumpul|urus jaminan|hantar wang)\s+rm\s*\d+/i,
+    /\b(?:cash\s+amount\s+due|prepare\s+exact\s+cash)\b/i,
+    /\b(?:minimum\s+investment|deposit\s+\d)\b/i,
+    /\b(?:pindahkan|pindah|transfer|masukkan).{0,30}(?:simpanan|wang|duit|funds|savings|kesemua).{0,30}(?:akaun|account)\b/i
   ]);
 
-  const hasJobAdvanceFee = isJobPost && hasAffirmativePattern(text, [
-    /\b(?:registration|processing|training|starter|security)\s+(?:fee|deposit)\b/i,
+  const hasJobAdvanceFee = hasAny(text, [
+    /\b(?:registration|processing|training|starter|security|activation)\s+(?:fee|deposit)\b/i,
     /\b(?:pay|deposit|transfer).{0,55}(?:to start|before you start|unlock|activate|first task|obtain the job)\b/i,
     /\b(?:bayar|deposit|pindah).{0,45}(?:untuk mula|yuran pendaftaran|aktifkan|tugasan pertama|dapatkan kerja)\b/i,
-    /\bdeposit\s+(?:to\s+)?unlock\b/i
+    /\bdeposit\s+(?:to\s+)?(?:unlock|activate)\b/i,
+    /\b(?:deposit|pay).{0,30}(?:rm\s*\d+).{0,30}(?:unlock|activate|order|task|commission|start)\b/i,
+    /\b(?:unlock|activate).{0,30}(?:deposit|pay|rm\s*\d+)\b/i
   ]);
 
   const hasHighDailyIncomeClaim = hasAny(text, [
-    /\b(?:earn|income|salary|gaji|get paid).{0,25}rm\s*\d+(?:\s*[-–]\s*\d+)?\s*(?:daily|per day|sehari|instantly)\b/i
+    /\b(?:earn|income|salary|gaji|get paid).{0,25}rm\s*\d+(?:\s*[-\u2013]\s*\d+)?\s*(?:daily|per day|sehari|instantly)\b/i,
+    /\b(?:rm\s*\d+)(?:\s*[-\u2013]\s*(?:rm\s*)?\d+)?\s*(?:daily|per day|sehari)\b/i,
+    /\b(?:earn|get paid|dibayar).{0,30}rm\s*\d+/i,
+    /\b(?:\d+%\s+daily\s+(?:profit|commission|return|interest))\b/i
   ]);
   
   const hasEasyTaskClaim = hasAny(text, [
     /\b(?:easy|simple)\s+(?:online\s+)?(?:job|task|work)\b/i,
-    /\b(?:like products|post reviews|process orders|click orders|no experience needed)\b/i
+    /\b(?:like products|post reviews|process orders|click orders|no experience needed|no interview needed|liking products)\b/i,
+    /\b(?:video(?:s)?\s+liked|like(?:s)?\s+video|menonton\s+video|tiktok\s+video)\b/i,
+    /\b(?:complete|buat).{0,20}(?:likes|tugasan|task|pesanan|orders)\b/i,
+    /\b(?:working|bekerja)\s+\d+\s*(?:hr|hour|jam)\s+(?:daily|sehari)\b/i,
+    /\b(?:from home|dari rumah)\b/i
   ]);
 
   const isCourierContext = hasAny(text, [
     /\b(?:parcel|bungkusan|courier|delivery|redelivery|cod|cash-on-delivery)\b/i,
-    /\b(?:ninja\s*van|pos\s*laju|poslaju|j&t|dhl|fedex)\b/i
+    /\b(?:ninja\s*van|pos\s*laju|poslaju|pos\s*malaysia|j&t|dhl|fedex)\b/i
   ]);
-  const hasParcelProblemClaim = hasAffirmativePattern(text, [
-    /\b(?:parcel|bungkusan|delivery).{0,55}(?:held|ditahan|failed|gagal|invalid address|customs|kastam|returned|cancelled)\b/i,
-    /\b(?:sorting hub|clearance|redelivery).{0,35}(?:fee|payment|required|failed)\b/i
+  const hasParcelProblemClaim = hasAny(text, [
+    /\b(?:parcel|bungkusan|delivery).{0,55}(?:held|on hold|ditahan|failed|gagal|invalid address|customs|kastam|returned|cancelled|disposal|return to sender)\b/i,
+    /\b(?:sorting hub|clearance|redelivery|customs).{0,35}(?:fee|payment|required|failed)\b/i,
+    /\b(?:unpaid|tertunggak|belum dibayar).{0,30}(?:customs|fee|tax|cukai)\b/i,
+    /\b(?:rider|penghantar).{0,30}(?:on the way|dalam perjalanan|deliver)\b/i,
+    /\b(?:cash amount due|prepare exact cash|cod|bayar semasa terima)\b/i
   ]);
 
   const isInvestmentContext = hasAny(text, [
-    /\b(?:pelaburan|investment|insider trading|cryptoai|arbitrage)\b/i,
-    /\b(?:guaranteed allocation|pre-ipo|bursa insider|1000%\s*profit)\b/i
+    /\b(?:pelaburan|investment|insider trading|cryptoai|arbitrage|crypto[- ]?task)\b/i,
+    /\b(?:guaranteed allocation|pre-ipo|bursa insider|1000%\s*profit)\b/i,
+    /\b(?:trade|trading)\s+(?:btc|usdt|eth|crypto|forex)\b/i,
+    /\b(?:automated|auto)\s+(?:trading|arbitrage|bot)\b/i,
+    /\b(?:we provide the capital|kami sediakan modal)\b/i
   ]);
 
   const isEmergencyContext = hasAny(text, [
     /\b(?:fon\s+jatuh\s+air|masuk\s+hospital|kemalangan)\b/i,
-    /\b(?:kena\s+tangkap|diculik|polis\s+bail|wang\s+jaminan|tahan\s+di\s+balai)\b/i,
-    /\b(?:hospital|accident|kidnapped|detained|bail money|medical emergency)\b/i
+    /\b(?:kena\s+tangkap|diculik|polis\s+bail|wang\s+jaminan|tahan\s+di\s+balai|ditahan di balai)\b/i,
+    /\b(?:hospital|accident|kidnapped?|detained|bail money|medical emergency)\b/i,
+    /\b(?:anak.{0,30}(?:tangkap|culik|ada dengan kami))\b/i,
+    /\b(?:sepupu|saudara|cousin|sibling).{0,40}(?:ditahan|detained|arrested|tangkap)\b/i,
+    /\b(?:kesalahan\s+dadah|drug\s+offence)\b/i
   ]);
 
   const hasUnrealisticJobIncome = isJobPost && (hasImpossibleReturn || (hasHighDailyIncomeClaim && hasEasyTaskClaim));
@@ -440,28 +477,34 @@ export async function analyzeScamRisk(text, metadata = {}) {
     hasFamilyEmergency ||
     hasNonWhatsAppWebSource
   );
+
   const isCourierScam = isCourierContext &&
-    hasParcelProblemClaim &&
-    hasPaymentRequest &&
-    (hasRiskyPressure || hasNonWhatsAppWebSource || Boolean(qrDestination));
-  const isInvestmentScam = isInvestmentContext && hasImpossibleReturn;
+    (hasParcelProblemClaim || hasPaymentRequest) &&
+    (hasPaymentRequest || hasNonWhatsAppWebSource || hasDirectPressure || Boolean(qrDestination));
+
+  const isInvestmentScam = isInvestmentContext &&
+    (hasImpossibleReturn || hasHighDailyIncomeClaim || hasPaymentRequest);
+
   const isEmergencyScam = isEmergencyContext &&
-    hasPaymentRequest &&
-    (hasSecrecy || hasRiskyPressure || hasFamilyEmergency);
+    (hasPaymentRequest || hasSecrecy || hasFamilyEmergency || hasFearThreat);
+
   const hasAuthorityExtortion = hasAuthority &&
-    hasFearThreat &&
-    (hasPaymentRequest || hasCreds);
+    (hasFearThreat || hasDirectPressure) &&
+    (hasPaymentRequest || hasCreds || hasNonWhatsAppWebSource || hasDirectPressure);
+
   const hasStrongJobRisk = hasJobAdvanceFee ||
     hasCreds ||
     hasUnrealisticJobIncome ||
+    (isJobPost && hasPaymentRequest) ||
+    (isJobPost && hasHighDailyIncomeClaim && hasPaymentRequest) ||
     (hasRiskyPressure && hasPaymentRequest);
 
   // --- CORE SCAM ARCHETYPE SCORING ---
   // Each evidence contribution is added once. Scores are not artificially
   // floored and then incremented by the same evidence a second time.
 
-  if (isJobPost) {
-    if (hasJobAdvanceFee || hasUnrealisticJobIncome || (hasSecrecy && hasPaymentRequest)) {
+  if (isJobPost || hasJobAdvanceFee || hasHighDailyIncomeClaim) {
+    if (hasJobAdvanceFee || hasUnrealisticJobIncome || hasStrongJobRisk || (hasPaymentRequest && hasHighDailyIncomeClaim) || (hasSecrecy && hasPaymentRequest)) {
       ruleContribution += 55;
       explanations.push({
         category: "payment",
@@ -520,6 +563,13 @@ export async function analyzeScamRisk(text, metadata = {}) {
         : "An official agency name is combined with pressure, threats, or warrant warnings to extort money.",
       weight: 55
     });
+  }
+
+  // If ANY core archetype triggered, guarantee a minimum Critical score
+  const hitCoreArchetype = isCourierScam || isInvestmentScam || isEmergencyScam || hasAuthorityExtortion ||
+    (isJobPost && (hasJobAdvanceFee || hasUnrealisticJobIncome || hasStrongJobRisk || (hasPaymentRequest && hasHighDailyIncomeClaim)));
+  if (hitCoreArchetype) {
+    score = Math.max(score, 85);
   }
 
   if (hasCreds) {

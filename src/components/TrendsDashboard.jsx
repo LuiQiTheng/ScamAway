@@ -119,7 +119,7 @@ export default function TrendsDashboard() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', maxWidth: '1200px', margin: '0 auto', padding: '1rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', maxWidth: 'var(--content-max)', margin: '0 auto', padding: '1rem' }}>
       
       {/* Header Title */}
       <div className="glass-panel" style={{ padding: '1.5rem 2rem', borderLeft: '4px solid var(--primary)' }}>
@@ -133,7 +133,7 @@ export default function TrendsDashboard() {
       </div>
 
       {/* KPI Cards Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '1.25rem' }}>
         
         {/* Total Reports */}
         <div className="glass-panel" style={{ padding: '1.25rem 1.5rem', borderLeft: '4px solid var(--primary)' }}>

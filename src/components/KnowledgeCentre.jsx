@@ -94,7 +94,8 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
     const matchesSearch = searchQuery === '' ||
       card.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       card.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      card.exampleMessage.toLowerCase().includes(searchQuery.toLowerCase());
+      card.exampleMessage.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (card.exampleMessage_ms && card.exampleMessage_ms.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesCategory && matchesSearch;
   });
 
@@ -105,7 +106,7 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
     return 0;
   });
 
-  const initialCardCount = isElderlyMode ? 1 : 3;
+  const initialCardCount = isElderlyMode ? 1 : 2;
   const visibleCards = isLibraryExpanded ? sortedCards : sortedCards.slice(0, initialCardCount);
 
   const currentQList = isCorrectionPhase ? wrongQuestions : dailyQuestions;
@@ -545,7 +546,7 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
                   {lang === 'ms' ? 'Contoh Mesej / SMS:' : 'Example Message / SMS:'}
                 </div>
                 <div style={{ background: '#050810', border: '1px dashed var(--border-color)', borderRadius: '8px', padding: '0.75rem', fontSize: '0.8rem', color: '#f1f5f9', fontStyle: 'italic', marginBottom: '1rem' }}>
-                  "{card.exampleMessage}"
+                  "{getCardText(card, 'exampleMessage')}"
                 </div>
               </div>
 
@@ -674,7 +675,7 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
               <div>
                 <strong style={{ color: 'var(--primary)', fontSize: '0.85rem' }}>📱 {t('knowledge.evidence_sample')}:</strong>
                 <div style={{ background: '#050810', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '1rem', marginTop: '0.4rem', color: '#f1f5f9', fontSize: '0.9rem', fontStyle: 'italic' }}>
-                  "{activeModalCard.exampleMessage}"
+                  "{getCardText(activeModalCard, 'exampleMessage')}"
                 </div>
               </div>
 

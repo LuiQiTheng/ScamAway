@@ -16,7 +16,7 @@ export default function LoginScreen({ onLogin }) {
       fontFamily: "'Inter', sans-serif"
     }}>
 
-      <div>
+      <div style={{ width: '100%', maxWidth: '420px' }}>
         <div
           style={{
             display: "flex",
@@ -54,7 +54,6 @@ export default function LoginScreen({ onLogin }) {
 
         <div className="fade-in login-card" style={{
           width: '100%',
-          maxWidth: '550px',
           background: 'rgba(255, 255, 255, 0.03)',
           backdropFilter: 'blur(16px)',
           WebkitBackdropFilter: 'blur(16px)',

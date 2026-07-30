@@ -13,7 +13,7 @@
   --glass-bg: #101c2c;
   --glass-border: #334155;
   --glass-shadow: 0 16px 38px rgba(0, 0, 0, 0.24);
-  --content-max: 1200px;
+  --content-max: 850px;
   --control-height: 44px;
   --control-height-primary: 52px;
 }
@@ -133,6 +133,10 @@ button:active:not(:disabled) {
   border-color: var(--glass-border);
   background: var(--glass-bg);
   box-shadow: var(--glass-shadow);
+  overflow-wrap: break-word;
+  word-break: break-word;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .glass-panel:hover {
@@ -190,6 +194,10 @@ button:active:not(:disabled) {
   border-color: var(--border-color) !important;
   background: var(--bg-card) !important;
   box-shadow: var(--glass-shadow) !important;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .login-role-button {
@@ -259,7 +267,7 @@ button:active:not(:disabled) {
 
 .knowledge-card-grid {
   display: grid !important;
-  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   gap: 1.25rem;
 }
 
@@ -329,7 +337,7 @@ button:active:not(:disabled) {
 
 .admin-stats-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1.25rem;
 }
 
