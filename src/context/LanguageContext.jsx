@@ -170,6 +170,13 @@ const translations = {
     "knowledge.longest_streak": "Longest Streak",
     "knowledge.final_rank": "Final Rank",
     "knowledge.play_another": "Play Another Round",
+    "knowledge.exit_challenge": "Exit Challenge",
+    "knowledge.ready_challenge": "Ready for the Daily Challenge?",
+    "knowledge.challenge_intro": "Test your skills against the latest scam tactics. Can you identify the red flags and maintain your streak?",
+    "knowledge.start_challenge": "Start Challenge",
+    "knowledge.example_message": "Example Message / SMS:",
+    "knowledge.show_more": "Show More",
+    "knowledge.show_less": "Show Less",
 
     // Categories
     "category.all": "All",
@@ -290,7 +297,7 @@ const translations = {
 
     //Logout
     "app.logout": "Log Keluar",
-    
+
     // Trends Dashboard
     "trends.title": "Analitik Scam & Inteligen Trend",
     "trends.subtitle": "Wawasan masa nyata merentasi laporan komuniti & senarai hitam",
@@ -435,6 +442,13 @@ const translations = {
     "knowledge.longest_streak": "Rentetan Terpanjang",
     "knowledge.final_rank": "Pangkat Akhir",
     "knowledge.play_another": "Main Pusingan Lain",
+    "knowledge.exit_challenge": "Keluar Cabaran",
+    "knowledge.ready_challenge": "Sedia untuk Cabaran Harian?",
+    "knowledge.challenge_intro": "Uji kepakaran anda menentang taktik penipuan terbaru. Bolehkah anda mengekalkan rentetan kemenangan anda?",
+    "knowledge.start_challenge": "Mula Cabaran",
+    "knowledge.example_message": "Contoh Mesej / SMS:",
+    "knowledge.show_more": "Tunjukkan Lebih Banyak",
+    "knowledge.show_less": "Tunjukkan Kurang",
 
     // Categories
     "category.all": "Semua",

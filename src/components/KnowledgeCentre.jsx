@@ -256,7 +256,7 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
               onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
             >
               <XCircle size={16} />
-              {lang === 'ms' ? "Keluar Cabaran" : "Exit Challenge"}
+              {t("knowledge.exit_challenge")}
             </button>
           )}
         </div>
@@ -279,12 +279,10 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
               </div>
               <div style={{ textAlign: 'left' }}>
                 <h3 style={{ fontSize: isElderlyMode ? '1.4rem' : '1.1rem', color: '#fff', marginBottom: '0.2rem', fontWeight: 600 }}>
-                  {lang === 'ms' ? "Sedia untuk Cabaran Harian?" : "Ready for the Daily Challenge?"}
+                  {t("knowledge.ready_challenge")}
                 </h3>
                 <p style={{ color: 'var(--text-secondary)', fontSize: isElderlyMode ? '1.1rem' : '0.85rem', lineHeight: '1.4' }}>
-                  {lang === 'ms' 
-                    ? "Uji kepakaran anda menentang taktik penipuan terbaru. Bolehkah anda mengekalkan rentetan kemenangan anda?" 
-                    : "Test your skills against the latest scam tactics. Can you identify the red flags and maintain your streak?"}
+                  {t("knowledge.challenge_intro")}
                 </p>
               </div>
             </div>
