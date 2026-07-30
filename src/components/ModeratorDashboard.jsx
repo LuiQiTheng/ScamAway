@@ -10,7 +10,7 @@ export default function ModeratorDashboard() {
     reportsList, updateReportStatus, addAlert, 
     reputationProfiles, updateReputation, addBlacklistItem, blacklist 
   } = useAppContext();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [selectedReport, setSelectedReport] = useState(null);
   const [alertText, setAlertText] = useState('');
   const [alertSuccess, setAlertSuccess] = useState(false);
@@ -105,6 +105,12 @@ export default function ModeratorDashboard() {
   const availableCategories = Array.from(
     new Set(reportsList.map(r => r.category || r.type).filter(Boolean))
   );
+
+  const categoryLabels = {
+  phishing: lang === "ms" ? "Pancingan Data" : "Phishing",
+  parcel: lang === "ms" ? "Bungkusan" : "Parcel",
+  job: lang === "ms" ? "Pekerjaan" : "Job",
+};
 
   const filteredReports = reportsList
     .filter(r => {
@@ -217,7 +223,7 @@ export default function ModeratorDashboard() {
                     <option value="all">{t('admin.all_categories')}</option>
                     {availableCategories.map(cat => (
                       <option key={cat} value={cat}>
-                        {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                        {categoryLabels[cat.toLowerCase()] || cat}
                       </option>
                     ))}
                   </select>
@@ -572,7 +578,7 @@ export default function ModeratorDashboard() {
                 rows={3}
                 value={alertText}
                 onChange={(e) => setAlertText(e.target.value)}
-                placeholder="Type high-risk threat warning to broadcast to all users..."
+                placeholder={t("admin.broadcast_placeholder")}
                 style={{ fontSize: '0.85rem' }}
               />
               <button type="submit" className="btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>

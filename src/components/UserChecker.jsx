@@ -16,6 +16,7 @@ import { Html5QrcodeScanner } from 'html5-qrcode';
 export default function UserChecker({ userMode = 'normal', isElderlyMode = false, isKidMode = false, onSetUserMode }) {
   const { reportsList, activeAlert, addReport, blacklist } = useAppContext();
   const { t, lang } = useLanguage();
+  const lastScanRef = useRef(null);
   const [activeTab, setActiveTab] = useState('text'); // text, screenshot, qr, url
   const [inputText, setInputText] = useState('');
   const [urlInput, setUrlInput] = useState('');
@@ -46,6 +47,28 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
     setCheckedActions({});
     stopSpeech();
   }, [scanResult]);
+
+  useEffect(() => {
+  if (!scanResult || !lastScanRef.current) return;
+
+  const rerun = async () => {
+    const res = await analyzeScamRisk(
+      lastScanRef.current.text,
+      {
+        ...lastScanRef.current.metadata,
+        verifiedReportsCount: reportsList.filter(
+          r => r.status === "confirmed"
+        ).length,
+        blacklist,
+        lang
+      }
+    );
+
+    setScanResult(res);
+  };
+
+  rerun();
+}, [lang, blacklist, reportsList]);
 
   // Clean speech synthesis and scanner on unmount
   useEffect(() => {
@@ -89,6 +112,11 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
   }, [qrScannerEnabled]);
 
   const triggerScanAnimation = (finalText, metadata = {}) => {
+    lastScanRef.current = {
+      text: finalText,
+      metadata
+    };
+
     setIsScanning(true);
     setScanResult(null);
     setScanSteps([]);
