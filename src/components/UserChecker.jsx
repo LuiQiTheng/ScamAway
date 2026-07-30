@@ -24,6 +24,8 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
   const [activeTab, setActiveTab] = useState('text'); // text, screenshot, qr, url
   const [inputText, setInputText] = useState('');
   const [urlInput, setUrlInput] = useState('');
+  const [urlError, setUrlError] = useState('');
+  const [isUrlInvalid, setIsUrlInvalid] = useState(false);
   const [phoneInput, setPhoneInput] = useState('');
   const [qrInput, setQrInput] = useState('');
   const [qrScannerEnabled, setQrScannerEnabled] = useState(false);
@@ -171,8 +173,40 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
   };
 
   const handleScanUrl = () => {
-    if (!urlInput.trim()) return;
-    const combinedText = `Url check request: ${urlInput}. Phone info: ${phoneInput || 'none'}`;
+    const raw = urlInput.trim();
+    if (!raw) {
+      setUrlError(t('scanner.empty_url_error'));
+      setIsUrlInvalid(true);
+      setScanResult(null);
+      return;
+    }
+
+    let formatted = raw;
+    if (!/^https?:\/\//i.test(formatted)) {
+      formatted = 'https://' + formatted;
+    }
+
+    let isValid = false;
+    try {
+      const parsed = new URL(formatted);
+      const host = parsed.hostname;
+      const domainRegex = /^([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$/i;
+      isValid = domainRegex.test(host);
+    } catch (e) {
+      isValid = false;
+    }
+
+    if (!isValid) {
+      setUrlError(t('scanner.invalid_url_detailed_error'));
+      setIsUrlInvalid(true);
+      setScanResult(null);
+      return;
+    }
+
+    setUrlInput(formatted);
+    setUrlError('');
+    setIsUrlInvalid(false);
+    const combinedText = `Url check request: ${formatted}. Phone info: ${phoneInput || 'none'}`;
     triggerScanAnimation(combinedText);
   };
 
@@ -555,10 +589,23 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                   id="url-check-input"
                   type="text"
                   value={urlInput}
-                  onChange={(e) => setUrlInput(e.target.value)}
+                  onChange={(e) => {
+                    setUrlInput(e.target.value);
+                    if (urlError || isUrlInvalid) {
+                      setUrlError('');
+                      setIsUrlInvalid(false);
+                    }
+                  }}
                   className="input-field"
+                  style={isUrlInvalid ? { borderColor: '#ff4d4d', boxShadow: '0 0 0 2px rgba(255, 77, 77, 0.25)' } : {}}
                   placeholder={t("scanner.url_placeholder")}
                 />
+                {urlError && (
+                  <div role="alert" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ff4d4d', fontSize: '0.85rem', background: 'rgba(255, 77, 77, 0.1)', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid rgba(255, 77, 77, 0.3)', marginTop: '0.25rem' }}>
+                    <AlertCircle size={16} />
+                    <span>{urlError}</span>
+                  </div>
+                )}
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>

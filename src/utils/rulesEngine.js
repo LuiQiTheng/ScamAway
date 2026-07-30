@@ -369,21 +369,21 @@ export async function analyzeScamRisk(text, metadata = {}) {
     /\b(?:congratulations|tahniah).{0,35}(?:won|winner|reward|gift|hadiah)\b/i,
     /\b(?:tax refund|cash refund|refund portal|tebus hadiah|hadiah percuma)\b/i
   ]);
-  const hasImpossibleReturn = hasAny(text, [
+  const hasImpossibleReturn = hasAffirmativePattern(text, [
     /\b(?:guaranteed|dijamin|pasti)\s+(?:profit|return|income|untung|allocation|pulangan)\b/i,
     /\b(?:100%|1000%)\s*(?:untung|profit|return|sah|legit)\b/i,
     /\b(?:no risk|without risk|tanpa risiko|zero risk|sifar risiko)\b/i,
     /\b(?:\d+%\s+daily\s+(?:profit|commission|return))\b/i,
     /\b(?:earn|untung)\s+\d+%\s+(?:daily|setiap hari|automatically)\b/i
   ]);
-  const hasFearThreat = hasAny(text, [
+  const hasFearThreat = hasAffirmativePattern(text, [
     /\b(?:fined|jail|arrested?|warrant|blacklisted|tax debt|account frozen|court action|legal action)\b/i,
     /\b(?:denda|penjara|waran tangkap|akaun dibeku|dibekukan|tindakan undang-undang|digantung|lokap)\b/i,
     /\b(?:tangkap|ditangkap|ditahan|cuci wang|pengedaran dadah)\b/i,
     /\b(?:saman|summons?)\s+(?:aes|cukai|tax)\b/i,
     /\b(?:license|lesen)\s+(?:will be|akan)\s*(?:suspended|revoked|digantung|dibatal)\b/i
   ]);
-  const hasFamilyEmergency = hasAny(text, [
+  const hasFamilyEmergency = hasAffirmativePattern(text, [
     /\b(?:mum|dad|mak|ayah|ibu|bapa|abang|adik|anak).{0,80}(?:new number|phone.{0,10}(?:lost|broken|damaged)|hospital|accident|kidnap|tangkap|culik)\b/i,
     /\b(?:telefon rosak|tukar nombor|masuk hospital|kemalangan|akaun kawan|fon jatuh|nombor baru)\b/i
   ]);
@@ -391,7 +391,7 @@ export async function analyzeScamRisk(text, metadata = {}) {
     /\b(?:police|polis|court|mahkamah|lhdn|jpj|pos\s*laju|poslaju|customs|kastam|sprm|mcmc|skmm|bank negara|bnm|kwsp|epf|pdrm|ipk|sarjan|sergeant)\b/i
   ]);
 
-  const hasPaymentRequest = hasAny(text, [
+  const hasPaymentRequest = hasAffirmativePattern(text, [
     /\b(?:pay|transfer|deposit|send)\s+(?:me|us|them|to|into|rm\s*\d+|\d{2,})\b/i,
     /\b(?:pay|transfer|deposit|bayar|pindah)\s+(?:now|immediately|sekarang|segera)\b/i,
     /\b(?:payment|fee|deposit|cod)\b.{0,40}\b(?:required|due|must be paid|to release|to unlock|to start|diperlukan)\b/i,
@@ -435,7 +435,7 @@ export async function analyzeScamRisk(text, metadata = {}) {
     /\b(?:parcel|bungkusan|courier|delivery|redelivery|cod|cash-on-delivery)\b/i,
     /\b(?:ninja\s*van|pos\s*laju|poslaju|pos\s*malaysia|j&t|dhl|fedex)\b/i
   ]);
-  const hasParcelProblemClaim = hasAny(text, [
+  const hasParcelProblemClaim = hasAffirmativePattern(text, [
     /\b(?:parcel|bungkusan|delivery).{0,55}(?:held|on hold|ditahan|failed|gagal|invalid address|customs|kastam|returned|cancelled|disposal|return to sender)\b/i,
     /\b(?:sorting hub|clearance|redelivery|customs).{0,35}(?:fee|payment|required|failed)\b/i,
     /\b(?:unpaid|tertunggak|belum dibayar).{0,30}(?:customs|fee|tax|cukai)\b/i,
@@ -486,7 +486,7 @@ export async function analyzeScamRisk(text, metadata = {}) {
     (hasImpossibleReturn || hasHighDailyIncomeClaim || hasPaymentRequest);
 
   const isEmergencyScam = isEmergencyContext &&
-    (hasPaymentRequest || hasSecrecy || hasFamilyEmergency || hasFearThreat);
+    (hasPaymentRequest || hasSecrecy || hasFearThreat);
 
   const hasAuthorityExtortion = hasAuthority &&
     (hasFearThreat || hasDirectPressure) &&
@@ -706,7 +706,11 @@ export async function analyzeScamRisk(text, metadata = {}) {
       });
     }
 
-    score += ruleContribution;
+    if (hitCoreArchetype) {
+      score = 85;
+    } else {
+      score += ruleContribution;
+    }
   }
 
   // 3. TRUE AI SEMANTIC ANALYSIS (Gemini API)
@@ -770,6 +774,10 @@ export async function analyzeScamRisk(text, metadata = {}) {
       weight: commBonus
     });
     indicatorsMatched.push(...communityIndicators);
+  }
+
+  if (matchedBlacklistIndicator && verifiedReports === 0) {
+    score = 85;
   }
 
   // Keep score capped between 0 and 100

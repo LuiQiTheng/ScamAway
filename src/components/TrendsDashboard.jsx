@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { 
   TrendingUp, BarChart2, PieChart as PieIcon, 
-  ShieldAlert, CheckCircle, Clock, Database 
+  ShieldAlert, CheckCircle, Clock, Database, Info 
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -130,6 +130,19 @@ export default function TrendsDashboard() {
         <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
           {t('trends.subtitle')}
         </p>
+      </div>
+
+      {/* Community Insights Info Banner */}
+      <div className="glass-panel" style={{ padding: '1.25rem 1.5rem', background: 'rgba(6, 182, 212, 0.05)', border: '1px solid rgba(6, 182, 212, 0.2)', borderRadius: '12px', display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+        <Info size={22} color="var(--primary)" style={{ flexShrink: 0, marginTop: '0.2rem' }} />
+        <div>
+          <h4 style={{ fontSize: '1rem', color: '#fff', marginBottom: '0.25rem', fontWeight: 600 }}>
+            {t('trends.info_title')}
+          </h4>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
+            {t('trends.info_content')}
+          </p>
+        </div>
       </div>
 
       {/* KPI Cards Grid */}

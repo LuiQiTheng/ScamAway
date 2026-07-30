@@ -27,12 +27,33 @@ const INITIAL_REPORTS = [
     timestamp: new Date("2026-07-25T11:15:00.000Z").toISOString(),
     status: 'confirmed',
     reporterId: 'rep_102'
+  },
+  {
+    id: 1003,
+    category: 'emergency',
+    text: "Mum, I damaged my phone speaker. Need you to transfer RM1,000 urgently to my friend's account 164228910239 for my medical bill. Don't call me.",
+    score: 90,
+    riskBand: "Critical",
+    timestamp: new Date("2026-07-26T09:04:00.000Z").toISOString(),
+    status: 'confirmed',
+    reporterId: 'rep_103'
+  },
+  {
+    id: 1004,
+    category: 'marketplace',
+    text: "Seller asks to proceed with payment via bank transfer outside Shopee guarantee page to get 10% discount.",
+    score: 55,
+    riskBand: "Caution",
+    timestamp: new Date("2026-07-26T15:10:00.000Z").toISOString(),
+    status: 'under_review',
+    reporterId: 'rep_101'
   }
 ];
 
 const INITIAL_REPUTATIONS = [
   { profileId: 'rep_101', userName: 'Ahmad Rafiq (Kuala Lumpur)', role: 'Citizen', identityLevel: 2, agreementRate: 94, verifiedReports: 5, abuseFlags: 0 },
-  { profileId: 'rep_102', userName: 'Lim Wei Han (Selangor)', role: 'Citizen', identityLevel: 3, agreementRate: 100, verifiedReports: 12, abuseFlags: 0 }
+  { profileId: 'rep_102', userName: 'Lim Wei Han (Selangor)', role: 'Citizen', identityLevel: 3, agreementRate: 100, verifiedReports: 12, abuseFlags: 0 },
+  { profileId: 'rep_103', userName: 'Guest_User_912', role: 'Guest', identityLevel: 1, agreementRate: 75, verifiedReports: 2, abuseFlags: 0 }
 ];
 
 const INITIAL_BLACKLIST = {
@@ -43,10 +64,27 @@ const INITIAL_BLACKLIST = {
 };
 
 export const AppProvider = ({ children }) => {
-  const [reportsList, setReportsList] = useState([]);
-  const [reputationProfiles, setReputationProfiles] = useState([]);
-  const [blacklist, setBlacklist] = useState({ phoneNumbers: [], urls: [], bankAccounts: [] });
+  const [reportsList, setReportsList] = useState(() => {
+    try {
+      const saved = localStorage.getItem('scamshield_reports');
+      return saved ? JSON.parse(saved) : INITIAL_REPORTS;
+    } catch {
+      return INITIAL_REPORTS;
+    }
+  });
+
+  const [reputationProfiles, setReputationProfiles] = useState(INITIAL_REPUTATIONS);
+  const [blacklist, setBlacklist] = useState(INITIAL_BLACKLIST);
   const [activeAlert, setActiveAlert] = useState(null);
+
+  // Keep localStorage in sync for tests and offline state
+  useEffect(() => {
+    try {
+      localStorage.setItem('scamshield_reports', JSON.stringify(reportsList));
+    } catch (e) {
+      console.warn("Could not save reports to localStorage", e);
+    }
+  }, [reportsList]);
 
   // Initialize and Sync Firebase Data
   useEffect(() => {
