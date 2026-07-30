@@ -16,7 +16,7 @@ const translations = {
     "nav.trends": "Scam Trends",
 
     // Login
-    "login.welcome": "Welcome to ScamShield AI",
+    "login.welcome": "Welcome to Scam Away",
     "login.subtitle": "Please select your role to log into the system.",
     "login.user": "Citizen / User",
     "login.user_desc": "Access scanner & reporting profile",
@@ -28,9 +28,9 @@ const translations = {
 
     // Trends Dashboard
     "trends.title": "Community Scam Trends",
-    "trends.subtitle": "Stay informed about the latest scam activities reported by the ScamShield community. These statistics help users recognize emerging scam threats and stay vigilant.",
-    "trends.info_title": "Community Insights",
-    "trends.info_content": "These statistics are generated from scam reports submitted by the ScamShield community. They are intended to raise public awareness of current scam trends and help users stay vigilant.",
+    "trends.subtitle": "Stay informed about the latest scam activities reported by the Scam Away community. These statistics help users recognize emerging scam threats and stay vigilant.",
+    "trends.info_title": "About This Data",
+    "trends.info_content": "These statistics are generated from scam reports submitted by the Scam Away community. They are intended to raise public awareness of current scam trends and help users stay vigilant.",
     "trends.kpi_total": "Community Scam Reports",
     "trends.kpi_pending": "Reports Under Review",
     "trends.kpi_confirmed": "Verified Scam Cases",
@@ -107,10 +107,13 @@ const translations = {
     "scanner.upload_btn": "Upload Screenshot (OCR)",
     "scanner.qr_btn": "Scan QR Code",
     "scanner.url_btn": "URL & Phone Check",
-    "scanner.text_paste": "Paste the copied text",
-    "scanner.assistant": "ScamShield Assistant",
+    "scanner.ai_explanation": "AI Analysis",
+    "scanner.assistant": "Scam Away Assistant",
+    "scanner.assistant_elderly": "Scam Away Care Assistant",
+    "scanner.assistant_kid": "Scam Away Junior Radar 🎮",
+    "scanner.analyzing": "Analyzing with AI Models...",
+    "scanner.text_paste": "Describe incident",
     "scanner.assistant_desc": "Multi-format evidence analyzer & safety guide",
-    "scanner.assistant_kid": "ScamShield Junior Radar 🎮",
     "scanner.assistant_desc_kid": "Fun & smart protection against game currency scams, fake top-ups & online traps!",
     "scanner.switch_regular": "👵 Switch to Regular Mode",
     "scanner.switch_elderly": "👵 Switch to Elderly Mode",
@@ -252,7 +255,7 @@ const translations = {
     // App Footer & Roles
     "app.role_user": "👤 User",
     "app.role_admin": "👮 Admin",
-    "app.footer_title": "ScamShield — Explainable Digital Safety Platform",
+    "app.footer_title": "Scam Away — Explainable Digital Safety Platform",
     "app.footer_desc": "Prepared for UCRIX Innovation 2026 Competition. Aligning with UN Sustainable Development Goals (SDG 16, 9, 10, 4).",
 
     // Knowledge Centre Extras
@@ -292,7 +295,7 @@ const translations = {
     "nav.trends": "Trend Scam",
 
     // Login
-    "login.welcome": "Selamat Datang ke ScamShield AI",
+    "login.welcome": "Selamat Datang ke Scam Away",
     "login.subtitle": "Sila pilih peranan anda untuk log masuk ke sistem.",
     "login.user": "Pengguna Biasa",
     "login.user_desc": "Akses pengimbas & profil pelaporan",
@@ -304,10 +307,10 @@ const translations = {
 
     // Trends Dashboard
     "trends.title": "Trend Scam Komuniti",
-    "trends.subtitle": "Kekal maklum mengenai aktiviti penipuan terkini yang dilaporkan oleh komuniti ScamShield. Statistik ini membantu pengguna mengenali ancaman penipuan baharu dan kekal berwaspada.",
-    "trends.info_title": "Wawasan Komuniti",
-    "trends.info_content": "Statistik ini dijana daripada laporan penipuan yang diserahkan oleh komuniti ScamShield. Ia bertujuan untuk meningkatkan kesedaran awam mengenai trend penipuan terkini dan membantu pengguna kekal berwaspada.",
-    "trends.kpi_total": "Laporan Scam Komuniti",
+    "trends.subtitle": "Kekal maklum mengenai aktiviti penipuan terkini yang dilaporkan oleh komuniti Scam Away. Statistik ini membantu pengguna mengenali ancaman penipuan baharu dan kekal berwaspada.",
+    "trends.info_title": "Mengenai Data Ini",
+    "trends.info_content": "Statistik ini dijana daripada laporan penipuan yang diserahkan oleh komuniti Scam Away. Ia bertujuan untuk meningkatkan kesedaran awam mengenai trend penipuan terkini dan membantu pengguna kekal berwaspada.",
+    "trends.kpi_total": "Jumlah Laporan Komuniti",
     "trends.kpi_pending": "Laporan Dalam Semakan",
     "trends.kpi_confirmed": "Kes Scam Disahkan",
     "trends.kpi_blacklist": "Sumber Scam Dikenali",
@@ -383,10 +386,13 @@ const translations = {
     "scanner.upload_btn": "Muat Naik Tangkapan Skrin (OCR)",
     "scanner.qr_btn": "Imbas Kod QR",
     "scanner.url_btn": "Semak URL & Telefon",
-    "scanner.text_paste": "Tampal teks yang disalin",
-    "scanner.assistant": "Pembantu ScamShield",
+    "scanner.ai_explanation": "Analisis AI",
+    "scanner.assistant": "Pembantu Scam Away",
+    "scanner.assistant_elderly": "Pembantu Penjagaan Scam Away",
+    "scanner.assistant_kid": "Radar Scam Away Junior 🎮",
+    "scanner.analyzing": "Menganalisis dengan Model AI...",
+    "scanner.text_paste": "Terangkan insiden",
     "scanner.assistant_desc": "Penganalisis bukti pelbagai format & panduan keselamatan",
-    "scanner.assistant_kid": "Radar ScamShield Junior 🎮",
     "scanner.assistant_desc_kid": "Perlindungan bijak & menyeronokkan daripada scam tebus game, top-up palsu & perangkap dalam talian!",
     "scanner.switch_regular": "👵 Tukar ke Mod Biasa",
     "scanner.switch_elderly": "👵 Tukar ke Mod Warga Emas",
@@ -528,7 +534,7 @@ const translations = {
     // App Footer & Roles
     "app.role_user": "👤 Pengguna",
     "app.role_admin": "👮 Admin",
-    "app.footer_title": "ScamShield — Platform Keselamatan Digital Boleh Diterangkan",
+    "app.footer_title": "Scam Away — Platform Keselamatan Digital Boleh Diterangkan",
     "app.footer_desc": "Disediakan untuk Pertandingan Inovasi UCRIX 2026. Sejajar dengan Matlamat Pembangunan Mampan PBB (SDG 16, 9, 10, 4).",
 
     // Knowledge Centre Extras

@@ -698,7 +698,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <strong style={{ color: '#fff', fontSize: '0.9rem' }}>⚠️ {exp.label}</strong>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{t('result.weight')}: +{exp.weight}</span>
+                      {exp.weight && <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{t('result.weight')}: +{exp.weight}</span>}
                       </div>
                       <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>{exp.text}</p>
                     </div>

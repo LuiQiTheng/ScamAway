@@ -14,11 +14,11 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userMode, setUserMode] = useState(() => {
     try {
-      const savedMode = localStorage.getItem('scamshield_user_mode');
+      const savedMode = localStorage.getItem('scam_away_user_mode');
       if (savedMode && ['normal', 'elderly', 'kid'].includes(savedMode)) {
         return savedMode;
       }
-      const legacyElderly = localStorage.getItem('scamshield_elderly_mode');
+      const legacyElderly = localStorage.getItem('scam_away_elderly_mode');
       if (legacyElderly && JSON.parse(legacyElderly) === true) {
         return 'elderly';
       }
@@ -64,7 +64,7 @@ export default function App() {
       <header className="app-header">
         <div className="app-logo">
           <ShieldAlert size={28} color="var(--primary)" />
-          <span>SCAMSHIELD</span>
+          <span>SCAM AWAY</span>
         </div>
 
         <nav className="nav-links">

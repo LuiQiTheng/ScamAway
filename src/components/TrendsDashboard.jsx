@@ -119,7 +119,7 @@ export default function TrendsDashboard() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', maxWidth: 'var(--content-max)', margin: '0 auto', padding: '1rem' }}>
+    <div className="page-shell trends-page">
       
       {/* Header Title */}
       <div className="glass-panel" style={{ padding: '1.5rem 2rem', borderLeft: '4px solid var(--primary)' }}>

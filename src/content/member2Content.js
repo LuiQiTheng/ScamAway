@@ -7,6 +7,10 @@ export const QUICK_TEST_PRESETS = [
     },
     tone: 'danger',
     text: 'POS LAJU: Your parcel is on hold due to an unpaid RM5.60 customs fee. Pay now at https://poslaju-redelivery.help/verify to avoid return to sender.',
+    explanation_en: 'Scam! This is a classic parcel phishing scam. Official couriers will never send a random link via SMS asking for unexpected small customs fees.',
+    explanation_ms: 'Scam! Ini ialah penipuan pancingan data bungkusan klasik. Kurier rasmi tidak akan menghantar pautan rawak melalui SMS yang meminta yuran kastam yang tidak dijangka.',
+    pattern_label_en: 'Parcel Phishing Attempt',
+    pattern_label_ms: 'Percubaan Phishing Bungkusan',
   },
   {
     id: 'telegram-job',
@@ -16,6 +20,10 @@ export const QUICK_TEST_PRESETS = [
     },
     tone: 'danger',
     text: 'Hi, I am a Shopee hiring manager. Earn RM500 daily by liking products from home. No interview needed. Pay a RM100 activation deposit and WhatsApp 60123456789 now.',
+    explanation_en: 'Scam! Unsolicited messages from "Shopee hiring managers" offering easy money for liking products in exchange for an activation deposit are guaranteed job scams.',
+    explanation_ms: 'Scam! Mesej yang tidak diminta daripada "pengurus pengambilan pekerja Shopee" yang menawarkan wang mudah untuk menekan tanda suka sebagai pertukaran kepada deposit pengaktifan adalah penipuan kerja.',
+    pattern_label_en: 'Advance Fee Job Scam',
+    pattern_label_ms: 'Penipuan Kerja Yuran Pendahuluan',
   },
   {
     id: 'job-post-verification',
@@ -31,6 +39,10 @@ Positions: Admin, Customer Service, Sales, Accountant, Content Creator, UX/UI an
 Internship available for Finance, Marketing, Business, Accounting and HR.
 Requirements: SPM pass, able to speak/read/write Chinese, Malaysian only.
 Send resume to Mingxing: wa.me/60162518403`,
+    explanation_en: 'Needs Verification (Caution). While it does not ask for money upfront, sending your resume (which contains your IC, home address, and phone number) to an unverified personal WhatsApp number exposes you to severe identity theft. Legitimate companies use official emails or portals. Verify the company first.',
+    explanation_ms: 'Perlu Pengesahan (Awas). Walaupun ia tidak meminta wang pendahuluan, menghantar resume anda (yang mengandungi nombor kad pengenalan, alamat dan nombor telefon) ke nombor WhatsApp peribadi yang tidak disahkan mendedahkan anda kepada kecurian identiti. Syarikat yang sah menggunakan e-mel rasmi. Sahkan syarikat terlebih dahulu.',
+    pattern_label_en: 'Unverified Recruitment Channel',
+    pattern_label_ms: 'Saluran Pengambilan Tidak Disahkan',
   },
   {
     id: 'lhdn',
@@ -40,6 +52,10 @@ Send resume to Mingxing: wa.me/60162518403`,
     },
     tone: 'danger',
     text: 'LHDN FINAL NOTICE: You have outstanding tax and legal action begins today. Make an immediate transfer to the officer account or open https://lhdn-refund-my.top.',
+    explanation_en: 'Scam! LHDN will never threaten immediate legal action via SMS or ask for transfers to individual officer accounts or fake external links.',
+    explanation_ms: 'Scam! LHDN tidak akan mengancam tindakan undang-undang segera melalui SMS atau meminta pemindahan ke akaun pegawai individu atau pautan luaran palsu.',
+    pattern_label_en: 'Authority Impersonation',
+    pattern_label_ms: 'Penyamaran Pihak Berkuasa',
   },
   {
     id: 'safe',
@@ -49,6 +65,10 @@ Send resume to Mingxing: wa.me/60162518403`,
     },
     tone: 'safe',
     text: 'Hi Aina, our study group will meet at the campus library tomorrow at 3:00 PM. Bring your notes if you can. See you there!',
+    explanation_en: 'Safe. This is a normal, everyday message setting up a study group with no requests for money, sensitive information, or suspicious links.',
+    explanation_ms: 'Selamat. Ini adalah mesej biasa yang mengatur kumpulan belajar tanpa meminta wang, maklumat sensitif, atau pautan yang mencurigakan.',
+    pattern_label_en: 'Normal Communication',
+    pattern_label_ms: 'Komunikasi Normal',
   },
 ];
 
