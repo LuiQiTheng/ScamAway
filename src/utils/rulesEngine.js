@@ -712,7 +712,6 @@ export async function analyzeScamRisk(text, metadata = {}) {
     if (hitCoreArchetype) {
       score = 85;
     } else {
-    if (!hitCoreArchetype) {
       score += ruleContribution;
     }
   }
