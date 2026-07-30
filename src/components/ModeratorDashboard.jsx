@@ -299,7 +299,7 @@ export default function ModeratorDashboard() {
                           display: 'block', 
                           textAlign: 'right' 
                         }}>
-                          {report.score}%
+                          {report.score}/100
                         </strong>
                       </div>
                       <span className={`badge ${
@@ -502,7 +502,7 @@ export default function ModeratorDashboard() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
                   <div style={{ background: 'rgba(255,255,255,0.01)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{t('admin.ai_eval')}</span>
-                    <h4 style={{ fontSize: '1.2rem', color: '#fff', marginTop: '0.25rem' }}>{selectedReport.score}% ({selectedReport.riskBand})</h4>
+                    <h4 style={{ fontSize: '1.2rem', color: '#fff', marginTop: '0.25rem' }}>{selectedReport.score}/100 ({selectedReport.riskBand})</h4>
                   </div>
                   <div style={{ background: 'rgba(255,255,255,0.01)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{t('admin.dup_incidents')}</span>
