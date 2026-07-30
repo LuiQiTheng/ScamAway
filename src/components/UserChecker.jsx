@@ -5,7 +5,11 @@ import {
   Volume2, VolumeX, Phone, CheckSquare,
   Square, RefreshCw, Send, AlertCircle, Sparkles
 } from 'lucide-react';
-import { analyzeScamRisk, DEMO_SCREENSHOTS } from '../utils/rulesEngine';
+import {
+  analyzeScamRisk,
+  DEMO_SCREENSHOTS,
+  findMatchingVerifiedReports,
+} from '../utils/rulesEngine';
 import { QUICK_TEST_PRESETS } from '../content/member2Content';
 import ReportModal from './ReportModal';
 import { useAppContext } from '../context/AppContext';
@@ -108,20 +112,15 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
     });
 
     setTimeout(async () => {
-      // Find matching reports in global state for duplicate mapping
-      let verifiedReportsCount = 0;
-      const foundIndicators = [];
-
-      // Calculate matches based on global reports list
-      if (metadata.qrCode) foundIndicators.push(metadata.qrCode);
-      const urlMatches = finalText.match(/(Pos Laju|pos-laju\.info|shopee|maybank|tnb|lhdn)/gi);
-      if (urlMatches) {
-        verifiedReportsCount = reportsList.filter(r => r.status === 'confirmed').length;
-      }
+      const matchedVerifiedReports = findMatchingVerifiedReports(
+        finalText,
+        reportsList,
+        metadata,
+      );
 
       const res = await analyzeScamRisk(finalText, {
         ...metadata,
-        verifiedReportsCount: verifiedReportsCount,
+        matchedVerifiedReports,
         blacklist: blacklist,
         lang: lang
       });
