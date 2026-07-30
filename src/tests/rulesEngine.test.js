@@ -301,4 +301,51 @@ describe('Context-aware scam detection engine', () => {
     expect(result.score).toBe(85);
     expect(result.riskBand).toBe('Critical');
   });
+
+  it('ignores an AI score outside the trusted range', async () => {
+    analyzeTextWithGemini.mockResolvedValue({
+      score: 999,
+      riskBand: 'Critical',
+      explanations: [
+        {
+          category: 'payment',
+          label: 'Invented payment request',
+          text: 'This claim is not grounded in the submitted message.',
+          evidence: 'transfer all your money',
+          weight: 40,
+        },
+      ],
+    });
+
+    const result = await analyzeScamRisk(
+      'Reminder: our study group meets in the library at 3pm.',
+    );
+
+    expect(result.score).toBeLessThan(20);
+    expect(result.explanations.some(({ label }) => label.includes('Invented'))).toBe(false);
+  });
+
+  it('accepts grounded AI evidence but derives the risk band internally', async () => {
+    analyzeTextWithGemini.mockResolvedValue({
+      score: 65,
+      riskBand: 'Low evidence',
+      explanations: [
+        {
+          category: 'payment',
+          label: 'Unexpected payment request',
+          text: 'The sender asks for an unexpected transfer.',
+          evidence: 'transfer RM300',
+          weight: 25,
+        },
+      ],
+    });
+
+    const result = await analyzeScamRisk(
+      'Please transfer RM300 to the supplied account before we continue.',
+    );
+
+    expect(result.score).toBeGreaterThanOrEqual(65);
+    expect(result.riskBand).toBe('High risk');
+    expect(result.explanations.some(({ label }) => label.includes('Unexpected payment'))).toBe(true);
+  });
 });
