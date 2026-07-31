@@ -275,7 +275,7 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
                       <button
                         onClick={() => handleToggleRead(item.id)}
-                        title={isRead ? (lang === 'ms' ? 'Tanda belum dibaca' : 'Mark unread') : (lang === 'ms' ? 'Tanda dibaca' : 'Mark read')}
+                        title={isRead ? (lang === 'ms' ? 'Tanda belum dibaca' : 'Mark as unread') : (lang === 'ms' ? 'Tanda dibaca' : 'Mark as read')}
                         style={{
                           background: 'rgba(255,255,255,0.05)',
                           border: '1px solid var(--border-color)',
@@ -290,7 +290,7 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
                         }}
                       >
                         {isRead ? <MailOpen size={14} /> : <Check size={14} />}
-                        <span>{isRead ? (lang === 'ms' ? 'Belum Dibaca' : 'Unread') : (lang === 'ms' ? 'Dibaca' : 'Mark Read')}</span>
+                        <span>{isRead ? (lang === 'ms' ? 'Belum Dibaca' : 'Unread') : (lang === 'ms' ? 'Dibaca' : 'Mark as Read')}</span>
                       </button>
 
                       <button

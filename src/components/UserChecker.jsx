@@ -318,8 +318,8 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
         }}>
           <AlertCircle size={28} color="var(--color-high)" style={{ flexShrink: 0, marginTop: '2px' }} />
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span className="badge badge-high" style={{ padding: '0.1rem 0.5rem', fontSize: '0.7rem' }}>{t('scanner.alert_badge')}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <span className="badge badge-high" style={{ padding: '0.15rem 0.6rem', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{t('scanner.alert_badge')}</span>
               <strong style={{ color: '#fff', fontSize: isElderlyMode ? '1.2rem' : '0.95rem' }}>{t('scanner.alert_title')}</strong>
             </div>
             <p style={{ color: '#fca5a5', marginTop: '0.25rem', fontSize: isElderlyMode ? '1.15rem' : '0.85rem' }}>

@@ -98,7 +98,7 @@ const translations = {
     "mode.title": "Audience Mode",
     "mode.normal": "👤 Normal",
     "mode.elderly": "👵 Elderly",
-    "mode.kid": "🎮 Kid / Teen",
+    "mode.kid": "🎮 Kid / Teenager",
 
     // Scanner
     "scanner.title": "Scan Suspicious Context",

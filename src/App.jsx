@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { ShieldAlert, HelpCircle, User, ShieldAlert as AdminIcon, Sparkles, Globe, Bell, LogOut } from 'lucide-react';
+import React, { useState, useContext } from 'react';
+import { ShieldAlert, HelpCircle, User, ShieldAlert as AdminIcon, Sparkles, Globe, Bell, LogOut, X } from 'lucide-react';
 import { useLanguage } from './context/LanguageContext';
+import { useAppContext } from './context/AppContext';
 import UserChecker from './components/UserChecker';
 import ModeratorDashboard from './components/ModeratorDashboard';
 import KnowledgeCentre from './components/KnowledgeCentre';
@@ -9,6 +10,7 @@ import TrendsDashboard from './components/TrendsDashboard';
 import LoginScreen from './components/LoginScreen';
 
 export default function App() {
+  const { userNotifications, dismissNotification } = useAppContext();
   const [activeTab, setActiveTab] = useState('check'); // check, knowledge, moderator, profile
   const [userRole, setUserRole] = useState('user'); // 'user' or 'admin'
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -60,6 +62,22 @@ export default function App() {
 
   return (
     <div className={`app-container mode-${activeMode} ${isElderlyMode ? 'elderly-mode' : ''} ${isKidMode ? 'kid-mode' : ''}`}>
+      {/* Floating Notifications */}
+      <div style={{ position: 'fixed', bottom: '2rem', right: '2rem', zIndex: 9999, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        {userNotifications?.map(notif => (
+          <div key={notif.id} className="glass-panel" style={{ padding: '1rem', borderLeft: notif.newStatus === 'confirmed' ? '4px solid var(--color-low)' : '4px solid var(--color-high)', display: 'flex', alignItems: 'center', gap: '1rem', minWidth: '320px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)' }}>
+            <Bell size={20} color={notif.newStatus === 'confirmed' ? 'var(--color-low)' : 'var(--color-high)'} />
+            <div style={{ flex: 1 }}>
+              <p style={{ margin: 0, fontSize: '0.9rem', color: '#fff', fontWeight: 600 }}>Report #{notif.reportId.toString().slice(-4)} Updated</p>
+              <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>Status changed to <strong style={{ textTransform: 'capitalize' }}>{notif.newStatus}</strong></p>
+            </div>
+            <button onClick={() => dismissNotification(notif.id)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0.25rem' }}>
+              <X size={16} />
+            </button>
+          </div>
+        ))}
+      </div>
+
       {/* Navigation Header */}
       <header className="app-header">
         <div className="app-logo">

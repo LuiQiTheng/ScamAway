@@ -76,6 +76,11 @@ export const AppProvider = ({ children }) => {
   const [reputationProfiles, setReputationProfiles] = useState(INITIAL_REPUTATIONS);
   const [blacklist, setBlacklist] = useState(INITIAL_BLACKLIST);
   const [activeAlert, setActiveAlert] = useState(null);
+  const [userNotifications, setUserNotifications] = useState([]);
+
+  const dismissNotification = (id) => {
+    setUserNotifications(prev => prev.filter(n => n.id !== id));
+  };
 
   // Keep localStorage in sync for tests and offline state
   useEffect(() => {
@@ -98,7 +103,30 @@ export const AppProvider = ({ children }) => {
         setReportsList(INITIAL_REPORTS);
       } else {
         reports.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-        setReportsList(reports);
+        
+        // NOTIFICATION LOGIC: Check for status changes on user's reports
+        setReportsList(prevList => {
+          if (prevList.length > 0) {
+            reports.forEach(newReport => {
+              const oldReport = prevList.find(r => r.id === newReport.id);
+              // 'rep_103' is the hardcoded reporterId for the Guest User
+              if (oldReport && oldReport.status !== newReport.status && newReport.reporterId === 'rep_103') {
+                setUserNotifications(prev => {
+                  // Prevent duplicate notifications for the same state change
+                  if (prev.some(n => n.reportId === newReport.id && n.newStatus === newReport.status)) return prev;
+                  return [{
+                    id: Date.now() + Math.random(),
+                    reportId: newReport.id,
+                    oldStatus: oldReport.status,
+                    newStatus: newReport.status,
+                    timestamp: new Date().toISOString()
+                  }, ...prev];
+                });
+              }
+            });
+          }
+          return reports;
+        });
       }
     }, (error) => {
       console.warn("⚠️ [Firestore] Could not connect to Cloud Database. (Check if Firestore Database is created in Test Mode in Firebase Console). Using local fallback.", error?.message);
@@ -219,8 +247,9 @@ export const AppProvider = ({ children }) => {
     reportsList, addReport, updateReportStatus,
     reputationProfiles, updateReputation,
     blacklist, addBlacklistItem,
-    activeAlert, addAlert
-  }), [reportsList, reputationProfiles, blacklist, activeAlert, addReport, updateReportStatus, updateReputation, addBlacklistItem, addAlert]);
+    activeAlert, addAlert,
+    userNotifications, dismissNotification
+  }), [reportsList, reputationProfiles, blacklist, activeAlert, userNotifications, addReport, updateReportStatus, updateReputation, addBlacklistItem, addAlert]);
 
   return (
     <AppContext.Provider value={contextValue}>
