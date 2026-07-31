@@ -1,4 +1,4 @@
-# ScamShield
+# Scam Away
 
 > [!IMPORTANT]
 > 📂 **Implementation Specification**: Detailed technical document available at [`implementation.md`](implementation.md)  
@@ -58,10 +58,12 @@ Follow these steps to get the project running locally.
 
 ## 🌟 Core Features
 
+- **Bilingual Interface (English & Bahasa Melayu)**: Real-time contextual translation across the entire application.
+- **Malaysian Voice Read Aloud (TTS)**: Dedicated Bahasa Melayu Voice Synthesis integration for elderly accessibility.
+- **Admin Bulk Actions & Moderation**: Single-column structured admin layout with deduplicated queue management and bulk archiving.
 - **Multi-Format Scam Checker**: Pasted text, screenshot upload (OCR simulation), QR camera scanner, URL/Phone checks.
 - **Explainable Evidence Breakdown**: Details exact social-engineering markers (urgency, credential harvesting, payment requests).
 - **Critical Blacklist Override**: Matching blacklisted accounts or numbers locks risk score to **85%+ (Critical)**.
-- **Admin Moderation & Threat Alerts**: Moderator verification queue and broadcast warnings.
 - **Interactive Regional Map**: State-wide incident mapping across Malaysia (Kuala Lumpur, Selangor, Johor, Penang, Perak).
 
 ---

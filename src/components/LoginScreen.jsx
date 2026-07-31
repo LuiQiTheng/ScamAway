@@ -16,7 +16,7 @@ export default function LoginScreen({ onLogin }) {
       fontFamily: "'Inter', sans-serif"
     }}>
 
-      <div style={{ width: '100%', maxWidth: '500px' }}>
+      <div style={{ width: '100%', maxWidth: '440px' }}>
         <div
           style={{
             display: "flex",
@@ -59,7 +59,7 @@ export default function LoginScreen({ onLogin }) {
           WebkitBackdropFilter: 'blur(16px)',
           border: '1px solid rgba(255, 255, 255, 0.08)',
           borderRadius: '24px',
-          padding: '3rem 2.5rem',
+          padding: '3rem 1.25rem',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
         }}>
 
@@ -80,15 +80,23 @@ export default function LoginScreen({ onLogin }) {
             <ShieldAlert size={32} color="#3b82f6" />
           </div>
           <h1 style={{ 
-            fontSize: '1.8rem', 
+            fontSize: 'clamp(1.18rem, 5.5vw, 1.6rem)', 
             fontWeight: 700, 
             color: '#fff', 
             marginBottom: '0.5rem',
-            letterSpacing: '-0.02em'
+            letterSpacing: '-0.02em',
+            whiteSpace: 'nowrap'
           }}>
             {t("login.welcome")}
           </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+          <p style={{ 
+            color: 'var(--text-secondary)', 
+            fontSize: 'clamp(0.80rem, 3.5vw, 0.92rem)',
+            whiteSpace: 'nowrap',
+            margin: '0 auto',
+            textAlign: 'center',
+            width: '100%'
+          }}>
             {t("login.subtitle")}
           </p>
         </div>
