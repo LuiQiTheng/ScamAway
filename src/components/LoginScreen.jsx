@@ -16,7 +16,7 @@ export default function LoginScreen({ onLogin }) {
       fontFamily: "'Inter', sans-serif"
     }}>
 
-      <div style={{ width: '100%', maxWidth: '420px' }}>
+      <div style={{ width: '100%', maxWidth: '500px' }}>
         <div
           style={{
             display: "flex",
