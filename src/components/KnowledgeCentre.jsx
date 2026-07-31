@@ -94,8 +94,7 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
     const matchesSearch = searchQuery === '' ||
       card.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       card.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      card.exampleMessage.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (card.exampleMessage_ms && card.exampleMessage_ms.toLowerCase().includes(searchQuery.toLowerCase()));
+      card.exampleMessage.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
@@ -108,6 +107,10 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
 
   const initialCardCount = isElderlyMode ? 1 : 2;
   const visibleCards = isLibraryExpanded ? sortedCards : sortedCards.slice(0, initialCardCount);
+  const remainingCards = Math.max(
+    filteredCards.length - initialCardCount,
+    0
+  );
 
   const currentQList = isCorrectionPhase ? wrongQuestions : dailyQuestions;
   const currentQ = currentQList[currentQuestionIdx];
@@ -314,7 +317,7 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
                 e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
               }}
             >
-              {lang === 'ms' ? "Mula Cabaran" : "Start Challenge"}
+              {t("knowledge.start_challenge")}
               <ChevronRight size={16} />
             </button>
           </div>
@@ -543,10 +546,10 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
                 </p>
 
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem', paddingLeft: '0.25rem', fontWeight: 600 }}>
-                  {lang === 'ms' ? 'Contoh Mesej / SMS:' : 'Example Message / SMS:'}
+                  {t("knowledge.example_message")}
                 </div>
                 <div style={{ background: '#050810', border: '1px dashed var(--border-color)', borderRadius: '8px', padding: '0.75rem', fontSize: '0.8rem', color: '#f1f5f9', fontStyle: 'italic', marginBottom: '1rem' }}>
-                  "{getCardText(card, 'exampleMessage')}"
+                  "{card.exampleMessage}"
                 </div>
               </div>
 
@@ -615,8 +618,8 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
             >
               <span>
                 {isLibraryExpanded 
-                  ? (lang === 'ms' ? "Tunjukkan Kurang" : "Show Less")
-                  : (lang === 'ms' ? `Tunjukkan Lebih Banyak (${filteredCards.length})` : `Show More (${filteredCards.length})`)}
+                  ? t("knowledge.show_less")
+                  : `${t("knowledge.show_more")} (${remainingCards})`}
               </span>
               {isLibraryExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
             </button>
@@ -675,7 +678,7 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
               <div>
                 <strong style={{ color: 'var(--primary)', fontSize: '0.85rem' }}>📱 {t('knowledge.evidence_sample')}:</strong>
                 <div style={{ background: '#050810', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '1rem', marginTop: '0.4rem', color: '#f1f5f9', fontSize: '0.9rem', fontStyle: 'italic' }}>
-                  "{getCardText(activeModalCard, 'exampleMessage')}"
+                  "{activeModalCard.exampleMessage}"
                 </div>
               </div>
 
