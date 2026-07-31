@@ -12,6 +12,7 @@ import {
 } from '../utils/rulesEngine';
 import { QUICK_TEST_PRESETS } from '../content/member2Content';
 import ReportModal from './ReportModal';
+import GuardianAlertModal from "../components/Guardian/GuardianAlertModal";
 import { useAppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import Tesseract from 'tesseract.js';
@@ -24,8 +25,6 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
   const [activeTab, setActiveTab] = useState('text'); // text, screenshot, qr, url
   const [inputText, setInputText] = useState('');
   const [urlInput, setUrlInput] = useState('');
-  const [urlError, setUrlError] = useState('');
-  const [isUrlInvalid, setIsUrlInvalid] = useState(false);
   const [phoneInput, setPhoneInput] = useState('');
   const [qrInput, setQrInput] = useState('');
   const [qrScannerEnabled, setQrScannerEnabled] = useState(false);
@@ -47,6 +46,9 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
 
   // Checklist state
   const [checkedActions, setCheckedActions] = useState({});
+
+  // Guardian Alert Modal
+  const [showGuardianAlert, setShowGuardianAlert] = useState(false);
 
   // Reset checked actions on new scan
   useEffect(() => {
@@ -155,7 +157,15 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
         lang: lang
       });
 
-      setScanResult(res);
+     setScanResult(res);
+
+      if (
+        res.bandColor === "high" ||
+        res.bandColor === "critical"
+      ) {
+        setShowGuardianAlert(true);
+      }
+
       setIsScanning(false);
     }, steps.length * 150 + 200);
   };
@@ -173,40 +183,8 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
   };
 
   const handleScanUrl = () => {
-    const raw = urlInput.trim();
-    if (!raw) {
-      setUrlError(t('scanner.empty_url_error'));
-      setIsUrlInvalid(true);
-      setScanResult(null);
-      return;
-    }
-
-    let formatted = raw;
-    if (!/^https?:\/\//i.test(formatted)) {
-      formatted = 'https://' + formatted;
-    }
-
-    let isValid = false;
-    try {
-      const parsed = new URL(formatted);
-      const host = parsed.hostname;
-      const domainRegex = /^([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$/i;
-      isValid = domainRegex.test(host);
-    } catch (e) {
-      isValid = false;
-    }
-
-    if (!isValid) {
-      setUrlError(t('scanner.invalid_url_detailed_error'));
-      setIsUrlInvalid(true);
-      setScanResult(null);
-      return;
-    }
-
-    setUrlInput(formatted);
-    setUrlError('');
-    setIsUrlInvalid(false);
-    const combinedText = `Url check request: ${formatted}. Phone info: ${phoneInput || 'none'}`;
+    if (!urlInput.trim()) return;
+    const combinedText = `Url check request: ${urlInput}. Phone info: ${phoneInput || 'none'}`;
     triggerScanAnimation(combinedText);
   };
 
@@ -589,23 +567,10 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                   id="url-check-input"
                   type="text"
                   value={urlInput}
-                  onChange={(e) => {
-                    setUrlInput(e.target.value);
-                    if (urlError || isUrlInvalid) {
-                      setUrlError('');
-                      setIsUrlInvalid(false);
-                    }
-                  }}
+                  onChange={(e) => setUrlInput(e.target.value)}
                   className="input-field"
-                  style={isUrlInvalid ? { borderColor: '#ff4d4d', boxShadow: '0 0 0 2px rgba(255, 77, 77, 0.25)' } : {}}
                   placeholder={t("scanner.url_placeholder")}
                 />
-                {urlError && (
-                  <div role="alert" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ff4d4d', fontSize: '0.85rem', background: 'rgba(255, 77, 77, 0.1)', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid rgba(255, 77, 77, 0.3)', marginTop: '0.25rem' }}>
-                    <AlertCircle size={16} />
-                    <span>{urlError}</span>
-                  </div>
-                )}
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -698,7 +663,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <strong style={{ color: '#fff', fontSize: '0.9rem' }}>⚠️ {exp.label}</strong>
-                      {exp.weight && <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{t('result.weight')}: +{exp.weight}</span>}
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{t('result.weight')}: +{exp.weight}%</span>
                       </div>
                       <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>{exp.text}</p>
                     </div>
@@ -766,7 +731,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                 {t('result.report_scam_btn')}
               </button>
               <button
-                onClick={() => { setScanResult(null); setInputText(''); setUrlInput(''); setPhoneInput(''); setQrInput(''); setSelectedDemoScreenshot(''); setCustomScreenshotName(null); }}
+                onClick={() => { setScanResult(null); setInputText(''); setUrlInput(''); setPhoneInput(''); setQrInput(''); setSelectedDemoScreenshot(''); setCustomScreenshotName(null); setShowGuardianAlert(false);}}
                 className="btn-secondary"
                 style={{ flex: 1 }}
               >
@@ -786,6 +751,14 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
         scanResult={scanResult}
         originalText={textToReport}
         onSubmitReport={addReport}
+      />
+
+      <GuardianAlertModal
+        isOpen={showGuardianAlert}
+        guardianName="Tan Yee Xing"
+        //future: pass in guardianName from context or props
+        //use this: guardianName={currentUser.guardianName}
+        onClose={() => setShowGuardianAlert(false)}
       />
 
     </div>

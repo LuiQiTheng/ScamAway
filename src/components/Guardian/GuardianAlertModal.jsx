@@ -1,8 +1,11 @@
 import React from "react";
 import { ShieldAlert, TriangleAlert, CircleCheck } from "lucide-react";
+import { useLanguage } from "../../context/LanguageContext";
 
 export default function GuardianAlertModal({ isOpen, guardianName, onClose }) {
   if (!isOpen) return null;
+
+  const { t } = useLanguage();
 
   return (
     <div
@@ -64,7 +67,7 @@ export default function GuardianAlertModal({ isOpen, guardianName, onClose }) {
               margin: 0,
             }}
           >
-            Guardian Protection Activated
+            {t("guardian.alert.title")}
           </h2>
 
           <p
@@ -76,7 +79,7 @@ export default function GuardianAlertModal({ isOpen, guardianName, onClose }) {
               maxWidth: "380px",
             }}
           >
-            Your safety is our priority.
+            {t("guardian.alert.description")}
           </p>
         </div>
 
@@ -113,7 +116,7 @@ export default function GuardianAlertModal({ isOpen, guardianName, onClose }) {
               }}
             >
               <TriangleAlert size={18} style={{ color: "#ff6b6b" }} />
-              High Risk Scam Detected
+              {t("guardian.alert.high_risk")}
             </div>
 
             <p
@@ -124,9 +127,7 @@ export default function GuardianAlertModal({ isOpen, guardianName, onClose }) {
                 margin: 0,
               }}
             >
-              Our AI has identified this content as a high-risk scam. Your
-              registered guardian has already been notified to help keep you
-              safe.
+              {t("guardian.alert.high_risk_desc")}
             </p>
           </div>
 
@@ -151,7 +152,7 @@ export default function GuardianAlertModal({ isOpen, guardianName, onClose }) {
                 fontWeight: 500,
               }}
             >
-              Guardian Status
+              {t("guardian.alert.status")}
             </div>
 
             <div
@@ -165,7 +166,7 @@ export default function GuardianAlertModal({ isOpen, guardianName, onClose }) {
               }}
             >
               <CircleCheck size={16} style={{ color: "var(--primary)" }} />
-              Notification Sent Successfully
+              {t("guardian.alert.sent")}
             </div>
 
             {guardianName && (
@@ -178,7 +179,7 @@ export default function GuardianAlertModal({ isOpen, guardianName, onClose }) {
                   color: "var(--text-secondary)",
                 }}
               >
-                Notification sent to{" "}
+                {t("guardian.alert.sent_to")}{" "}
                 <span
                   style={{ color: "var(--text-primary)", fontWeight: 500 }}
                 >
@@ -197,7 +198,7 @@ export default function GuardianAlertModal({ isOpen, guardianName, onClose }) {
               margin: 0,
             }}
           >
-            Please stop interacting with this content immediately.
+            {t("guardian.alert.stop")}
           </p>
         </div>
 
@@ -213,7 +214,7 @@ export default function GuardianAlertModal({ isOpen, guardianName, onClose }) {
             onClick={onClose}
             style={{ width: "100%" }}
           >
-            Return Home
+            {t("guardian.alert.return")}
           </button>
         </div>
       </div>

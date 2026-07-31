@@ -174,6 +174,28 @@ const translations = {
       "Phone number is required.",
     "guardian.errors.phone_invalid":
       "Please enter a valid phone number.",
+
+    "guardian.alert.title": "Guardian Protection Activated",
+    "guardian.alert.description": "Your safety is our priority.",
+
+    "guardian.alert.high_risk": "High Risk Scam Detected",
+
+    "guardian.alert.high_risk_desc":
+      "Our AI has identified this content as a high-risk scam. Your registered guardian has already been notified to help keep you safe.",
+
+    "guardian.alert.status": "Guardian Status",
+
+    "guardian.alert.sent": "Notification Sent Successfully",
+
+    "guardian.alert.sent_to": "Notification sent to",
+
+    "guardian.alert.stop":
+      "Please stop interacting with this content immediately.",
+
+    "guardian.alert.return": "Return Home",
+
+    "guardian.alert.high_risk_desc":
+      "Our AI has identified this content as a high-risk scam. Your registered guardian has already been notified to help keep you safe.",
       
     // Profile
     "profile.title": "My Reports & Tracking",
@@ -509,6 +531,30 @@ const translations = {
 
     "guardian.errors.phone_invalid":
       "Sila masukkan nombor telefon yang sah.",
+
+    "guardian.alert.title": "Perlindungan Penjaga Diaktifkan",
+
+    "guardian.alert.description":
+      "Keselamatan anda adalah keutamaan kami.",
+
+    "guardian.alert.high_risk": "Scam Berisiko Tinggi Dikesan",
+
+    "guardian.alert.high_risk_desc":
+      "AI kami telah mengenal pasti kandungan ini sebagai scam berisiko tinggi. Penjaga berdaftar anda telah dimaklumkan untuk membantu memastikan keselamatan anda.",
+
+    "guardian.alert.status": "Status Penjaga",
+
+    "guardian.alert.sent": "Pemberitahuan Berjaya Dihantar",
+
+    "guardian.alert.sent_to": "Pemberitahuan dihantar kepada",
+
+    "guardian.alert.stop":
+      "Sila hentikan semua interaksi dengan kandungan ini dengan segera.",
+
+    "guardian.alert.return": "Kembali ke Laman Utama",
+    
+    "guardian.alert.high_risk_desc":
+      "AI kami telah mengenal pasti kandungan ini sebagai scam berisiko tinggi. Penjaga berdaftar anda telah dimaklumkan untuk membantu memastikan keselamatan anda.",
 
     // Profile
     "profile.title": "Laporan & Penjejakan Saya",
