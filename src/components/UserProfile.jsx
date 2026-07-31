@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
+import GuardianSetupModal from "../components/Guardian/GuardianSetupModal";
 import { Bell, BellOff, CheckCircle, XCircle, Clock, Trash2, Check, MailOpen, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react';
 
 export default function UserProfile({ userMode = 'normal', isElderlyMode = false, isKidMode = false }) {
@@ -9,7 +10,7 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
   const [myReports, setMyReports] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [isNotificationsExpanded, setIsNotificationsExpanded] = useState(false);
-
+  
   // SessionStorage states for read and deleted notifications
   const [readIds, setReadIds] = useState(() => {
     try {
@@ -27,6 +28,15 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
     } catch (e) {
       return [];
     }
+  });
+
+  const [isGuardianModalOpen, setIsGuardianModalOpen] = useState(false);
+  const [guardianMode, setGuardianMode] = useState("edit");
+
+  const [guardian, setGuardian] = useState({
+      name: "Tan Ah Beng",
+      relationship: "Father",
+      phone: "+60 12-3456789"
   });
 
   useEffect(() => {
@@ -386,6 +396,51 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
         </table>
         </div>
       </div>
+
+      {/* Guardian Settings Card */}
+      <div
+        className="glass-panel"
+        style={{ padding: "1.25rem 1.75rem", marginTop: "0.25rem" }}
+      >
+        <h2
+          style={{
+            fontSize: isElderlyMode ? "1.6rem" : "1.35rem",
+            fontWeight: 700,
+            color: "#fff",
+            marginBottom: "0.75rem",
+          }}
+        >
+          🛡️ Guardian Settings
+        </h2>
+
+        <p
+          style={{
+            color: "var(--text-secondary)",
+            marginBottom: "1.25rem",
+            fontSize: "0.9rem",
+          }}
+        >
+          Manage your trusted guardian information for emergency protection.
+        </p>
+
+        <button
+          className="btn-primary"
+          onClick={() => setIsGuardianModalOpen(true)}
+        >
+          Edit Guardian
+        </button>
+      </div>
+
+      <GuardianSetupModal
+        isOpen={isGuardianModalOpen}
+        onClose={() => setIsGuardianModalOpen(false)}
+        guardian={guardian}
+        mode="edit"
+        onSave={(updatedGuardian) => {
+          setGuardian(updatedGuardian);
+          setIsGuardianModalOpen(false);
+        }}
+      />
     </div>
   );
 }

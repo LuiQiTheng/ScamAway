@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ShieldCheck, UserRound, Phone, Users } from "lucide-react";
 
 const RELATIONSHIP_OPTIONS = [
@@ -14,11 +14,25 @@ const RELATIONSHIP_OPTIONS = [
 
 const PHONE_REGEX = /^[+]?[\d\s()-]{7,15}$/;
 
-export default function GuardianSetupModal({ isOpen, onClose, onSave }) {
-  const [name, setName] = useState("");
-  const [relationship, setRelationship] = useState("");
-  const [phone, setPhone] = useState("");
+export default function GuardianSetupModal({
+  isOpen,
+  onClose,
+  onSave,
+  guardian = null,
+  mode = "create",
+}) {
+  const [name, setName] = useState(guardian?.name || "");
+  const [relationship, setRelationship] = useState(
+    guardian?.relationship || ""
+  );
+  const [phone, setPhone] = useState(guardian?.phone || "");
   const [errors, setErrors] = useState({});
+  useEffect(() => {
+    setName(guardian?.name || "");
+    setRelationship(guardian?.relationship || "");
+    setPhone(guardian?.phone || "");
+    setErrors({});
+  }, [guardian, isOpen]);
 
   if (!isOpen) return null;
 
@@ -62,7 +76,7 @@ export default function GuardianSetupModal({ isOpen, onClose, onSave }) {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: "24px",
+        padding: "80px 24px 24px",
         background: "rgba(0, 0, 0, 0.65)",
         backdropFilter: "blur(6px)",
         WebkitBackdropFilter: "blur(6px)",
@@ -73,9 +87,9 @@ export default function GuardianSetupModal({ isOpen, onClose, onSave }) {
         style={{
           width: "100%",
           maxWidth: "480px",
-          maxHeight: "90vh",
+          maxHeight: "calc(100vh - 120px)",
           overflowY: "auto",
-          padding: "32px",
+          padding: "24px",
           position: "relative",
           borderRadius: "20px",
         }}
@@ -87,7 +101,7 @@ export default function GuardianSetupModal({ isOpen, onClose, onSave }) {
             alignItems: "center",
             textAlign: "center",
             gap: "12px",
-            marginBottom: "28px",
+            marginBottom: "20px",
           }}
         >
           <div
@@ -114,7 +128,9 @@ export default function GuardianSetupModal({ isOpen, onClose, onSave }) {
               margin: 0,
             }}
           >
-            Guardian Protection
+            {mode === "create"
+              ? "Guardian Protection"
+              : "Edit Guardian"}
           </h2>
 
           <p
@@ -126,10 +142,9 @@ export default function GuardianSetupModal({ isOpen, onClose, onSave }) {
               maxWidth: "380px",
             }}
           >
-            Kid Mode and Elderly Mode require a trusted guardian on file. This
-            allows ScamShield AI to alert someone the user trusts if a scam
-            attempt is detected. Registration is mandatory and takes less
-            than a minute — you can continue once it's saved.
+            {mode === "create"
+              ? "Kid Mode and Elderly Mode require a trusted guardian on file. This allows ScamShield AI to alert someone the user trusts if a scam attempt is detected."
+              : "Update your guardian information below. Make sure the contact details are always up to date."}
           </p>
         </div>
 
@@ -260,7 +275,7 @@ export default function GuardianSetupModal({ isOpen, onClose, onSave }) {
             onClick={handleSave}
             style={{ width: "100%" }}
           >
-            Save Guardian
+            {mode === "create" ? "Add Guardian" : "Update Guardian"}
           </button>
         </div>
       </div>
