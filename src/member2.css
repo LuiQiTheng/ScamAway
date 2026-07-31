@@ -341,20 +341,22 @@
   position: fixed;
   inset: 0;
   z-index: 100;
-  display: grid;
-  place-items: center;
-  padding: 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 2rem 1rem;
   background: rgba(3, 6, 14, 0.84);
   backdrop-filter: blur(8px);
+  overflow-y: auto;
 }
 
 .report-modal {
   position: relative;
   width: min(620px, 100%);
-  max-height: min(90vh, 780px);
-  overflow-y: auto;
+  margin: auto;
   padding: clamp(1.25rem, 4vw, 2rem);
   background: #0b111f;
+  box-sizing: border-box;
 }
 
 .report-modal-close {

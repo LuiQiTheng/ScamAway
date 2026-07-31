@@ -398,34 +398,33 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
       </div>
 
       {/* Guardian Settings Card */}
-      <div
-        className="glass-panel"
-        style={{ padding: "1.25rem 1.75rem", marginTop: "0.25rem" }}
-      >
-        <h2
-          style={{
-            fontSize: isElderlyMode ? "1.6rem" : "1.35rem",
-            fontWeight: 700,
-            color: "#fff",
-            marginBottom: "0.75rem",
-          }}
-        >
-          🛡️ {t("guardian.settings")}
-        </h2>
-
-        <p
-          style={{
-            color: "var(--text-secondary)",
-            marginBottom: "1.25rem",
-            fontSize: "0.9rem",
-          }}
-        >
-          {t("guardian.settings_desc")}
-        </p>
+      <div className="glass-panel guardian-settings-card">
+        <div className="guardian-settings-text">
+          <h2
+            style={{
+              fontSize: isElderlyMode ? "1.6rem" : "1.35rem",
+              fontWeight: 700,
+              color: "#fff",
+              marginBottom: "0.5rem"
+            }}
+          >
+            🛡️ {t("guardian.settings")}
+          </h2>
+          <p
+            style={{
+              color: "var(--text-secondary)",
+              margin: 0,
+              fontSize: "0.9rem",
+            }}
+          >
+            {t("guardian.settings_desc")}
+          </p>
+        </div>
 
         <button
           className="btn-primary"
           onClick={() => setIsGuardianModalOpen(true)}
+          style={{ flexShrink: 0 }}
         >
           {t("guardian.edit")}
         </button>

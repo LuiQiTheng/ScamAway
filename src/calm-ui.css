@@ -442,6 +442,30 @@ button:active:not(:disabled) {
   to { opacity: 1; transform: translateY(0); }
 }
 
+.guardian-settings-card {
+  padding: 1.25rem 1.75rem;
+  margin-top: 0.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.guardian-settings-text {
+  flex: 1;
+}
+
+@media (max-width: 600px) {
+  .guardian-settings-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  .guardian-settings-card .btn-primary {
+    width: 100%;
+  }
+}
+
 @media (max-width: 1023px) {
   .knowledge-card-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
