@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ShieldCheck, UserRound, Phone, Users } from "lucide-react";
+import { useLanguage } from "../../context/LanguageContext";
 
 const RELATIONSHIP_OPTIONS = [
   "Father",
@@ -21,6 +22,7 @@ export default function GuardianSetupModal({
   guardian = null,
   mode = "create",
 }) {
+  const { t } = useLanguage();
   const [name, setName] = useState(guardian?.name || "");
   const [relationship, setRelationship] = useState(
     guardian?.relationship || ""
@@ -40,17 +42,19 @@ export default function GuardianSetupModal({
     const nextErrors = {};
 
     if (!name.trim()) {
-      nextErrors.name = "Guardian name is required.";
+      nextErrors.name = t("guardian.errors.name_required");
     }
 
     if (!relationship) {
-      nextErrors.relationship = "Please select a relationship.";
+      nextErrors.relationship = t("guardian.errors.relationship_required");
     }
 
     if (!phone.trim()) {
-      nextErrors.phone = "Phone number is required.";
-    } else if (!PHONE_REGEX.test(phone.trim())) {
-      nextErrors.phone = "Please enter a valid phone number.";
+      nextErrors.phone = t("guardian.errors.phone_required");
+    } 
+    
+    else if (!PHONE_REGEX.test(phone.trim())) {
+      nextErrors.phone = t("guardian.errors.phone_invalid");
     }
 
     setErrors(nextErrors);
@@ -129,8 +133,8 @@ export default function GuardianSetupModal({
             }}
           >
             {mode === "create"
-              ? "Guardian Protection"
-              : "Edit Guardian"}
+              ? t("guardian.create")
+              : t("guardian.edit")}
           </h2>
 
           <p
@@ -143,8 +147,8 @@ export default function GuardianSetupModal({
             }}
           >
             {mode === "create"
-              ? "Kid Mode and Elderly Mode require a trusted guardian on file. This allows ScamShield AI to alert someone the user trusts if a scam attempt is detected."
-              : "Update your guardian information below. Make sure the contact details are always up to date."}
+              ? t("guardian.create_desc")
+              : t("guardian.edit_desc")}
           </p>
         </div>
 
@@ -162,12 +166,12 @@ export default function GuardianSetupModal({
               }}
             >
               <UserRound size={16} style={{ color: "var(--primary)" }} />
-              Guardian Full Name
+              {t("guardian.name")}
             </label>
             <input
               type="text"
               className="input-field"
-              placeholder="Enter guardian's full name"
+              placeholder={t("guardian.name_placeholder")}
               value={name}
               onChange={(e) => setName(e.target.value)}
               style={{ width: "100%" }}
@@ -198,7 +202,7 @@ export default function GuardianSetupModal({
               }}
             >
               <Users size={16} style={{ color: "var(--primary)" }} />
-              Relationship
+              {t("guardian.relationship")}
             </label>
             <select
               className="input-field"
@@ -206,10 +210,10 @@ export default function GuardianSetupModal({
               onChange={(e) => setRelationship(e.target.value)}
               style={{ width: "100%" }}
             >
-              <option value="">Select relationship</option>
+              <option value=""> {t("guardian.select_relationship")} </option>
               {RELATIONSHIP_OPTIONS.map((option) => (
                 <option key={option} value={option}>
-                  {option}
+                  {t(`guardian.relationships.${option}`)}
                 </option>
               ))}
             </select>
@@ -239,12 +243,12 @@ export default function GuardianSetupModal({
               }}
             >
               <Phone size={16} style={{ color: "var(--primary)" }} />
-              Phone Number
+              {t("guardian.phone")}
             </label>
             <input
               type="tel"
               className="input-field"
-              placeholder="e.g. +60 12-345 6789"
+              placeholder={t("guardian.phone_placeholder")}
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               style={{ width: "100%" }}
@@ -275,7 +279,7 @@ export default function GuardianSetupModal({
             onClick={handleSave}
             style={{ width: "100%" }}
           >
-            {mode === "create" ? "Add Guardian" : "Update Guardian"}
+            {mode === "create" ? t("guardian.add") : t("guardian.update")}
           </button>
         </div>
       </div>

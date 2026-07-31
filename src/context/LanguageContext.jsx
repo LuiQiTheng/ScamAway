@@ -132,6 +132,49 @@ const translations = {
     "result.scan_another_btn": "Scan Another Content",
     "result.weight": "Signal weight",
 
+    // Guardian
+    "guardian.settings": "Guardian Settings",
+    "guardian.settings_desc":
+      "Manage your trusted guardian information for emergency protection.",
+
+    "guardian.create": "Add Guardian",
+    "guardian.edit": "Edit Guardian",
+
+    "guardian.create_desc":
+      "Add a trusted guardian for emergency notifications.",
+
+    "guardian.edit_desc":
+      "Update your trusted guardian information.",
+
+    "guardian.add": "Add Guardian",
+    "guardian.update": "Update Guardian",
+
+    "guardian.name": "Guardian Name",
+    "guardian.name_placeholder": "Enter guardian name",
+
+    "guardian.relationship": "Relationship",
+    "guardian.select_relationship": "Select relationship",
+
+    "guardian.phone": "Phone Number",
+    "guardian.phone_placeholder": "Enter phone number",
+
+    "guardian.relationships.Father": "Father",
+    "guardian.relationships.Mother": "Mother",
+    "guardian.relationships.Son": "Son",
+    "guardian.relationships.Daughter": "Daughter",
+    "guardian.relationships.Sibling": "Sibling",
+    "guardian.relationships.Relative": "Relative",
+    "guardian.relationships.Caregiver": "Caregiver",
+    "guardian.relationships.Other": "Other",
+
+    "guardian.errors.name_required": "Guardian name is required.",
+    "guardian.errors.relationship_required":
+      "Please select a relationship.",
+    "guardian.errors.phone_required":
+      "Phone number is required.",
+    "guardian.errors.phone_invalid":
+      "Please enter a valid phone number.",
+      
     // Profile
     "profile.title": "My Reports & Tracking",
     "profile.status": "Status",
@@ -410,6 +453,62 @@ const translations = {
     "result.report_scam_btn": "Lapor Scam & Maklum Komuniti",
     "result.scan_another_btn": "Imbas Kandungan Lain",
     "result.weight": "Pemberat isyarat",
+
+    // Guardian
+    "guardian.settings": "Tetapan Penjaga",
+
+    "guardian.settings_desc":
+      "Urus maklumat penjaga yang dipercayai untuk perlindungan kecemasan.",
+
+    "guardian.create": "Tambah Penjaga",
+
+    "guardian.edit": "Kemas Kini Penjaga",
+
+    "guardian.create_desc":
+      "Tambah penjaga yang dipercayai untuk kecemasan.",
+
+    "guardian.edit_desc":
+      "Kemas kini maklumat penjaga anda.",
+
+    "guardian.add": "Tambah Penjaga",
+
+    "guardian.update": "Kemas Kini Penjaga",
+
+    "guardian.name": "Nama Penjaga",
+
+    "guardian.name_placeholder":
+      "Masukkan nama penjaga",
+
+    "guardian.relationship": "Hubungan",
+
+    "guardian.select_relationship":
+      "Pilih hubungan",
+
+    "guardian.phone": "Nombor Telefon",
+
+    "guardian.phone_placeholder":
+      "Masukkan nombor telefon",
+
+    "guardian.relationships.Father": "Bapa",
+    "guardian.relationships.Mother": "Ibu",
+    "guardian.relationships.Son": "Anak Lelaki",
+    "guardian.relationships.Daughter": "Anak Perempuan",
+    "guardian.relationships.Sibling": "Adik-beradik",
+    "guardian.relationships.Relative": "Saudara",
+    "guardian.relationships.Caregiver": "Penjaga",
+    "guardian.relationships.Other": "Lain-lain",
+
+    "guardian.errors.name_required":
+      "Nama penjaga diperlukan.",
+
+    "guardian.errors.relationship_required":
+      "Sila pilih hubungan.",
+
+    "guardian.errors.phone_required":
+      "Nombor telefon diperlukan.",
+
+    "guardian.errors.phone_invalid":
+      "Sila masukkan nombor telefon yang sah.",
 
     // Profile
     "profile.title": "Laporan & Penjejakan Saya",

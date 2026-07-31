@@ -410,7 +410,7 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
             marginBottom: "0.75rem",
           }}
         >
-          🛡️ Guardian Settings
+          🛡️ {t("guardian.settings")}
         </h2>
 
         <p
@@ -420,14 +420,14 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
             fontSize: "0.9rem",
           }}
         >
-          Manage your trusted guardian information for emergency protection.
+          {t("guardian.settings_desc")}
         </p>
 
         <button
           className="btn-primary"
           onClick={() => setIsGuardianModalOpen(true)}
         >
-          Edit Guardian
+          {t("guardian.edit")}
         </button>
       </div>
 
