@@ -26,6 +26,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
   const [inputText, setInputText] = useState('');
   const [urlInput, setUrlInput] = useState('');
   const [urlError, setUrlError] = useState('');
+  const [isUrlInvalid, setIsUrlInvalid] = useState(false);
   const [phoneInput, setPhoneInput] = useState('');
   const [qrInput, setQrInput] = useState('');
   const [qrScannerEnabled, setQrScannerEnabled] = useState(false);
@@ -184,19 +185,51 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
   };
 
   const handleScanUrl = () => {
-    if (!urlInput.trim()) return;
+    const raw = urlInput.trim();
 
-    // Basic URL validation pattern
-    const urlPattern = /^(https?:\/\/)?([\w\-]+\.)+[\w\-]+(\/[\w\-.\/?%&=]*)?$/i;
-    if (!urlPattern.test(urlInput.trim())) {
-      setUrlError(lang === 'ms' ? "Format URL tidak sah. Sila masukkan URL yang betul." : "Invalid URL format. Please enter a valid URL.");
-      return;
+    if (!raw) {
+        setUrlError(t("scanner.empty_url_error"));
+        setIsUrlInvalid(true);
+        setScanResult(null);
+        return;
     }
 
-    setUrlError('');
-    const combinedText = `Url check request: ${urlInput}. Phone info: ${phoneInput || 'none'}`;
+    let formatted = raw;
+
+    if (!/^https?:\/\//i.test(formatted)) {
+        formatted = "https://" + formatted;
+    }
+
+    let isValid = false;
+
+    try {
+        const parsed = new URL(formatted);
+        const host = parsed.hostname;
+
+        const domainRegex = /^([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$/i;
+
+        isValid = domainRegex.test(host);
+    } catch {
+        isValid = false;
+    }
+
+    if (!isValid) {
+        setUrlError(t("scanner.invalid_url_detailed_error"));
+        setIsUrlInvalid(true);
+        setScanResult(null);
+        return;
+    }
+
+    setUrlInput(formatted);
+
+    setUrlError("");
+    setIsUrlInvalid(false);
+
+    const combinedText =
+      `Url check request: ${formatted}. Phone info: ${phoneInput || "none"}`;
+
     triggerScanAnimation(combinedText);
-  };
+};
 
   const handleSelectDemoScreenshot = (key) => {
     if (!key) return;
@@ -272,26 +305,25 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
       ${scanResult.recommendedActions.join('. ')}
     `;
 
-    stopSpeech();
-    setIsPlayingAudio(true);
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel(); // Cancel any existing speech
+      const utterance = new SpeechSynthesisUtterance(textToSpeak);
+      utterance.lang = lang === 'ms' ? 'ms-MY' : 'en-US';
+      utterance.rate = isElderlyMode ? 0.85 : 1.0; // Slower for elderly
+      utterance.onend = () => setIsPlayingAudio(false);
+      utterance.onerror = () => setIsPlayingAudio(false);
 
-    if (window.responsiveVoice) {
-      // ResponsiveVoice groups the Malay phonetic engine under the 'Indonesian' language tag.
-      const voiceName = lang === 'ms' ? "Indonesian Female" : "US English Female";
-      window.responsiveVoice.speak(textToSpeak.trim(), voiceName, {
-        onend: () => setIsPlayingAudio(false),
-        onerror: () => setIsPlayingAudio(false),
-        rate: isElderlyMode ? 0.9 : 1.0
-      });
+      speechRef.current = utterance;
+      setIsPlayingAudio(true);
+      window.speechSynthesis.speak(utterance);
     } else {
-      alert("TTS Engine is currently unavailable.");
-      setIsPlayingAudio(false);
+      alert("Text-to-speech is not supported in this browser.");
     }
   };
 
   const stopSpeech = () => {
-    if (window.responsiveVoice) {
-      window.responsiveVoice.cancel();
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
     }
     setIsPlayingAudio(false);
   };
@@ -318,8 +350,8 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
         }}>
           <AlertCircle size={28} color="var(--color-high)" style={{ flexShrink: 0, marginTop: '2px' }} />
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <span className="badge badge-high" style={{ padding: '0.15rem 0.6rem', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{t('scanner.alert_badge')}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span className="badge badge-high" style={{ padding: '0.1rem 0.5rem', fontSize: '0.7rem' }}>{t('scanner.alert_badge')}</span>
               <strong style={{ color: '#fff', fontSize: isElderlyMode ? '1.2rem' : '0.95rem' }}>{t('scanner.alert_title')}</strong>
             </div>
             <p style={{ color: '#fca5a5', marginTop: '0.25rem', fontSize: isElderlyMode ? '1.15rem' : '0.85rem' }}>
@@ -578,11 +610,46 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                   id="url-check-input"
                   type="text"
                   value={urlInput}
-                  onChange={(e) => { setUrlInput(e.target.value); setUrlError(''); }}
-                  className={`input-field ${urlError ? 'input-error' : ''}`}
+                  onChange={(e) => {
+                      setUrlInput(e.target.value);
+
+                      if (urlError || isUrlInvalid) {
+                          setUrlError("");
+                          setIsUrlInvalid(false);
+                      }
+                  }}
+                  className="input-field"
+                  style={
+                      isUrlInvalid
+                          ? {
+                              borderColor: "#ff4d4d",
+                              boxShadow: "0 0 0 2px rgba(255,77,77,.25)"
+                          }
+                          : {}
+                  }
                   placeholder={t("scanner.url_placeholder")}
                 />
-                {urlError && <span style={{ color: 'var(--danger-color)', fontSize: '0.85rem', marginTop: '-4px' }}>{urlError}</span>}
+
+                {urlError && (
+                    <div
+                      role="alert"
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        color: "#ff4d4d",
+                        fontSize: "0.85rem",
+                        background: "rgba(255,77,77,0.1)",
+                        padding: "0.65rem 0.85rem",
+                        borderRadius: "8px",
+                        border: "1px solid rgba(255,77,77,0.3)",
+                        marginTop: "0.5rem"
+                      }}
+                    >
+                      <AlertCircle size={16} />
+                      <span>{urlError}</span>
+                    </div>
+                  )}
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
