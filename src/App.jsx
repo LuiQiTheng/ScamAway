@@ -8,6 +8,7 @@ import KnowledgeCentre from './components/KnowledgeCentre';
 import UserProfile from './components/UserProfile';
 import TrendsDashboard from './components/TrendsDashboard';
 import LoginScreen from './components/LoginScreen';
+import EmergencyHelp from './components/EmergencyHelp';
 
 export default function App() {
   const { userNotifications, dismissNotification } = useAppContext();
@@ -291,6 +292,9 @@ export default function App() {
         </div>
         <p>{t('app.footer_desc')}</p>
       </footer>
+
+      {/* GLOBAL FLOATING EMERGENCY HELP ASSISTANT */}
+      {userRole !== 'admin' && <EmergencyHelp />}
     </div>
   );
 }

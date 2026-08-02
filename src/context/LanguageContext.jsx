@@ -443,6 +443,93 @@ const translations = {
     "common.close": "Close",
     "common.loading": "Processing...",
 
+    // Emergency Help Feature
+    "emergency.btn_label": "Emergency Help",
+    "emergency.modal_title": "🆘 Emergency Help",
+    "emergency.modal_subtitle": "What happened? Select the situation that best matches your problem.",
+    "emergency.back": "← Back to Options",
+    "emergency.close": "Close",
+
+    // Options
+    "emergency.opt_money": "💸 I Sent Money to a Scammer",
+    "emergency.opt_otp": "🔑 I Shared My OTP",
+    "emergency.opt_link": "🌐 I Clicked a Suspicious Link",
+    "emergency.opt_apk": "📲 I Installed a Suspicious App (APK)",
+    "emergency.opt_call": "📱 I Received a Scam Call",
+    "emergency.opt_msg": "💬 I Received a Suspicious Message",
+    "emergency.opt_banks": "🏦 Contact My Bank",
+    "emergency.opt_contacts": "☎️ Emergency Contacts",
+
+    // Checklist Header
+    "emergency.prep_title": "📋 Prepare Before Contacting Authorities",
+    "emergency.prep_desc": "Before contacting your bank or making a police report, prepare:",
+    "emergency.prep_item_tx": "Transaction reference number",
+    "emergency.prep_item_date": "Date and time of incident",
+    "emergency.prep_item_phone": "Scam phone number or caller ID",
+    "emergency.prep_item_url": "Scam website link or URL",
+    "emergency.prep_item_screens": "Screenshots of conversation/receipts",
+    "emergency.prep_item_account": "Bank account number (if applicable)",
+    "emergency.prep_item_device": "Device model and OS version",
+    "emergency.prep_item_appname": "Name of the suspicious application (if known)",
+
+    // Agency Descriptions
+    "emergency.agency_nsrc_desc": "Primary national contact for victims of online financial scams. Contact NSRC immediately if you have transferred money to a scammer.",
+    "emergency.agency_mcmc_desc": "Report suspicious websites, scam messages, fake online advertisements, or communication-related scams.",
+    "emergency.agency_mycert_desc": "Assists with cybersecurity incidents, malicious websites, phishing attacks, malware infections, hacked accounts, and other computer security incidents.",
+    "emergency.agency_notice": "If you believe you have become a victim of a scam, contact the appropriate authority immediately. Acting quickly can improve the chances of limiting financial losses.",
+
+    // Guidance Titles & Explanations
+    "emergency.guide_money_title": "💸 Money Transferred to a Scammer",
+    "emergency.guide_money_desc": "Take immediate action to stop further loss and report the transaction.",
+    "emergency.guide_money_step1": "1. Call NSRC at 997 immediately (operating 8am - 8pm daily) to request a fund freeze across banks.",
+    "emergency.guide_money_step2": "2. Call your bank's 24/7 fraud hotline to suspend your online banking access and freeze affected accounts.",
+    "emergency.guide_money_step3": "3. Lodge an official police report at the nearest PDRM station as soon as possible.",
+
+    "emergency.guide_otp_title": "🔑 Shared OTP or TAC Verification Code",
+    "emergency.guide_otp_desc": "Your online banking or app account may be accessed by unauthorised parties.",
+    "emergency.guide_otp_step1": "1. Immediately log into your bank app and change your online banking password.",
+    "emergency.guide_otp_step2": "2. Contact your bank hotline to suspend online banking and revoke active sessions.",
+    "emergency.guide_otp_step3": "3. Check your account statement for unauthorised pending transfers.",
+
+    "emergency.guide_link_title": "🌐 Clicked a Suspicious Link",
+    "emergency.guide_link_desc": "Suspicious links may attempt to steal credentials or download malware.",
+    "emergency.guide_link_step1": "1. Immediately disconnect Wi-Fi and mobile data on your device.",
+    "emergency.guide_link_step2": "2. Do not type any passwords, credit card numbers, or banking credentials.",
+    "emergency.guide_link_step3": "3. Clear your browser history and cache, then run an antivirus scan.",
+
+    "emergency.guide_apk_title": "📲 Installed a Suspicious App (APK)",
+    "emergency.guide_apk_desc": "Malicious APK files can steal SMS messages, OTPs, and banking credentials.",
+    "emergency.guide_apk_step1": "1. Disconnect your device from Wi-Fi and mobile data immediately.",
+    "emergency.guide_apk_step2": "2. Do not open any banking, e-wallet, or financial applications.",
+    "emergency.guide_apk_step3": "3. Uninstall the suspicious application from device settings if safe to do so.",
+    "emergency.guide_apk_step4": "4. Change important passwords from another trusted, secure device.",
+    "emergency.guide_apk_step5": "5. Contact your bank immediately if you entered banking credentials or suspect account compromise.",
+
+    "emergency.guide_call_title": "📱 Received a Scam Call",
+    "emergency.guide_call_desc": "Scammers impersonate bank officers, police, or courier agents over phone calls.",
+    "emergency.guide_call_step1": "1. Hang up immediately. Do not call back the number.",
+    "emergency.guide_call_step2": "2. Never transfer money or reveal TAC/OTP codes over a phone call.",
+    "emergency.guide_call_step3": "3. Verify suspicious caller claims directly with official organization hotlines.",
+
+    "emergency.guide_msg_title": "💬 Received a Suspicious Message",
+    "emergency.guide_msg_desc": "Phishing SMS or messaging apps often contain fake delivery or payment prompts.",
+    "emergency.guide_msg_step1": "1. Do not click any links or download attached files/APKs.",
+    "emergency.guide_msg_step2": "2. Block the sender number on your phone.",
+    "emergency.guide_msg_step3": "3. Copy the URL or message content to analyze on ScamShield Scanner.",
+
+    // Bank Directory View
+    "emergency.bank_title": "🏦 Contact My Bank",
+    "emergency.bank_subtitle": "Visit your bank's official emergency or fraud support page to obtain the latest hotline numbers and reporting procedures.",
+    "emergency.bank_card_desc": "Fraud & Customer Support",
+    "emergency.bank_visit_btn": "Visit Official Support Page ↗",
+    "emergency.bank_notice": "Always contact your bank immediately if you suspect your banking credentials or account has been compromised. Use the official hotline or official support page below for the latest assistance.",
+
+    // Buttons & Notices
+    "emergency.action_call": "Call Hotline",
+    "emergency.action_visit": "Visit Official Website ↗",
+    "emergency.disclaimer_title": "Emergency Guidance",
+    "emergency.disclaimer_text": "These recommendations are provided to help users respond quickly to potential scam incidents. Always follow the instructions provided by your bank and the relevant Malaysian authorities.",
+
     // Statuses
     "status.unverified": "Unverified",
     "status.under_review": "Under Review",
@@ -901,6 +988,93 @@ const translations = {
     // General
     "common.close": "Tutup",
     "common.loading": "Sedang memproses...",
+
+    // Emergency Help Feature
+    "emergency.btn_label": "Bantuan Kecemasan",
+    "emergency.modal_title": "🆘 Bantuan Kecemasan",
+    "emergency.modal_subtitle": "Apa yang berlaku? Pilih situasi yang paling bertepatan dengan masalah anda.",
+    "emergency.back": "← Kembali ke Pilihan",
+    "emergency.close": "Tutup",
+
+    // Options
+    "emergency.opt_money": "💸 Saya Telah Memindahkan Wang kepada Penipu",
+    "emergency.opt_otp": "🔑 Saya Telah Berkongsi OTP",
+    "emergency.opt_link": "🌐 Saya Telah Menekan Pautan Mencurigakan",
+    "emergency.opt_apk": "📲 Saya Telah Memasang Apl Mencurigakan (APK)",
+    "emergency.opt_call": "📱 Saya Telah Menerima Panggilan Scam",
+    "emergency.opt_msg": "💬 Saya Telah Menerima Mesej Mencurigakan",
+    "emergency.opt_banks": "🏦 Hubungi Bank Saya",
+    "emergency.opt_contacts": "☎️ Talian Kecemasan",
+
+    // Checklist Header
+    "emergency.prep_title": "📋 Sediakan Sebelum Menghubungi Pihak Berkuasa",
+    "emergency.prep_desc": "Sebelum menghubungi bank anda atau membuat laporan polis, sediakan:",
+    "emergency.prep_item_tx": "Nombor rujukan transaksi",
+    "emergency.prep_item_date": "Tarikh dan masa kejadian",
+    "emergency.prep_item_phone": "Nombor telefon penipu atau ID pemanggil",
+    "emergency.prep_item_url": "Pautan laman web atau URL penipuan",
+    "emergency.prep_item_screens": "Tangkapan skrin perbualan/resit",
+    "emergency.prep_item_account": "Nombor akaun bank (jika berkenaan)",
+    "emergency.prep_item_device": "Model peranti dan versi OS",
+    "emergency.prep_item_appname": "Nama aplikasi mencurigakan (jika diketahui)",
+
+    // Agency Descriptions
+    "emergency.agency_nsrc_desc": "Saluran utama kebangsaan untuk mangsa penipuan kewangan dalam talian. Hubungi NSRC dengan segera jika anda telah memindahkan wang kepada penipu.",
+    "emergency.agency_mcmc_desc": "Laporkan laman web mencurigakan, mesej penipuan, iklan palsu dalam talian atau penipuan berkaitan komunikasi.",
+    "emergency.agency_mycert_desc": "Membantu dalam insiden keselamatan siber seperti laman web berbahaya, serangan phishing, jangkitan malware, akaun digodam dan insiden keselamatan komputer yang lain.",
+    "emergency.agency_notice": "Jika anda percaya telah menjadi mangsa penipuan, hubungi pihak berkuasa yang berkaitan dengan segera. Tindakan pantas boleh membantu mengurangkan kerugian kewangan.",
+
+    // Guidance Titles & Explanations
+    "emergency.guide_money_title": "💸 Wang Dipindahkan kepada Penipu",
+    "emergency.guide_money_desc": "Ambil tindakan serta-merta untuk menghentikan kerugian selanjutnya dan melaporkan transaksi.",
+    "emergency.guide_money_step1": "1. Hubungi NSRC di talian 997 serta-merta (beroperasi 8 pagi - 8 malam harian) untuk memohon pembekuan dana di semua bank.",
+    "emergency.guide_money_step2": "2. Hubungi hotline penipuan 24/7 bank anda untuk menggantung akses perbankan dalam talian dan membekukan akaun terjejas.",
+    "emergency.guide_money_step3": "3. Buat laporan polis rasmi di balai PDRM terdekat secepat mungkin.",
+
+    "emergency.guide_otp_title": "🔑 Berkongsi Kod Pengesahan OTP atau TAC",
+    "emergency.guide_otp_desc": "Akaun perbankan atau aplikasi dalam talian anda mungkin diakses oleh pihak yang tidak dibenarkan.",
+    "emergency.guide_otp_step1": "1. Log masuk ke aplikasi bank anda serta-merta dan tukar kata laluan perbankan dalam talian anda.",
+    "emergency.guide_otp_step2": "2. Hubungi hotline bank anda untuk menggantung perbankan dalam talian dan membatalkan sesi aktif.",
+    "emergency.guide_otp_step3": "3. Semak penyata akaun anda untuk pemindahan tergantung yang tidak dibenarkan.",
+
+    "emergency.guide_link_title": "🌐 Menekan Pautan Mencurigakan",
+    "emergency.guide_link_desc": "Pautan mencurigakan mungkin cuba mencuri maklumat log masuk atau memuat turun perisian berbahaya.",
+    "emergency.guide_link_step1": "1. Putuskan sambungan Wi-Fi dan data mudah alih pada peranti anda serta-merta.",
+    "emergency.guide_link_step2": "2. Jangan taip sebarang kata laluan, nombor kad kredit, atau maklumat perbankan.",
+    "emergency.guide_link_step3": "3. Padamkan sejarah dan tembolok penyemak imbas anda, kemudian jalankan imbasan antivirus.",
+
+    "emergency.guide_apk_title": "📲 Memasang Apl Mencurigakan (APK)",
+    "emergency.guide_apk_desc": "Fail APK berbahaya boleh mencuri mesej SMS, OTP, dan maklumat perbankan anda.",
+    "emergency.guide_apk_step1": "1. Putuskan sambungan peranti anda daripada Wi-Fi dan data mudah alih serta-merta.",
+    "emergency.guide_apk_step2": "2. Jangan buka sebarang aplikasi perbankan, e-dompet, atau kewangan.",
+    "emergency.guide_apk_step3": "3. Nyahpasang aplikasi mencurigakan daripada tetapan peranti jika selamat untuk berbuat demikian.",
+    "emergency.guide_apk_step4": "4. Tukar kata laluan penting daripada peranti lain yang selamat dan dipercayai.",
+    "emergency.guide_apk_step5": "5. Hubungi bank anda serta-merta jika anda telah memasukkan maklumat perbankan atau mengesyaki akaun anda terjejas.",
+
+    "emergency.guide_call_title": "📱 Menerima Panggilan Scam",
+    "emergency.guide_call_desc": "Penipu menyamar sebagai pegawai bank, polis, atau ejen kurier melalui panggilan telefon.",
+    "emergency.guide_call_step1": "1. Tamatkan panggilan serta-merta. Jangan telefon semula nombor tersebut.",
+    "emergency.guide_call_step2": "2. Jangan sekali-kali memindahkan wang atau mendedahkan kod TAC/OTP melalui panggilan telefon.",
+    "emergency.guide_call_step3": "3. Sahkan dakwaan pemanggil mencurigakan secara terus dengan hotline rasmi organisasi.",
+
+    "emergency.guide_msg_title": "💬 Menerima Mesej Mencurigakan",
+    "emergency.guide_msg_desc": "SMS pancingan data atau aplikasi mesej kerap mengandungi gesaan penghantaran atau bayaran palsu.",
+    "emergency.guide_msg_step1": "1. Jangan klik sebarang pautan atau muat turun fail/APK yang disertakan.",
+    "emergency.guide_msg_step2": "2. Sekat nombor penghantar pada telefon anda.",
+    "emergency.guide_msg_step3": "3. Salin pautan URL atau kandungan mesej untuk diimbas pada Pengimbas ScamShield.",
+
+    // Bank Directory View
+    "emergency.bank_title": "🏦 Hubungi Bank Saya",
+    "emergency.bank_subtitle": "Lawati halaman sokongan kecemasan atau penipuan rasmi bank anda untuk mendapatkan nombor hotline dan tatacara pelaporan terkini.",
+    "emergency.bank_card_desc": "Sokongan Penipuan & Khidmat Pelanggan",
+    "emergency.bank_visit_btn": "Lawati Halaman Sokongan Rasmi ↗",
+    "emergency.bank_notice": "Hubungi bank anda dengan segera jika anda mengesyaki maklumat perbankan atau akaun anda telah terjejas. Gunakan talian rasmi atau laman sokongan rasmi di bawah untuk mendapatkan bantuan terkini.",
+
+    // Buttons & Notices
+    "emergency.action_call": "Panggil Hotline",
+    "emergency.action_visit": "Lawati Laman Web Rasmi ↗",
+    "emergency.disclaimer_title": "Panduan Kecemasan",
+    "emergency.disclaimer_text": "Saranan ini disediakan untuk membantu pengguna bertindak pantas menangani insiden penipuan. Sentiasa ikuti arahan yang diberikan oleh bank anda dan pihak berkuasa Malaysia yang berkaitan.",
 
     // Statuses
     "status.unverified": "Belum Disahkan",
