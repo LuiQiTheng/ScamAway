@@ -1,4 +1,4 @@
-# UCRIX ScamShield AI: Detailed Team Task Distribution
+# UCRIX Scam Away AI: Detailed Team Task Distribution
 
 To ensure everyone knows exactly what to do without getting lost in "big ideas," here is a highly specific, step-by-step breakdown of tasks for each team member. 
 
@@ -67,7 +67,7 @@ To ensure everyone knows exactly what to do without getting lost in "big ideas,"
     *   Slide 1: Title & Tagline
     *   Slide 2: The Problem (Scams in Malaysia)
     *   Slide 3: **Our SDG Impact (Crucial for competition - clearly list SDGs 4, 9, 10, 16 here)**
-    *   Slide 4: Solution Overview (ScamShield AI)
+    *   Slide 4: Solution Overview (Scam Away AI)
     *   Slide 5: Live Demo Time
 2.  **Write the Demo Script:** Write down exactly what the team will say and do during the live demo (e.g., "First, I will scan this fake PosLaju SMS... notice how the risk score turns red...").
 3.  **Write "Business Value" Section:** For the final report, write a 1-page document explaining why this project is important for society and how it aligns with the SDGs.

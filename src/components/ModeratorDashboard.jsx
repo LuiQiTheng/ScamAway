@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Shield, Check, X, AlertTriangle, MessageSquare, ShieldAlert, Award, FileText, Send, UserCheck, Search, Filter, BarChart2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Shield, Check, X, AlertTriangle, MessageSquare, ShieldAlert, Award, FileText, Send, UserCheck, Search, Filter, BarChart2, Edit2, Trash2, Save } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import {
@@ -13,7 +13,8 @@ import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, Resp
 export default function ModeratorDashboard() {
   const { 
     reportsList, updateReportStatus, addAlert, 
-    reputationProfiles, updateReputation, addBlacklistItem, blacklist 
+    reputationProfiles, updateReputation, addBlacklistItem, blacklist,
+    removeBlacklistItem, updateBlacklistItem 
   } = useAppContext();
   const { t, lang } = useLanguage();
   const [selectedReport, setSelectedReport] = useState(null);
@@ -33,6 +34,16 @@ export default function ModeratorDashboard() {
   // Blacklist Management State
   const [newBlacklistItem, setNewBlacklistItem] = useState('');
   const [newBlacklistType, setNewBlacklistType] = useState('urls');
+  const [editingItem, setEditingItem] = useState(null); // { type, oldValue }
+  const [editValue, setEditValue] = useState('');
+
+  // Dynamic placeholder for blacklist input
+  const getBlacklistPlaceholder = () => {
+    if (newBlacklistType === 'urls') return "e.g. scam-site.com";
+    if (newBlacklistType === 'phoneNumbers') return "e.g. 012-3456789";
+    if (newBlacklistType === 'bankAccounts') return "e.g. 15874269019";
+    return "e.g. scam-site.com";
+  };
 
   const handleAction = (id, decision) => {
     updateReportStatus(id, decision, rationale);
@@ -165,6 +176,41 @@ export default function ModeratorDashboard() {
     if (!normalizedValue) return;
     addBlacklistItem(newBlacklistType, normalizedValue);
     setNewBlacklistItem('');
+  };
+
+  const renderBlacklistItem = (type, value) => {
+    const isEditing = editingItem?.type === type && editingItem?.oldValue === value;
+    
+    if (isEditing) {
+      return (
+        <li key={value} style={{ display: 'flex', gap: '0.5rem', background: 'rgba(255,255,255,0.05)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--primary)' }}>
+          <input 
+            type="text" 
+            className="input-field" 
+            value={editValue} 
+            onChange={e => setEditValue(e.target.value)}
+            style={{ flex: 1, padding: '0.25rem', fontSize: '0.85rem' }}
+          />
+          <button onClick={() => {
+            if(editValue.trim() && editValue !== value) {
+              updateBlacklistItem(type, value, editValue.trim());
+            }
+            setEditingItem(null);
+          }} className="btn-primary" style={{ padding: '0.25rem 0.5rem' }} title="Save"><Save size={14} /></button>
+          <button onClick={() => setEditingItem(null)} className="btn-secondary" style={{ padding: '0.25rem 0.5rem' }} title="Cancel"><X size={14} /></button>
+        </li>
+      );
+    }
+
+    return (
+      <li key={value} style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.01)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ wordBreak: 'break-all' }}>{value}</span>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button onClick={() => { setEditingItem({ type, oldValue: value }); setEditValue(value); }} style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: 0 }} title="Edit"><Edit2 size={14} /></button>
+          <button onClick={() => removeBlacklistItem(type, value)} style={{ background: 'none', border: 'none', color: '#ff4d4d', cursor: 'pointer', padding: 0 }} title="Delete"><Trash2 size={14} /></button>
+        </div>
+      </li>
+    );
   };
 
   return (
@@ -538,7 +584,7 @@ export default function ModeratorDashboard() {
                       value={newBlacklistItem}
                       onChange={(e) => setNewBlacklistItem(e.target.value)}
                       className="input-field"
-                      placeholder="e.g. scam-site.com"
+                      placeholder={getBlacklistPlaceholder()}
                       style={{ flex: 2, minWidth: '200px' }}
                     />
                     <button type="submit" className="btn-primary" style={{ whiteSpace: 'nowrap' }}>{t('admin.add_btn')}</button>
@@ -549,17 +595,19 @@ export default function ModeratorDashboard() {
                   <div>
                     <h4 style={{ color: 'var(--color-caution)', marginBottom: '0.5rem', fontSize: '0.9rem' }}>{t('admin.blocked_domains')}</h4>
                     <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                      {blacklist.urls.map(url => (
-                        <li key={url} style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.01)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border-color)' }}>{url}</li>
-                      ))}
+                      {blacklist.urls.map(url => renderBlacklistItem('urls', url))}
                     </ul>
                   </div>
                   <div>
                     <h4 style={{ color: 'var(--color-caution)', marginBottom: '0.5rem', fontSize: '0.9rem' }}>{t('admin.blocked_phones')}</h4>
                     <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                      {blacklist.phoneNumbers.map(phone => (
-                        <li key={phone} style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.01)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border-color)' }}>{phone}</li>
-                      ))}
+                      {blacklist.phoneNumbers.map(phone => renderBlacklistItem('phoneNumbers', phone))}
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 style={{ color: 'var(--color-caution)', marginBottom: '0.5rem', fontSize: '0.9rem' }}>{t('admin.bank_account') || 'Blocked Bank Accounts'}</h4>
+                    <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      {blacklist.bankAccounts.map(account => renderBlacklistItem('bankAccounts', account))}
                     </ul>
                   </div>
                 </div>

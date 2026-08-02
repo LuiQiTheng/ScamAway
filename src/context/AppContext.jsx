@@ -66,7 +66,7 @@ const INITIAL_BLACKLIST = {
 export const AppProvider = ({ children }) => {
   const [reportsList, setReportsList] = useState(() => {
     try {
-      const saved = localStorage.getItem('scamshield_reports');
+      const saved = localStorage.getItem('scam_away_reports');
       return saved ? JSON.parse(saved) : INITIAL_REPORTS;
     } catch {
       return INITIAL_REPORTS;
@@ -85,7 +85,7 @@ export const AppProvider = ({ children }) => {
   // Keep localStorage in sync for tests and offline state
   useEffect(() => {
     try {
-      localStorage.setItem('scamshield_reports', JSON.stringify(reportsList));
+      localStorage.setItem('scam_away_reports', JSON.stringify(reportsList));
     } catch (e) {
       console.warn("Could not save reports to localStorage", e);
     }
@@ -242,14 +242,46 @@ export const AppProvider = ({ children }) => {
     }
   }, [blacklist]);
 
+  const removeBlacklistItem = useCallback(async (type, value) => {
+    if (!['phoneNumbers', 'urls', 'bankAccounts'].includes(type)) return;
+    setBlacklist(prev => ({
+      ...prev,
+      [type]: prev[type].filter(item => item !== value)
+    }));
+    try {
+      const updatedList = blacklist[type].filter(item => item !== value);
+      await updateDoc(doc(db, "system", "blacklist"), {
+        [type]: updatedList
+      });
+    } catch (e) {
+      console.warn("⚠️ [Firestore] Failed to remove blacklist item in cloud:", e?.message);
+    }
+  }, [blacklist]);
+
+  const updateBlacklistItem = useCallback(async (type, oldValue, newValue) => {
+    if (!['phoneNumbers', 'urls', 'bankAccounts'].includes(type)) return;
+    setBlacklist(prev => ({
+      ...prev,
+      [type]: prev[type].map(item => item === oldValue ? newValue : item)
+    }));
+    try {
+      const updatedList = blacklist[type].map(item => item === oldValue ? newValue : item);
+      await updateDoc(doc(db, "system", "blacklist"), {
+        [type]: updatedList
+      });
+    } catch (e) {
+      console.warn("⚠️ [Firestore] Failed to update blacklist item in cloud:", e?.message);
+    }
+  }, [blacklist]);
+
 
   const contextValue = useMemo(() => ({
     reportsList, addReport, updateReportStatus,
     reputationProfiles, updateReputation,
-    blacklist, addBlacklistItem,
+    blacklist, addBlacklistItem, removeBlacklistItem, updateBlacklistItem,
     activeAlert, addAlert,
     userNotifications, dismissNotification
-  }), [reportsList, reputationProfiles, blacklist, activeAlert, userNotifications, addReport, updateReportStatus, updateReputation, addBlacklistItem, addAlert]);
+  }), [reportsList, reputationProfiles, blacklist, activeAlert, userNotifications, addReport, updateReportStatus, updateReputation, addBlacklistItem, removeBlacklistItem, updateBlacklistItem, addAlert]);
 
   return (
     <AppContext.Provider value={contextValue}>

@@ -387,8 +387,8 @@ export async function analyzeScamRisk(text, metadata = {}) {
         category: "reputation",
         label: lang === 'ms' ? "Penunjuk Nombor Telefon Tersenarai" : "Listed Phone Indicator",
         text: lang === 'ms'
-          ? "Nombor telefon sepadan dengan penunjuk dalam senarai ScamShield semasa. Semak sumber dan tarikh rekod sebelum membuat keputusan."
-          : "The phone number matches an indicator in ScamShield's current list. Check the record source and date before acting.",
+          ? "Nombor telefon sepadan dengan penunjuk dalam senarai Scam Away semasa. Semak sumber dan tarikh rekod sebelum membuat keputusan."
+          : "The phone number matches an indicator in Scam Away's current list. Check the record source and date before acting.",
         weight: 35
       });
       indicatorsMatched.push(matchedPhone);
@@ -410,8 +410,8 @@ export async function analyzeScamRisk(text, metadata = {}) {
       category: "payment",
       label: lang === 'ms' ? "Penunjuk Akaun Bank Tersenarai" : "Listed Bank Account Indicator",
       text: lang === 'ms'
-        ? `Akaun (${accountValue}) sepadan dengan penunjuk dalam senarai ScamShield semasa. Semak sumber rekod sebelum membuat keputusan.`
-        : `The account (${accountValue}) matches an indicator in ScamShield's current list. Check the record source before acting.`,
+        ? `Akaun (${accountValue}) sepadan dengan penunjuk dalam senarai Scam Away semasa. Semak sumber rekod sebelum membuat keputusan.`
+        : `The account (${accountValue}) matches an indicator in Scam Away's current list. Check the record source before acting.`,
       weight: 45
     });
     indicatorsMatched.push(accountValue);
@@ -429,8 +429,8 @@ export async function analyzeScamRisk(text, metadata = {}) {
         category: "technical",
         label: lang === 'ms' ? "Penunjuk Domain Tersenarai" : "Listed Domain Indicator",
         text: lang === 'ms'
-          ? `Domain (${matchedBadDomain}) sepadan dengan penunjuk dalam senarai ScamShield semasa. Semak sumber dan tarikh rekod sebelum membuat keputusan.`
-          : `The domain (${matchedBadDomain}) matches an indicator in ScamShield's current list. Check the record source and date before acting.`,
+          ? `Domain (${matchedBadDomain}) sepadan dengan penunjuk dalam senarai Scam Away semasa. Semak sumber dan tarikh rekod sebelum membuat keputusan.`
+          : `The domain (${matchedBadDomain}) matches an indicator in Scam Away's current list. Check the record source and date before acting.`,
         weight: 40
       });
       indicatorsMatched.push(matchedBadDomain);
@@ -447,8 +447,8 @@ export async function analyzeScamRisk(text, metadata = {}) {
         category: "technical",
         label: lang === 'ms' ? "Penunjuk Domain QR Tersenarai" : "Listed QR Domain Indicator",
         text: lang === 'ms'
-          ? `Kod QR menghala ke domain (${qrHost}) yang sepadan dengan senarai ScamShield semasa. Semak sumber rekod sebelum membuat keputusan.`
-          : `The QR code points to a domain (${qrHost}) that matches ScamShield's current list. Check the record source before acting.`,
+          ? `Kod QR menghala ke domain (${qrHost}) yang sepadan dengan senarai Scam Away semasa. Semak sumber rekod sebelum membuat keputusan.`
+          : `The QR code points to a domain (${qrHost}) that matches Scam Away's current list. Check the record source before acting.`,
         weight: 35
       });
       indicatorsMatched.push(qrHost);

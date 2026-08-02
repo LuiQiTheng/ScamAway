@@ -1,6 +1,6 @@
-# ScamShield Technical Implementation & Content Specification
+# Scam Away Technical Implementation & Content Specification
 
-> **System Identity**: ScamShield  
+> **System Identity**: Scam Away  
 > **Tagline**: *Analyse. Explain. Verify. Act before the user clicks, shares or pays.*  
 > **Target Competition**: UCRIX Innovation 2026 / CIC ASIA 2026  
 > **Domain**: Cybersecurity, Financial Fraud Prevention, Digital Literacy & Safety  
@@ -9,7 +9,7 @@
 
 ## 1. Executive Summary & System Positioning
 
-**ScamShield** is an explainable, community-verified scam intelligence and digital safety intervention platform. Unlike traditional "black-box" classifiers that merely label content as "scam" or "safe", ScamShield focuses on **intervention at the moment of uncertainty**. It extracts evidence, calculates a hybrid risk score, breaks down the exact social-engineering indicators in plain language, and guides users through safe verification or reporting actions.
+**Scam Away** is an explainable, community-verified scam intelligence and digital safety intervention platform. Unlike traditional "black-box" classifiers that merely label content as "scam" or "safe", Scam Away focuses on **intervention at the moment of uncertainty**. It extracts evidence, calculates a hybrid risk score, breaks down the exact social-engineering indicators in plain language, and guides users through safe verification or reporting actions.
 
 ### Core Innovations
 1. **Explainable Prevention**: Identifies why content is dangerous (e.g. urgency pressure, credential harvesting, unverified domains) to educate the user.

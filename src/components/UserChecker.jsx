@@ -10,6 +10,7 @@ import {
   DEMO_SCREENSHOTS,
   findMatchingVerifiedReports,
 } from '../utils/rulesEngine';
+import { checkUrlWithVirusTotal, checkDomainExists } from '../utils/virusTotal';
 import { QUICK_TEST_PRESETS } from '../content/member2Content';
 import ReportModal from './ReportModal';
 import GuardianAlertModal from "../components/Guardian/GuardianAlertModal";
@@ -52,10 +53,19 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
   // Guardian Alert Modal
   const [showGuardianAlert, setShowGuardianAlert] = useState(false);
 
+  // VirusTotal scan state
+  const [vtResult, setVtResult] = useState(null);
+  const [vtLoading, setVtLoading] = useState(false);
+
   // Reset checked actions on new scan
   useEffect(() => {
     setCheckedActions({});
     stopSpeech();
+    // Reset VT result when a new scan starts
+    if (!scanResult) {
+      setVtResult(null);
+      setVtLoading(false);
+    }
   }, [scanResult]);
 
   useEffect(() => {
@@ -159,7 +169,46 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
         lang: lang
       });
 
-     setScanResult(res);
+      // Check for URLs to scan with VT synchronously
+      const urlsToCheck = res.analysis?.urls || [];
+      const rawUrlMatch = finalText.match(/https?:\/\/[^\s]+/i);
+      if (rawUrlMatch && !urlsToCheck.includes(rawUrlMatch[0])) {
+        urlsToCheck.push(rawUrlMatch[0]);
+      }
+
+      if (urlsToCheck.length > 0) {
+        setScanSteps(prev => [...prev, t('vt.scanning') || "Checking global threat databases..."]);
+        setVtLoading(true);
+        setVtResult(null);
+
+        const urlToScan = urlsToCheck[0].startsWith('http') ? urlsToCheck[0] : `https://${urlsToCheck[0]}`;
+        try {
+          const vtRes = await checkUrlWithVirusTotal(urlToScan);
+          setVtResult(vtRes);
+          
+          if (vtRes.isMalicious) {
+            res.score = 95;
+            res.riskBand = t('result.high_risk') || "Critical";
+            res.bandColor = "critical";
+            res.explanations.push({
+              category: "technical",
+              label: t('vt.malicious') || "Threats detected!",
+              text: t('vt.malicious_evidence') || "VirusTotal Threat Intelligence: Multiple global security vendors have flagged this URL as malicious.",
+              weight: 83
+            });
+          } else if (vtRes.status === 'success' && !vtRes.isMalicious) {
+            const extRuleIndex = res.explanations.findIndex(e => e.weight === 12);
+            if (extRuleIndex !== -1) {
+              res.explanations[extRuleIndex].text += " " + (t('vt.safe_evidence') || "VirusTotal scanned this URL and found no known malware, but you should still verify the source.");
+            }
+          }
+        } catch (e) {
+          // Fallback if VT fails completely
+        }
+        setVtLoading(false);
+      }
+
+      setScanResult(res);
 
       if (
         res.bandColor === "high" ||
@@ -184,27 +233,34 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
     setScanSteps([]);
   };
 
-  const handleScanUrl = () => {
-    const raw = urlInput.trim();
+  const handleScanUrl = async () => {
+    const rawUrl = urlInput.trim();
+    const rawPhone = phoneInput.trim();
 
-    if (!raw) {
+    if (!rawUrl && !rawPhone) {
         setUrlError(t("scanner.empty_url_error"));
         setIsUrlInvalid(true);
         setScanResult(null);
         return;
     }
 
-    let formatted = raw;
+    if (!rawUrl && rawPhone) {
+        triggerScanAnimation(`Phone check request: ${rawPhone}`);
+        return;
+    }
+
+    let formatted = rawUrl;
 
     if (!/^https?:\/\//i.test(formatted)) {
         formatted = "https://" + formatted;
     }
 
     let isValid = false;
+    let host = "";
 
     try {
         const parsed = new URL(formatted);
-        const host = parsed.hostname;
+        host = parsed.hostname;
 
         const domainRegex = /^([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$/i;
 
@@ -214,9 +270,37 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
     }
 
     if (!isValid) {
-        setUrlError(t("scanner.invalid_url_detailed_error"));
+        setUrlError(t("scanner.invalid_url_format") || t("scanner.invalid_url_detailed_error"));
         setIsUrlInvalid(true);
         setScanResult(null);
+        return;
+    }
+
+    // New DNS verification check
+    setIsScanning(true);
+    setScanSteps([t('scanner.step_db') || "Validating domain..."]);
+    
+    // Promise.all ensures the animation plays for at least 800ms for better UX
+    const [dnsResult] = await Promise.all([
+        checkDomainExists(formatted),
+        new Promise(resolve => setTimeout(resolve, 800))
+    ]);
+    
+    // BYPASS for local offline demo blacklisted URLs (since they don't actually exist on the internet)
+    const isBlacklisted = blacklist?.urls?.some(u => host.includes(u));
+
+    if (!dnsResult.exists && !isBlacklisted) {
+        if (dnsResult.error === 'network_blocked') {
+            setUrlError("Your browser or adblocker is blocking the DNS security check. Please disable it to scan URLs.");
+        } else if (dnsResult.error === 'api_failed') {
+            setUrlError("DNS service is temporarily unavailable. Please try again.");
+        } else {
+            setUrlError(t("scanner.non_existent_url"));
+        }
+        setIsUrlInvalid(true);
+        setScanResult(null);
+        setIsScanning(false);
+        setScanSteps([]);
         return;
     }
 
@@ -225,11 +309,9 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
     setUrlError("");
     setIsUrlInvalid(false);
 
-    const combinedText =
-      `Url check request: ${formatted}. Phone info: ${phoneInput || "none"}`;
-
+    const combinedText = `Url check request: ${formatted}.${rawPhone ? ` Phone info: ${rawPhone}` : ""}`;
     triggerScanAnimation(combinedText);
-};
+  };
 
   const handleSelectDemoScreenshot = (key) => {
     if (!key) return;
@@ -612,7 +694,6 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                   value={urlInput}
                   onChange={(e) => {
                       setUrlInput(e.target.value);
-
                       if (urlError || isUrlInvalid) {
                           setUrlError("");
                           setIsUrlInvalid(false);
@@ -621,10 +702,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                   className="input-field"
                   style={
                       isUrlInvalid
-                          ? {
-                              borderColor: "#ff4d4d",
-                              boxShadow: "0 0 0 2px rgba(255,77,77,.25)"
-                          }
+                          ? { borderColor: "#ff4d4d", boxShadow: "0 0 0 2px rgba(255,77,77,.25)" }
                           : {}
                   }
                   placeholder={t("scanner.url_placeholder")}
@@ -653,7 +731,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <label htmlFor="phone-check-input" className="form-label">{t('scanner.phone_label')}</label>
+                <label htmlFor="phone-check-input" className="form-label">{t('scanner.phone_label')?.replace(' (Optional)', '') || "Sender Phone Number"}</label>
                 <input
                   id="phone-check-input"
                   type="text"
@@ -667,11 +745,11 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
               <button
                 onClick={handleScanUrl}
                 className="btn-primary"
-                disabled={!urlInput.trim() || isScanning}
+                disabled={(!urlInput.trim() && !phoneInput.trim()) || isScanning}
                 style={{ width: '100%' }}
               >
                 {isScanning ? <RefreshCw className="spinning" size={18} /> : <Link size={18} />}
-                &nbsp;{isScanning ? t('scanner.searching') : t('scanner.scan_url_btn')}
+                &nbsp;{isScanning ? t('scanner.searching') : "Scan & Analyze"}
               </button>
             </div>
           )}
@@ -790,6 +868,116 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
               </div>
             </div>
 
+            {/* VirusTotal External Scan Results */}
+            {(vtLoading || vtResult) && (
+              <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem', marginBottom: '2rem' }}>
+                <h4 style={{ fontSize: isElderlyMode ? '1.3rem' : '1.05rem', color: '#fff', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  🔬 {t('vt.title')}
+                </h4>
+
+                {vtLoading && (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: '0.75rem',
+                    padding: '1rem', background: 'rgba(99, 102, 241, 0.08)',
+                    border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '10px'
+                  }}>
+                    <RefreshCw className="spinning" size={16} color="var(--primary)" />
+                    <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{t('vt.scanning')}</span>
+                  </div>
+                )}
+
+                {vtResult && vtResult.status === 'success' && (
+                  <div style={{
+                    padding: '1.25rem', borderRadius: '10px',
+                    background: vtResult.isMalicious ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.08)',
+                    border: `1px solid ${vtResult.isMalicious ? 'rgba(239, 68, 68, 0.4)' : 'rgba(34, 197, 94, 0.3)'}`,
+                    display: 'flex', flexDirection: 'column', gap: '0.75rem'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        {vtResult.isMalicious
+                          ? <AlertTriangle size={20} color="#ef4444" />
+                          : <ShieldCheck size={20} color="#22c55e" />
+                        }
+                        <strong style={{ color: vtResult.isMalicious ? '#ef4444' : '#22c55e', fontSize: '1rem' }}>
+                          {vtResult.isMalicious ? t('vt.malicious') : t('vt.safe')}
+                        </strong>
+                      </div>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.05)', padding: '0.2rem 0.6rem', borderRadius: '12px' }}>
+                        {t('vt.powered_by')}
+                      </span>
+                    </div>
+
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                      <strong>{vtResult.detections}</strong> {t('vt.of')} <strong>{vtResult.total}</strong> {t('vt.detections')}
+                    </div>
+
+                    {vtResult.scanDate && (
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                        {t('vt.scan_date')}: {new Date(vtResult.scanDate).toLocaleDateString()}
+                      </div>
+                    )}
+
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', wordBreak: 'break-all' }}>
+                      URL: {vtResult.url}
+                    </div>
+                  </div>
+                )}
+
+                {vtResult && vtResult.status === 'error' && (
+                  <div style={{
+                    padding: '1rem', borderRadius: '10px',
+                    background: 'rgba(251, 191, 36, 0.08)',
+                    border: '1px solid rgba(251, 191, 36, 0.3)',
+                    display: 'flex', alignItems: 'start', gap: '0.75rem'
+                  }}>
+                    <AlertCircle size={18} color="#fbbf24" style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <div>
+                      <strong style={{ color: '#fbbf24', fontSize: '0.9rem' }}>{t('vt.error')}</strong>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>{vtResult.reason}</p>
+                    </div>
+                  </div>
+                )}
+
+                {vtResult && vtResult.status === 'rate_limited' && (
+                  <div style={{
+                    padding: '1rem', borderRadius: '10px',
+                    background: 'rgba(251, 191, 36, 0.08)',
+                    border: '1px solid rgba(251, 191, 36, 0.3)',
+                    display: 'flex', alignItems: 'start', gap: '0.75rem'
+                  }}>
+                    <AlertCircle size={18} color="#fbbf24" style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <div>
+                      <strong style={{ color: '#fbbf24', fontSize: '0.9rem' }}>{t('vt.rate_limited')}</strong>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>{vtResult.reason}</p>
+                    </div>
+                  </div>
+                )}
+
+                {vtResult && vtResult.status === 'skipped' && (
+                  <div style={{
+                    padding: '1rem', borderRadius: '10px',
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid var(--border-color)',
+                    fontSize: '0.85rem', color: 'var(--text-muted)'
+                  }}>
+                    {t('vt.skipped')} — {vtResult.reason}
+                  </div>
+                )}
+
+                {vtResult && vtResult.status === 'timeout' && (
+                  <div style={{
+                    padding: '1rem', borderRadius: '10px',
+                    background: 'rgba(99, 102, 241, 0.08)',
+                    border: '1px solid rgba(99, 102, 241, 0.3)',
+                    fontSize: '0.85rem', color: 'var(--text-secondary)'
+                  }}>
+                    ⏳ {t('vt.timeout')} — {vtResult.reason}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Action buttons (Report scam, check another) */}
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
               <button
@@ -810,7 +998,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                 {t('result.report_scam_btn')}
               </button>
               <button
-                onClick={() => { setScanResult(null); setInputText(''); setUrlInput(''); setPhoneInput(''); setQrInput(''); setSelectedDemoScreenshot(''); setCustomScreenshotName(null); setShowGuardianAlert(false);}}
+                onClick={() => { setScanResult(null); setInputText(''); setUrlInput(''); setPhoneInput(''); setQrInput(''); setSelectedDemoScreenshot(''); setCustomScreenshotName(null); setShowGuardianAlert(false); setVtResult(null); setVtLoading(false);}}
                 className="btn-secondary"
                 style={{ flex: 1 }}
               >

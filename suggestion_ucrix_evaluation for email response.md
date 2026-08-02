@@ -1,6 +1,6 @@
 # UCRIX Competition Evaluation & Improvement Plan
 
-Based on the provided competition guidelines and a review of the current `ScamShield AI` codebase, here is an evaluation of the system and proposed improvements to maximize your chances of advancing to Round 2.
+Based on the provided competition guidelines and a review of the current `Scam Away AI` codebase, here is an evaluation of the system and proposed improvements to maximize your chances of advancing to Round 2.
 
 ## 1. Sustainable Development Goals (SDGs) & Emerging Technology
 **Guideline:** Must address $\ge 1$ SDG. Encourages integrating relevant emerging technologies (AI).
@@ -13,7 +13,7 @@ While the SDG alignment is strong on paper, the AI aspect currently leans heavil
 
 **Proposed Improvements:**
 *   **UI Integration for SDGs:** Add a prominent "SDG Impact" section or badges directly on the app's landing page or in an "About/Mission" modal. This guarantees the judges see it during the live demo without needing to read the documentation.
-*   **Upgrade "AI" Capabilities:** Consider augmenting the rule-based engine with a more modern "emerging tech" approach. This could be simulating an LLM integration (or actually plugging in a free API like Gemini) to provide semantic "Zero-Shot" text analysis, making the "ScamShield AI" branding more robust.
+*   **Upgrade "AI" Capabilities:** Consider augmenting the rule-based engine with a more modern "emerging tech" approach. This could be simulating an LLM integration (or actually plugging in a free API like Gemini) to provide semantic "Zero-Shot" text analysis, making the "Scam Away AI" branding more robust.
 
 ## 2. Competition Theme / Domain
 **Guideline:** No predefined theme, but must be creative/innovative and highlight SDGs.
@@ -22,7 +22,7 @@ While the SDG alignment is strong on paper, the AI aspect currently leans heavil
 **Evaluation:** Strong choice of domain. The "Elderly Mode" and "Explainable" aspects are great innovative touches.
 
 **Proposed Improvements:**
-*   **Presentation Flow:** Since the choice of domain is yours to pitch, consider adding a specific "Demo/Pitch Deck" route in the app. This could be a specialized view that walks judges through the Problem -> Solution (ScamShield) -> SDG Impact -> Live Demo, keeping the presentation smooth and entirely within the app.
+*   **Presentation Flow:** Since the choice of domain is yours to pitch, consider adding a specific "Demo/Pitch Deck" route in the app. This could be a specialized view that walks judges through the Problem -> Solution (Scam Away) -> SDG Impact -> Live Demo, keeping the presentation smooth and entirely within the app.
 
 ## 3. Prototype vs. Complete System
 **Guideline:** While prototypes are allowed for Round 1, projects advancing to Round 2 typically have a *complete, functional system*.

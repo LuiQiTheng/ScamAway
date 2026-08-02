@@ -63,7 +63,7 @@ describe('AppContext', () => {
     });
 
     // Since we updated report 1001
-    const stored = JSON.parse(localStorage.getItem('scamshield_reports'));
+    const stored = JSON.parse(localStorage.getItem('scam_away_reports'));
     const updatedReport = stored.find(r => r.id === 1001 && r.status === 'confirmed' && r.rationale === 'Test rationale');
     expect(updatedReport).toBeDefined();
     expect(updatedReport.status).toBe('confirmed');

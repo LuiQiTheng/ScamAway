@@ -14,7 +14,7 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
   // SessionStorage states for read and deleted notifications
   const [readIds, setReadIds] = useState(() => {
     try {
-      const saved = sessionStorage.getItem('scamshield_read_notifications');
+      const saved = sessionStorage.getItem('scam_away_read_notifications');
       return saved ? JSON.parse(saved) : [];
     } catch (e) {
       return [];
@@ -23,7 +23,7 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
 
   const [deletedIds, setDeletedIds] = useState(() => {
     try {
-      const saved = sessionStorage.getItem('scamshield_deleted_notifications');
+      const saved = sessionStorage.getItem('scam_away_deleted_notifications');
       return saved ? JSON.parse(saved) : [];
     } catch (e) {
       return [];
@@ -59,7 +59,7 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
       : [...readIds, id];
     setReadIds(nextRead);
     try {
-      sessionStorage.setItem('scamshield_read_notifications', JSON.stringify(nextRead));
+      sessionStorage.setItem('scam_away_read_notifications', JSON.stringify(nextRead));
     } catch (e) {}
   };
 
@@ -67,7 +67,7 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
     const nextDeleted = [...deletedIds, id];
     setDeletedIds(nextDeleted);
     try {
-      sessionStorage.setItem('scamshield_deleted_notifications', JSON.stringify(nextDeleted));
+      sessionStorage.setItem('scam_away_deleted_notifications', JSON.stringify(nextDeleted));
     } catch (e) {}
   };
 
@@ -76,14 +76,14 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
     const nextDeleted = Array.from(new Set([...deletedIds, ...allIds]));
     setDeletedIds(nextDeleted);
     try {
-      sessionStorage.setItem('scamshield_deleted_notifications', JSON.stringify(nextDeleted));
+      sessionStorage.setItem('scam_away_deleted_notifications', JSON.stringify(nextDeleted));
     } catch (e) {}
   };
 
   const handleRestoreAll = () => {
     setDeletedIds([]);
     try {
-      sessionStorage.removeItem('scamshield_deleted_notifications');
+      sessionStorage.removeItem('scam_away_deleted_notifications');
     } catch (e) {}
   };
 
@@ -95,7 +95,7 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
     const nextRead = Array.from(new Set([...readIds, ...allIds]));
     setReadIds(nextRead);
     try {
-      sessionStorage.setItem('scamshield_read_notifications', JSON.stringify(nextRead));
+      sessionStorage.setItem('scam_away_read_notifications', JSON.stringify(nextRead));
     } catch (e) {}
   };
 

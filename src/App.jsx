@@ -46,8 +46,8 @@ export default function App() {
   const handleSetUserMode = (mode) => {
     setUserMode(mode);
     try {
-      localStorage.setItem('scamshield_user_mode', mode);
-      localStorage.setItem('scamshield_elderly_mode', JSON.stringify(mode === 'elderly'));
+      localStorage.setItem('scam_away_user_mode', mode);
+      localStorage.setItem('scam_away_elderly_mode', JSON.stringify(mode === 'elderly'));
     } catch (e) {
       console.error(e);
     }

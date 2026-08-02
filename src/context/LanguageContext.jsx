@@ -30,7 +30,7 @@ const translations = {
     "trends.title": "Community Scam Alerts",
     "trends.alert_title": "Community Scam Alert",
     "trends.hero_eyebrow": "Most Reported Scam Today",
-    "trends.alert_top_suffix": "is currently the most frequently reported scam by the ScamShield community.",
+    "trends.alert_top_suffix": "is currently the most frequently reported scam by the Scam Away community.",
     "trends.guidance_parcel": "Be cautious of fake courier SMS asking for delivery fees.",
     "trends.guidance_banking": "Never reveal your OTP or banking credentials.",
     "trends.guidance_investment": "Beware of guaranteed profit schemes.",
@@ -57,14 +57,14 @@ const translations = {
     "trends.safety_tip3_title": "Never share OTP or TAC codes.",
     "trends.safety_tip3_desc": "Official organisations will never request your verification codes.",
     "trends.safety_tip4_title": "Scan suspicious content.",
-    "trends.safety_tip4_desc": "Use ScamShield Scanner to verify URLs, messages and QR codes before taking action.",
+    "trends.safety_tip4_desc": "Use Scam Away Scanner to verify URLs, messages and QR codes before taking action.",
 
     "trends.info_title": "Community Insights",
-    "trends.info_content": "These charts are based on scam reports submitted by ScamShield users. They help you understand the most common scam types and identify emerging scam trends within the community.",
+    "trends.info_content": "These charts are based on scam reports submitted by Scam Away users. They help you understand the most common scam types and identify emerging scam trends within the community.",
 
     "trends.summary_title": "Quick Scam Summary",
     "trends.card_most_active": "Most Active Scam",
-    "trends.card_most_active_suffix": "is currently the most frequently reported scam by the ScamShield community.",
+    "trends.card_most_active_suffix": "is currently the most frequently reported scam by the Scam Away community.",
     "trends.card_target": "Main Target",
     "trends.card_method": "Typical Scam Method",
     "trends.card_trend": "Current Trend",
@@ -88,7 +88,7 @@ const translations = {
     "trends.method_default": "Victims are tricked into opening malicious links or transferring money.",
 
     "trends.chart_category": "Most Reported Scam Categories",
-    "trends.chart_category_sub": "These are the scam categories reported most frequently by the ScamShield community.",
+    "trends.chart_category_sub": "These are the scam categories reported most frequently by the Scam Away community.",
 
     "trends.operate_title": "How Scammers Operate",
     
@@ -171,10 +171,10 @@ const translations = {
     "admin.add_blacklist": "Add to Blacklist",
     "admin.domain_url": "Domain / URL",
     "admin.phone_number": "Phone Number",
-    "admin.bank_account": "Bank Account",
+    "admin.bank_account": "Blacklisted Bank Account",
     "admin.add_btn": "Add to List",
-    "admin.blocked_domains": "Blocked Domains",
-    "admin.blocked_phones": "Blocked Phones",
+    "admin.blocked_domains": "Blacklisted Domains",
+    "admin.blocked_phones": "Blacklisted Phone No",
     "admin.no_audit": "No moderation actions logged yet.",
     "admin.action": "Action:",
     "admin.on_report": "on Report #",
@@ -232,6 +232,25 @@ const translations = {
     "result.scan_another_btn": "Scan Another Content",
     "result.weight": "Signal weight",
 
+    // VirusTotal
+    "vt.title": "VirusTotal External Threat Scan",
+    "vt.scanning": "Checking URL with VirusTotal...",
+    "vt.safe": "No threats detected",
+    "vt.malicious": "Threats detected!",
+    "vt.detections": "security vendors flagged this URL as malicious or suspicious",
+    "vt.of": "of",
+    "vt.scanned_by": "scanned by",
+    "vt.vendors": "security vendors",
+    "vt.scan_date": "Last scanned",
+    "vt.skipped": "VirusTotal scan skipped",
+    "vt.error": "VirusTotal scan encountered an issue",
+    "vt.rate_limited": "Rate limit reached",
+    "vt.timeout": "Scan still processing",
+    "vt.powered_by": "Powered by VirusTotal",
+    "vt.safe_evidence": "VirusTotal scanned this URL and found no known malware, but you should still verify the source.",
+    "vt.malicious_evidence": "VirusTotal Threat Intelligence: Multiple global security vendors have flagged this URL as malicious.",
+    "scanner.invalid_url_format": "Invalid URL format. Please include a valid domain extension (e.g., .com, .my).",
+    "scanner.non_existent_url": "This URL does not exist on the internet. Please re-enter a valid URL.",
     // Guardian
     "guardian.settings": "Guardian Settings",
     "guardian.settings_desc":
@@ -515,7 +534,7 @@ const translations = {
     "emergency.guide_msg_desc": "Phishing SMS or messaging apps often contain fake delivery or payment prompts.",
     "emergency.guide_msg_step1": "1. Do not click any links or download attached files/APKs.",
     "emergency.guide_msg_step2": "2. Block the sender number on your phone.",
-    "emergency.guide_msg_step3": "3. Copy the URL or message content to analyze on ScamShield Scanner.",
+    "emergency.guide_msg_step3": "3. Copy the URL or message content to analyze on Scam Away Scanner.",
 
     // Bank Directory View
     "emergency.bank_title": "🏦 Contact My Bank",
@@ -561,7 +580,7 @@ const translations = {
     "trends.title": "Amaran Scam Komuniti",
     "trends.alert_title": "Amaran Scam Komuniti",
     "trends.hero_eyebrow": "Scam Paling Banyak Dilaporkan Hari Ini",
-    "trends.alert_top_suffix": "merupakan penipuan yang paling kerap dilaporkan oleh komuniti ScamShield pada masa ini.",
+    "trends.alert_top_suffix": "merupakan penipuan yang paling kerap dilaporkan oleh komuniti Scam Away pada masa ini.",
     "trends.guidance_parcel": "Berwaspada dengan SMS kurier palsu yang meminta bayaran penghantaran.",
     "trends.guidance_banking": "Jangan sekali-kali mendedahkan OTP atau maklumat perbankan anda.",
     "trends.guidance_investment": "Berwaspada dengan skim pulangan terjamin.",
@@ -588,14 +607,14 @@ const translations = {
     "trends.safety_tip3_title": "Jangan kongsi kod OTP atau TAC.",
     "trends.safety_tip3_desc": "Organisasi rasmi tidak akan sekali-kali meminta kod pengesahan anda.",
     "trends.safety_tip4_title": "Imbas kandungan mencurigakan.",
-    "trends.safety_tip4_desc": "Gunakan Pengimbas ScamShield untuk menyemak URL, mesej dan kod QR sebelum mengambil tindakan.",
+    "trends.safety_tip4_desc": "Gunakan Pengimbas Scam Away untuk menyemak URL, mesej dan kod QR sebelum mengambil tindakan.",
 
     "trends.info_title": "Wawasan Komuniti",
-    "trends.info_content": "Carta ini berdasarkan laporan scam yang dihantar oleh pengguna ScamShield. Ia membantu anda memahami jenis scam yang paling kerap berlaku serta mengenal pasti trend scam yang sedang meningkat dalam komuniti.",
+    "trends.info_content": "Carta ini berdasarkan laporan scam yang dihantar oleh pengguna Scam Away. Ia membantu anda memahami jenis scam yang paling kerap berlaku serta mengenal pasti trend scam yang sedang meningkat dalam komuniti.",
 
     "trends.summary_title": "Ringkasan Ringkas Scam",
     "trends.card_most_active": "Scam Paling Aktif",
-    "trends.card_most_active_suffix": "merupakan penipuan yang paling kerap dilaporkan oleh komuniti ScamShield pada masa ini.",
+    "trends.card_most_active_suffix": "merupakan penipuan yang paling kerap dilaporkan oleh komuniti Scam Away pada masa ini.",
     "trends.card_target": "Sasaran Utama",
     "trends.card_method": "Kaedah Penipuan Biasa",
     "trends.card_trend": "Trend Semasa",
@@ -619,7 +638,7 @@ const translations = {
     "trends.method_default": "Mangsa ditipu untuk membuka pautan berbahaya atau memindahkan wang.",
 
     "trends.chart_category": "Kategori Scam Paling Banyak Dilaporkan",
-    "trends.chart_category_sub": "Ini merupakan kategori penipuan yang paling kerap dilaporkan oleh komuniti ScamShield.",
+    "trends.chart_category_sub": "Ini merupakan kategori penipuan yang paling kerap dilaporkan oleh komuniti Scam Away.",
 
     "trends.operate_title": "Bagaimana Penipu Beroperasi",
     
@@ -702,10 +721,10 @@ const translations = {
     "admin.add_blacklist": "Tambah ke Senarai Hitam",
     "admin.domain_url": "Domain / URL",
     "admin.phone_number": "Nombor Telefon",
-    "admin.bank_account": "Akaun Bank",
+    "admin.bank_account": "Akaun Bank Senarai Hitam",
     "admin.add_btn": "Tambah ke Senarai",
-    "admin.blocked_domains": "Domain Disekat",
-    "admin.blocked_phones": "Telefon Disekat",
+    "admin.blocked_domains": "Domain Senarai Hitam",
+    "admin.blocked_phones": "Nombor Telefon Senarai Hitam",
     "admin.no_audit": "Tiada tindakan moderasi direkodkan lagi.",
     "admin.action": "Tindakan:",
     "admin.on_report": "pada Laporan #",
@@ -763,6 +782,25 @@ const translations = {
     "result.scan_another_btn": "Imbas Kandungan Lain",
     "result.weight": "Pemberat isyarat",
 
+    // VirusTotal
+    "vt.title": "Imbasan Ancaman Luaran VirusTotal",
+    "vt.scanning": "Menyemak URL dengan VirusTotal...",
+    "vt.safe": "Tiada ancaman dikesan",
+    "vt.malicious": "Ancaman dikesan!",
+    "vt.detections": "vendor keselamatan menandakan URL ini sebagai berbahaya atau mencurigakan",
+    "vt.of": "daripada",
+    "vt.scanned_by": "diimbas oleh",
+    "vt.vendors": "vendor keselamatan",
+    "vt.scan_date": "Terakhir diimbas",
+    "vt.skipped": "Imbasan VirusTotal dilangkau",
+    "vt.error": "Imbasan VirusTotal menghadapi masalah",
+    "vt.rate_limited": "Had kadar dicapai",
+    "vt.timeout": "Imbasan masih diproses",
+    "vt.powered_by": "Dikuasakan oleh VirusTotal",
+    "vt.safe_evidence": "VirusTotal telah mengimbas URL ini dan tidak menemui perisian hasad, tetapi anda masih perlu mengesahkan sumbernya.",
+    "vt.malicious_evidence": "Perisikan Ancaman VirusTotal: Beberapa vendor keselamatan global telah menanda URL ini sebagai berbahaya.",
+    "scanner.invalid_url_format": "Format URL tidak sah. Sila pastikan ia mengandungi sambungan domain (cth., .com, .my).",
+    "scanner.non_existent_url": "URL ini tidak wujud di internet. Sila masukkan URL yang sah.",
     // Guardian
     "guardian.settings": "Tetapan Penjaga",
 
@@ -951,7 +989,7 @@ const translations = {
     "scanner.qr_placeholder": "cth., https://pos-laju.info/pay-fee/2.50",
     "scanner.verify_qr": "Sahkan Kod URL",
     "scanner.url_label": "URL / Alamat Web",
-    "scanner.phone_label": "Nombor Telefon Penghantar (Pilihan)",
+    "scanner.phone_label": "Nombor Telefon Penghantar",
     "scanner.searching": "Mencari pangkalan data...",
     "scanner.scan_url_btn": "Imbas URL & Kenalan",
     "scanner.empty_url_error": "Sila masukkan alamat laman web.",
@@ -1061,7 +1099,7 @@ const translations = {
     "emergency.guide_msg_desc": "SMS pancingan data atau aplikasi mesej kerap mengandungi gesaan penghantaran atau bayaran palsu.",
     "emergency.guide_msg_step1": "1. Jangan klik sebarang pautan atau muat turun fail/APK yang disertakan.",
     "emergency.guide_msg_step2": "2. Sekat nombor penghantar pada telefon anda.",
-    "emergency.guide_msg_step3": "3. Salin pautan URL atau kandungan mesej untuk diimbas pada Pengimbas ScamShield.",
+    "emergency.guide_msg_step3": "3. Salin pautan URL atau kandungan mesej untuk diimbas pada Pengimbas Scam Away.",
 
     // Bank Directory View
     "emergency.bank_title": "🏦 Hubungi Bank Saya",

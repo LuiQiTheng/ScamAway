@@ -1,4 +1,4 @@
-# ScamShield Member 2 Handoff
+# Scam Away Member 2 Handoff
 
 ## Completed frontend work
 

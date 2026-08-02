@@ -10,7 +10,7 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
   // Helper to load saved state
   const getInitialState = (key, defaultVal) => {
     try {
-      const saved = sessionStorage.getItem(`scamshield_quiz_${key}`);
+      const saved = sessionStorage.getItem(`scam_away_quiz_${key}`);
       return saved !== null ? JSON.parse(saved) : defaultVal;
     } catch (e) {
       return defaultVal;
@@ -34,16 +34,16 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
 
   // Sync to session storage on change
   useEffect(() => {
-    sessionStorage.setItem('scamshield_quiz_idx', JSON.stringify(currentQuestionIdx));
-    sessionStorage.setItem('scamshield_quiz_ans', JSON.stringify(selectedAnswer));
-    sessionStorage.setItem('scamshield_quiz_exp', JSON.stringify(showExplanation));
-    sessionStorage.setItem('scamshield_quiz_score', JSON.stringify(score));
-    sessionStorage.setItem('scamshield_quiz_finished', JSON.stringify(quizFinished));
-    sessionStorage.setItem('scamshield_quiz_started', JSON.stringify(isQuizStarted));
-    sessionStorage.setItem('scamshield_quiz_streak', JSON.stringify(streak));
-    sessionStorage.setItem('scamshield_quiz_longestStreak', JSON.stringify(longestStreak));
-    sessionStorage.setItem('scamshield_quiz_wrongQ', JSON.stringify(wrongQuestions));
-    sessionStorage.setItem('scamshield_quiz_correction', JSON.stringify(isCorrectionPhase));
+    sessionStorage.setItem('scam_away_quiz_idx', JSON.stringify(currentQuestionIdx));
+    sessionStorage.setItem('scam_away_quiz_ans', JSON.stringify(selectedAnswer));
+    sessionStorage.setItem('scam_away_quiz_exp', JSON.stringify(showExplanation));
+    sessionStorage.setItem('scam_away_quiz_score', JSON.stringify(score));
+    sessionStorage.setItem('scam_away_quiz_finished', JSON.stringify(quizFinished));
+    sessionStorage.setItem('scam_away_quiz_started', JSON.stringify(isQuizStarted));
+    sessionStorage.setItem('scam_away_quiz_streak', JSON.stringify(streak));
+    sessionStorage.setItem('scam_away_quiz_longestStreak', JSON.stringify(longestStreak));
+    sessionStorage.setItem('scam_away_quiz_wrongQ', JSON.stringify(wrongQuestions));
+    sessionStorage.setItem('scam_away_quiz_correction', JSON.stringify(isCorrectionPhase));
   }, [currentQuestionIdx, selectedAnswer, showExplanation, score, quizFinished, isQuizStarted, streak, longestStreak, wrongQuestions, isCorrectionPhase]);
 
   useEffect(() => {

@@ -20,7 +20,7 @@ describe('App Component', () => {
     );
 
     // Initial role should be user checker
-    expect(screen.getAllByText(/SCAMSHIELD/i)[0]).toBeInTheDocument();
+    expect(screen.getAllByText(/SCAM AWAY/i)[0]).toBeInTheDocument();
 
     // Switch role to moderator
     const modButton = screen.queryByText(/Admin/i) || screen.queryByText(/Moderator/i);

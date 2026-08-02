@@ -1,5 +1,5 @@
 /**
- * ScamShield - Mock Blacklist Dataset for Rules Engine & Verification
+ * Scam Away - Mock Blacklist Dataset for Rules Engine & Verification
  */
 export const blacklist = {
   phoneNumbers: [

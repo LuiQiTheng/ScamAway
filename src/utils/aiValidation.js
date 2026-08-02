@@ -95,7 +95,7 @@ export function buildGeminiPrompt(message, contextLang = 'en') {
   const outputLanguage = contextLang === 'ms' ? 'Malay' : 'English';
 
   return `
-You are an expert cybersecurity and anti-fraud analyst for ScamShield in Malaysia.
+You are an expert cybersecurity and anti-fraud analyst for Scam Away in Malaysia.
 Analyse meaning and context, not isolated keywords.
 
 SECURITY BOUNDARY:
