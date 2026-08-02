@@ -18,10 +18,13 @@ export default function ModeratorDashboard() {
   } = useAppContext();
   const { t, lang } = useLanguage();
   const [selectedReport, setSelectedReport] = useState(null);
-  const [alertText, setAlertText] = useState('');
+  const [alertCategory, setAlertCategory] = useState('');
+  const [alertDetails, setAlertDetails] = useState('');
+  const [alertSolution, setAlertSolution] = useState('');
   const [alertSuccess, setAlertSuccess] = useState(false);
   const [showConfirmBroadcast, setShowConfirmBroadcast] = useState(false);
   const [rationale, setRationale] = useState('');
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
 
   // New features state
   const [activeSubTab, setActiveSubTab] = useState('queue'); // queue, blacklist, audit
@@ -80,7 +83,7 @@ export default function ModeratorDashboard() {
 
   const handlePublishAlert = (e) => {
     e.preventDefault();
-    if (!alertText.trim()) return;
+    if (!alertCategory.trim() || !alertDetails.trim() || !alertSolution.trim()) return;
     setShowConfirmBroadcast(true);
   };
 
@@ -97,23 +100,40 @@ export default function ModeratorDashboard() {
   };
 
   const confirmBroadcast = async () => {
-    let msgEn = alertText;
-    let msgMs = alertText;
+    let catEn = alertCategory;
+    let catMs = alertCategory;
+    let detEn = alertDetails;
+    let detMs = alertDetails;
+    let solEn = alertSolution;
+    let solMs = alertSolution;
 
     if (lang === 'ms') {
-      msgEn = await translateText(alertText, 'ms', 'en');
+      catEn = await translateText(alertCategory, 'ms', 'en');
+      detEn = await translateText(alertDetails, 'ms', 'en');
+      solEn = await translateText(alertSolution, 'ms', 'en');
     } else {
-      msgMs = await translateText(alertText, 'en', 'ms');
+      catMs = await translateText(alertCategory, 'en', 'ms');
+      detMs = await translateText(alertDetails, 'en', 'ms');
+      solMs = await translateText(alertSolution, 'en', 'ms');
     }
+
+    const timestamp = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
     addAlert({
       id: Date.now(),
-      message: msgEn,
-      message_ms: msgMs,
-      timestamp: new Date().toISOString()
+      category: catEn,
+      category_ms: catMs,
+      details: detEn,
+      details_ms: detMs,
+      solution: solEn,
+      solution_ms: solMs,
+      timestamp: timestamp,
+      type: 'rich'
     });
 
-    setAlertText('');
+    setAlertCategory('');
+    setAlertDetails('');
+    setAlertSolution('');
     setShowConfirmBroadcast(false);
     setAlertSuccess(true);
     setTimeout(() => setAlertSuccess(false), 3000);
@@ -232,41 +252,160 @@ export default function ModeratorDashboard() {
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '-0.75rem' }}>
+      <div className="broadcast-container" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '-0.75rem' }}>
         
         {/* Top: Community Alert Publisher */}
         <div className="glass-panel" style={{ padding: '1.5rem' }}>
-          <h3 style={{ fontSize: '1.1rem', color: '#fff', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <ShieldAlert size={20} color="var(--color-high)" />
+          <h3 style={{ fontSize: '1.4rem', color: '#fff', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <ShieldAlert size={24} color="var(--color-high)" />
             {t('admin.broadcast_title')}
           </h3>
           
-          <form onSubmit={handlePublishAlert} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <textarea 
-              className="input-field"
-              rows={3}
-              value={alertText}
-              onChange={(e) => setAlertText(e.target.value)}
-              placeholder={t("admin.broadcast_placeholder")}
-              style={{ fontSize: '0.85rem' }}
-            />
-            <button type="submit" className="btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-              <Send size={14} /> {t('admin.broadcast_btn')}
+          <form onSubmit={handlePublishAlert} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div>
+              <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.25rem', display: 'block' }}>
+                {lang === 'ms' ? 'Kategori Scam' : 'Scam Category'}
+              </label>
+              <div 
+                className="input-field custom-select-container"
+                style={{ position: 'relative', padding: 0, cursor: 'pointer', outline: 'none' }}
+                tabIndex={0}
+                onBlur={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget)) {
+                    setIsCategoryOpen(false);
+                  }
+                }}
+              >
+                <div 
+                  onClick={() => setIsCategoryOpen(!isCategoryOpen)}
+                  style={{ padding: '0.85rem 1.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.9rem' }}
+                >
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: alertCategory ? '#fff' : 'var(--text-secondary)' }}>
+                    {alertCategory 
+                      ? (lang === 'ms' 
+                          ? {
+                              'Banking & Phishing Scam': 'Scam Perbankan & Phishing',
+                              'E-Commerce & Online Shopping Scam': 'Scam E-Dagang & Membeli-belah Dalam Talian',
+                              'Job & Employment Scam': 'Scam Pekerjaan',
+                              'Investment Scam': 'Scam Pelaburan',
+                              'Parcel & Delivery Scam': 'Scam Bungkusan & Penghantaran',
+                              'Emergency & Impersonation Scam': 'Scam Kecemasan & Penyamaran',
+                              'Malware & Technical Support Scam': 'Scam Hasad & Sokongan Teknikal',
+                              'General Scam Alert': 'Amaran Scam Umum'
+                            }[alertCategory] || alertCategory
+                          : alertCategory)
+                      : (lang === 'ms' ? 'Pilih kategori scam...' : 'Select a scam category...')}
+                  </span>
+                  <span style={{ transform: isCategoryOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', fontSize: '0.7rem' }}>▼</span>
+                </div>
+                
+                {isCategoryOpen && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    background: '#0f172a',
+                    border: '1px solid var(--primary)',
+                    borderRadius: '8px',
+                    marginTop: '4px',
+                    zIndex: 50,
+                    maxHeight: '250px',
+                    overflowY: 'auto',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.5)'
+                  }}>
+                    {[
+                      { val: 'Banking & Phishing Scam', ms: 'Scam Perbankan & Phishing' },
+                      { val: 'E-Commerce & Online Shopping Scam', ms: 'Scam E-Dagang & Membeli-belah Dalam Talian' },
+                      { val: 'Job & Employment Scam', ms: 'Scam Pekerjaan' },
+                      { val: 'Investment Scam', ms: 'Scam Pelaburan' },
+                      { val: 'Parcel & Delivery Scam', ms: 'Scam Bungkusan & Penghantaran' },
+                      { val: 'Emergency & Impersonation Scam', ms: 'Scam Kecemasan & Penyamaran' },
+                      { val: 'Malware & Technical Support Scam', ms: 'Scam Hasad & Sokongan Teknikal' },
+                      { val: 'General Scam Alert', ms: 'Amaran Scam Umum' }
+                    ].map(opt => (
+                      <div 
+                        key={opt.val}
+                        onClick={() => {
+                          setAlertCategory(opt.val);
+                          setIsCategoryOpen(false);
+                        }}
+                        style={{
+                          padding: '0.75rem 1.2rem',
+                          fontSize: '0.9rem',
+                          color: '#fff',
+                          cursor: 'pointer',
+                          borderBottom: '1px solid rgba(255,255,255,0.05)',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          background: alertCategory === opt.val ? 'rgba(6, 182, 212, 0.1)' : 'transparent'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = alertCategory === opt.val ? 'rgba(6, 182, 212, 0.1)' : 'transparent'}
+                      >
+                        {lang === 'ms' ? opt.ms : opt.val}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {/* Hidden input to satisfy required field on form submit */}
+                <input type="text" value={alertCategory} required onChange={() => {}} style={{ opacity: 0, height: 0, width: 0, position: 'absolute' }} />
+              </div>
+            </div>
+            
+            <div>
+              <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.25rem', display: 'block' }}>
+                {lang === 'ms' ? 'Butiran / Maklumat Tambahan' : 'Details / Extra Info'}
+              </label>
+              <textarea 
+                className="input-field"
+                rows={2}
+                value={alertDetails}
+                onChange={(e) => setAlertDetails(e.target.value)}
+                placeholder={lang === 'ms' ? 'cth. adalah scam yang paling kerap dilaporkan oleh komuniti Scam Away buat masa ini.' : 'e.g. is currently the most frequently reported scam by the Scam Away community.'}
+                style={{ fontSize: '0.9rem' }}
+                required
+              />
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.25rem', display: 'block' }}>
+                {lang === 'ms' ? 'Penyelesaian Utama' : 'Key Solution'}
+              </label>
+              <input 
+                type="text"
+                className="input-field"
+                value={alertSolution}
+                onChange={(e) => setAlertSolution(e.target.value)}
+                placeholder={lang === 'ms' ? 'cth. Jangan sesekali mendedahkan OTP atau bukti kelayakan perbankan anda.' : 'e.g. Never reveal your OTP or banking credentials.'}
+                style={{ fontSize: '0.9rem' }}
+                required
+              />
+            </div>
+            <button type="submit" className="btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
+              <Send size={14} /> {lang === 'ms' ? 'Terbitkan Amaran Ancaman' : 'Publish Threat Alert'}
             </button>
           </form>
 
           {alertSuccess && (
             <div style={{ marginTop: '0.75rem', fontSize: '0.8rem', color: 'var(--color-low)', textAlign: 'center' }}>
-              ✓ Alert published to public view screens.
+              ✓ {lang === 'ms' ? 'Amaran diterbitkan ke skrin paparan awam.' : 'Alert published to public view screens.'}
             </div>
           )}
 
           {showConfirmBroadcast && (
             <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid var(--color-high)', borderRadius: '8px' }}>
-              <strong style={{ fontSize: '0.9rem', color: '#fff', display: 'block', marginBottom: '0.5rem' }}>Are you sure you want to broadcast this alert to all users?</strong>
+              <strong style={{ fontSize: '0.9rem', color: '#fff', display: 'block', marginBottom: '0.5rem' }}>
+                {lang === 'ms' ? 'Adakah anda pasti mahu menyiarkan amaran ini kepada semua pengguna?' : 'Are you sure you want to broadcast this alert to all users?'}
+              </strong>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button onClick={confirmBroadcast} className="btn-primary" style={{ flex: 1, padding: '0.4rem', fontSize: '0.85rem' }}>Yes, Publish</button>
-                <button onClick={() => setShowConfirmBroadcast(false)} className="btn-secondary" style={{ flex: 1, padding: '0.4rem', fontSize: '0.85rem' }}>Cancel</button>
+                <button onClick={confirmBroadcast} className="btn-primary" style={{ flex: 1, padding: '0.4rem', fontSize: '0.85rem' }}>
+                  {lang === 'ms' ? 'Ya, Terbitkan' : 'Yes, Publish'}
+                </button>
+                <button onClick={() => setShowConfirmBroadcast(false)} className="btn-secondary" style={{ flex: 1, padding: '0.4rem', fontSize: '0.85rem' }}>
+                  {lang === 'ms' ? 'Batal' : 'Cancel'}
+                </button>
               </div>
             </div>
           )}

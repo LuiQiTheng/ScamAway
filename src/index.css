@@ -309,6 +309,9 @@ select option,
 .input-field option {
   background-color: #0f172a;
   color: #ffffff;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .input-field:focus {
@@ -378,6 +381,10 @@ select option,
 
 /* Responsive Media Queries */
 @media (max-width: 768px) {
+  .broadcast-container {
+    margin-top: 1rem !important;
+  }
+
   .app-header {
     flex-direction: column;
     gap: 1rem;

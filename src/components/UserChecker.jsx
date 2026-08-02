@@ -421,51 +421,76 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
       {/* Broadcast Campus Alert Banner */}
       {activeAlert && (
         <div style={{
-          background: 'rgba(239, 68, 68, 0.15)',
+          background: 'rgba(239, 68, 68, 0.12)',
           border: '1px solid rgba(239, 68, 68, 0.4)',
           borderRadius: '12px',
-          padding: '1.25rem',
-          display: 'flex',
-          alignItems: 'start',
-          gap: '1rem',
-          animation: 'pulse-glow 3s infinite',
+          padding: '1.25rem 1.75rem',
+          boxShadow: '0 0 20px rgba(239, 68, 68, 0.15)',
+          marginBottom: '0',
+          animation: 'pulse-glow 3s infinite'
         }}>
-          <AlertCircle size={28} color="var(--color-high)" style={{ flexShrink: 0, marginTop: '2px' }} />
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span className="badge badge-high" style={{ padding: '0.1rem 0.5rem', fontSize: '0.7rem' }}>{t('scanner.alert_badge')}</span>
-              <strong style={{ color: '#fff', fontSize: isElderlyMode ? '1.2rem' : '0.95rem' }}>{t('scanner.alert_title')}</strong>
+          {activeAlert.category ? (
+            /* New Rich Format */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <ShieldAlert size={28} color="var(--color-high)" />
+                    <h1 style={{ fontSize: '1.6rem', fontWeight: '800', color: '#fff', margin: 0, lineHeight: 1.2 }}>
+                      {t('trends.title')}
+                    </h1>
+                  </div>
+                </div>
+
+                {activeAlert.timestamp && (
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.05)', padding: '0.35rem 0.75rem', borderRadius: '20px', border: '1px solid var(--border-color)' }}>
+                    {t('trends.last_updated')} {activeAlert.timestamp}
+                  </span>
+                )}
+              </div>
+
+              <div style={{ marginTop: '1rem' }}>
+                <h2 style={{ fontSize: '1.4rem', fontWeight: '800', color: '#fca5a5', marginTop: 0, marginBottom: 0, lineHeight: 1.3 }}>
+                  {lang === 'ms' ? (activeAlert.category_ms || activeAlert.category) : activeAlert.category}
+                </h2>
+                <p style={{ fontSize: '0.9rem', fontWeight: '500', color: '#cbd5e1', marginTop: '0.5rem', marginBottom: 0, lineHeight: 1.5 }}>
+                  {lang === 'ms' ? (activeAlert.details_ms || activeAlert.details) : activeAlert.details}
+                </p>
+                <p style={{ fontSize: '0.85rem', color: '#f1f5f9', marginTop: '1rem', marginBottom: 0, lineHeight: '1.4', background: 'rgba(255,255,255,0.04)', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  💡 {lang === 'ms' ? (activeAlert.solution_ms || activeAlert.solution) : activeAlert.solution}
+                </p>
+              </div>
             </div>
-            <p style={{ color: '#fca5a5', marginTop: '0.25rem', fontSize: isElderlyMode ? '1.15rem' : '0.85rem' }}>
-              {lang === 'ms'
-                ? (activeAlert.message_ms || (activeAlert.message?.includes("Urgent: A wave of parcel")
-                  ? "Segera: Gelombang SMS bayaran semasa penghantaran (COD) bungkusan yang menyamar sebagai pautan Pos Laju (pos-laju.info) telah menyasarkan wilayah Selangor dan Lembah Klang. Jangan bayar atau buka pautan tersebut."
-                  : activeAlert.message))
-                : activeAlert.message}
-            </p>
-          </div>
+          ) : (
+            /* Fallback for old alert format */
+            <div style={{ display: 'flex', alignItems: 'start', gap: '1rem' }}>
+              <AlertCircle size={28} color="var(--color-high)" style={{ flexShrink: 0, marginTop: '2px' }} />
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span className="badge badge-high" style={{ padding: '0.1rem 0.5rem', fontSize: '0.7rem' }}>{t('scanner.alert_badge')}</span>
+                  <strong style={{ color: '#fff', fontSize: isElderlyMode ? '1.2rem' : '0.95rem' }}>{t('scanner.alert_title')}</strong>
+                </div>
+                <p style={{ color: '#fca5a5', marginTop: '0.25rem', fontSize: isElderlyMode ? '1.15rem' : '0.85rem' }}>
+                  {lang === 'ms'
+                    ? (activeAlert.message_ms || (activeAlert.message?.includes("Urgent: A wave of parcel")
+                      ? "Segera: Gelombang SMS bayaran semasa penghantaran (COD) bungkusan yang menyamar sebagai pautan Pos Laju (pos-laju.info) telah menyasarkan wilayah Selangor dan Lembah Klang. Jangan bayar atau buka pautan tersebut."
+                      : activeAlert.message))
+                    : activeAlert.message}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Control Board: Assistant header */}
-      <div className="glass-panel scanner-assistant-card" style={{ padding: '1.5rem 1.75rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-        <Sparkles color={isKidMode ? 'var(--primary)' : 'var(--primary)'} size={22} />
-        <div>
-          <h3 style={{ fontSize: isElderlyMode ? '1.4rem' : '1.1rem', fontWeight: 600, color: '#fff' }}>
-            {isKidMode ? t('scanner.assistant_kid') : t('scanner.assistant')}
-          </h3>
-          <p style={{ color: 'var(--text-secondary)', fontSize: isElderlyMode ? '1.1rem' : '0.85rem' }}>
-            {isKidMode ? t('scanner.assistant_desc_kid') : t('scanner.assistant_desc')}
-          </p>
-        </div>
-      </div>
+
 
       <div className="scanner-content-grid" style={{ gap: '2rem' }}>
 
         {/* Input Console */}
         <div className="glass-panel scanner-input-panel" style={{ padding: '1.5rem 1.75rem' }}>
-          <h2 style={{ fontSize: isElderlyMode ? '1.6rem' : '1.35rem', fontWeight: 700, color: '#fff', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Shield size={24} color="var(--primary)" />
+          <h2 style={{ fontSize: isElderlyMode ? '1.8rem' : '1.6rem', fontWeight: 800, color: '#fff', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <Shield size={28} color="var(--primary)" />
             {t('scanner.title')}
           </h2>
 
