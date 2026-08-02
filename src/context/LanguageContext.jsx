@@ -13,7 +13,7 @@ const translations = {
     "nav.elderly": "Elderly Mode",
     "nav.submit_report": "Submit Report",
     "nav.moderator": "Admin Moderation",
-    "nav.trends": "Scam Trends",
+    "nav.trends": "Community Alerts",
 
     // Login
     "login.welcome": "Welcome to Scam Away",
@@ -27,20 +27,120 @@ const translations = {
     "app.logout": "Log Out",
 
     // Trends Dashboard
-    "trends.title": "Community Scam Trends",
-    "trends.subtitle": "Stay informed about the latest scam activities reported by the Scam Away community. These statistics help users recognize emerging scam threats and stay vigilant.",
-    "trends.info_title": "About This Data",
-    "trends.info_content": "These statistics are generated from scam reports submitted by the Scam Away community. They are intended to raise public awareness of current scam trends and help users stay vigilant.",
-    "trends.kpi_total": "Community Scam Reports",
-    "trends.kpi_pending": "Reports Under Review",
-    "trends.kpi_confirmed": "Verified Scam Cases",
-    "trends.kpi_blacklist": "Known Scam Sources",
+    "trends.title": "Community Scam Alerts",
+    "trends.alert_title": "Community Scam Alert",
+    "trends.hero_eyebrow": "Most Reported Scam Today",
+    "trends.alert_top_suffix": "is currently the most frequently reported scam by the ScamShield community.",
+    "trends.guidance_parcel": "Be cautious of fake courier SMS asking for delivery fees.",
+    "trends.guidance_banking": "Never reveal your OTP or banking credentials.",
+    "trends.guidance_investment": "Beware of guaranteed profit schemes.",
+    "trends.guidance_job": "Never pay upfront fees for employment opportunities.",
+    "trends.guidance_government": "Verify all calls claiming to be from government agencies.",
+    "trends.guidance_emergency": "Cross-check emergency claims directly with family before sending money.",
+    "trends.guidance_marketplace": "Avoid making bank transfers outside trusted platform checkout.",
+    "trends.guidance_default": "Stay cautious before clicking unknown links or transferring funds.",
+    "trends.last_updated": "Last Updated:",
+
+    "trends.lesson_header": "Today's Scam Lesson",
+    "trends.lesson_subtitle": "⏱️ 1-minute Scam Lesson",
+    "trends.lesson_target_label": "Who is Targeted?",
+    "trends.lesson_how_label": "How it Works",
+    "trends.lesson_warning_label": "Warning Signs",
+    "trends.lesson_stay_safe_label": "Stay Safe",
+    "trends.lesson_did_you_know": "Did You Know?",
+
+    "trends.safety_title": "How to Stay Safe",
+    "trends.safety_tip1_title": "Never click suspicious links.",
+    "trends.safety_tip1_desc": "Always inspect URLs before opening them.",
+    "trends.safety_tip2_title": "Verify unknown phone numbers.",
+    "trends.safety_tip2_desc": "Cross-check callers claiming to represent banks, courier services or government agencies.",
+    "trends.safety_tip3_title": "Never share OTP or TAC codes.",
+    "trends.safety_tip3_desc": "Official organisations will never request your verification codes.",
+    "trends.safety_tip4_title": "Scan suspicious content.",
+    "trends.safety_tip4_desc": "Use ScamShield Scanner to verify URLs, messages and QR codes before taking action.",
+
+    "trends.info_title": "Community Insights",
+    "trends.info_content": "These charts are based on scam reports submitted by ScamShield users. They help you understand the most common scam types and identify emerging scam trends within the community.",
+
+    "trends.summary_title": "Quick Scam Summary",
+    "trends.card_most_active": "Most Active Scam",
+    "trends.card_most_active_suffix": "is currently the most frequently reported scam by the ScamShield community.",
+    "trends.card_target": "Main Target",
+    "trends.card_method": "Typical Scam Method",
+    "trends.card_trend": "Current Trend",
+
+    // Target descriptions
+    "trends.target_parcel": "People expecting parcel deliveries.",
+    "trends.target_marketplace": "Online buyers and sellers.",
+    "trends.target_banking": "Bank account holders.",
+    "trends.target_investment": "People looking for investment opportunities.",
+    "trends.target_job": "Job seekers.",
+    "trends.target_government": "Members of the public contacted by fake authorities.",
+    "trends.target_default": "General public using mobile services.",
+
+    // Method descriptions
+    "trends.method_parcel": "Victims receive fake courier SMS containing payment links.",
+    "trends.method_marketplace": "Victims are persuaded to make direct bank transfers outside trusted platforms.",
+    "trends.method_banking": "Victims are tricked into revealing OTP or banking credentials.",
+    "trends.method_investment": "Victims are promised guaranteed high profits for fake investment plans.",
+    "trends.method_job": "Victims are asked to pay advance fees or deposits to start simple online tasks.",
+    "trends.method_government": "Victims are threatened with legal action or arrest unless they transfer funds.",
+    "trends.method_default": "Victims are tricked into opening malicious links or transferring money.",
+
     "trends.chart_category": "Most Reported Scam Categories",
-    "trends.chart_status": "Report Verification Status",
-    "trends.chart_timeline": "Recent Scam Reports",
+    "trends.chart_category_sub": "These are the scam categories reported most frequently by the ScamShield community.",
+
+    "trends.operate_title": "How Scammers Operate",
+    
+    // Operate steps - Marketplace
+    "trends.operate_market_step1": "1. The scammer contacts the victim through an online marketplace.",
+    "trends.operate_market_step2": "2. The victim is encouraged to continue the conversation outside the platform.",
+    "trends.operate_market_step3": "3. The scammer requests payment through direct bank transfer.",
+    "trends.operate_market_step4": "4. After receiving the payment, the scammer disappears.",
+
+    // Operate steps - Parcel
+    "trends.operate_parcel_step1": "1. A fake courier SMS is sent.",
+    "trends.operate_parcel_step2": "2. The victim clicks a fake payment link.",
+    "trends.operate_parcel_step3": "3. Personal or banking information is collected.",
+    "trends.operate_parcel_step4": "4. The victim loses money or account access.",
+
+    // Operate steps - Banking
+    "trends.operate_banking_step1": "1. The scammer impersonates a bank officer.",
+    "trends.operate_banking_step2": "2. The victim is informed of an urgent banking issue.",
+    "trends.operate_banking_step3": "3. OTP or banking credentials are requested.",
+    "trends.operate_banking_step4": "4. The scammer gains access to the victim's account.",
+
+    // Operate steps - Job
+    "trends.operate_job_step1": "1. A high-paying work-from-home offer is advertised.",
+    "trends.operate_job_step2": "2. The victim completes initial simple tasks to build trust.",
+    "trends.operate_job_step3": "3. The scammer requests an advance deposit to unlock higher earnings.",
+    "trends.operate_job_step4": "4. The deposit is stolen and withdrawal requests are blocked.",
+
+    // Operate steps - Investment
+    "trends.operate_invest_step1": "1. An exclusive investment scheme with guaranteed returns is promoted.",
+    "trends.operate_invest_step2": "2. The victim is shown fake profit dashboards.",
+    "trends.operate_invest_step3": "3. Additional funds are requested to release profits.",
+    "trends.operate_invest_step4": "4. The platform closes and funds cannot be recovered.",
+
+    // Operate steps - Government
+    "trends.operate_gov_step1": "1. The scammer calls impersonating police, LHDN, or court officials.",
+    "trends.operate_gov_step2": "2. The victim is accused of involvement in a crime or tax debt.",
+    "trends.operate_gov_step3": "3. The scammer instructs the victim to transfer money to safe accounts.",
+    "trends.operate_gov_step4": "4. The victim's funds are stolen without any receipt.",
+
+    // Operate steps - Default
+    "trends.operate_default_step1": "1. The scammer initiates contact via SMS, call, or social media.",
+    "trends.operate_default_step2": "2. Urgency or high reward is used to manipulate the victim.",
+    "trends.operate_default_step3": "3. The victim is asked to click a link or transfer funds.",
+    "trends.operate_default_step4": "4. The scammer cuts off contact once money or data is taken.",
+
+    "trends.chart_timeline_title": "Scam Activity",
+    "trends.chart_timeline_sub": "This chart shows how scam reports have changed over recent days.",
+    "trends.trend_increased": "📈 Scam reports increased recently.",
+    "trends.trend_decreased": "📉 Scam reports decreased recently.",
+    "trends.trend_stable": "📊 Scam activity remains stable.",
+    "trends.sparse_notice": "Community data is still growing. Trends become more meaningful as more scam reports are submitted.",
     "trends.no_data": "No report data available to display trends.",
-    "trends.tooltip_count": "Count",
-    "trends.tooltip_reports": "Reports",
 
     // Admin Dashboard
     "admin.queue": "Case Queue",
@@ -357,7 +457,7 @@ const translations = {
     "nav.elderly": "Mod Warga Emas",
     "nav.submit_report": "Hantar Laporan",
     "nav.moderator": "Moderasi Admin",
-    "nav.trends": "Trend Scam",
+    "nav.trends": "Amaran Komuniti",
 
     // Login
     "login.welcome": "Selamat Datang ke Scam Away",
@@ -371,20 +471,120 @@ const translations = {
     "app.logout": "Log Keluar",
 
     // Trends Dashboard
-    "trends.title": "Trend Scam Komuniti",
-    "trends.subtitle": "Kekal maklum mengenai aktiviti penipuan terkini yang dilaporkan oleh komuniti Scam Away. Statistik ini membantu pengguna mengenali ancaman penipuan baharu dan kekal berwaspada.",
-    "trends.info_title": "Mengenai Data Ini",
-    "trends.info_content": "Statistik ini dijana daripada laporan penipuan yang diserahkan oleh komuniti Scam Away. Ia bertujuan untuk meningkatkan kesedaran awam mengenai trend penipuan terkini dan membantu pengguna kekal berwaspada.",
-    "trends.kpi_total": "Jumlah Laporan Komuniti",
-    "trends.kpi_pending": "Laporan Dalam Semakan",
-    "trends.kpi_confirmed": "Kes Scam Disahkan",
-    "trends.kpi_blacklist": "Sumber Scam Dikenali",
+    "trends.title": "Amaran Scam Komuniti",
+    "trends.alert_title": "Amaran Scam Komuniti",
+    "trends.hero_eyebrow": "Scam Paling Banyak Dilaporkan Hari Ini",
+    "trends.alert_top_suffix": "merupakan penipuan yang paling kerap dilaporkan oleh komuniti ScamShield pada masa ini.",
+    "trends.guidance_parcel": "Berwaspada dengan SMS kurier palsu yang meminta bayaran penghantaran.",
+    "trends.guidance_banking": "Jangan sekali-kali mendedahkan OTP atau maklumat perbankan anda.",
+    "trends.guidance_investment": "Berwaspada dengan skim pulangan terjamin.",
+    "trends.guidance_job": "Jangan bayar yuran pendahuluan untuk peluang pekerjaan.",
+    "trends.guidance_government": "Sahkan semua panggilan yang mendakwa daripada agensi kerajaan.",
+    "trends.guidance_emergency": "Semak semula dakwaan kecemasan secara terus dengan keluarga sebelum memindahkan wang.",
+    "trends.guidance_marketplace": "Elakkan pemindahan bank di luar pembayaran platform yang dipercayai.",
+    "trends.guidance_default": "Kekal berwaspada sebelum menekan pautan tidak dikenali atau memindahkan dana.",
+    "trends.last_updated": "Kemas Kini Terakhir:",
+
+    "trends.lesson_header": "Pengajaran Scam Hari Ini",
+    "trends.lesson_subtitle": "⏱️ Pelajaran Scam 1 Minit",
+    "trends.lesson_target_label": "Siapa Yang Disasar?",
+    "trends.lesson_how_label": "Bagaimana Ia Beroperasi",
+    "trends.lesson_warning_label": "Tanda-Tanda Amaran",
+    "trends.lesson_stay_safe_label": "Kekal Selamat",
+    "trends.lesson_did_you_know": "Tahukah Anda?",
+
+    "trends.safety_title": "Cara-cara Kekal Selamat",
+    "trends.safety_tip1_title": "Jangan klik pautan mencurigakan.",
+    "trends.safety_tip1_desc": "Sentiasa semak URL sebelum membukanya.",
+    "trends.safety_tip2_title": "Sahkan nombor telefon tidak dikenali.",
+    "trends.safety_tip2_desc": "Semak semula pemanggil yang mendakwa daripada bank, perkhidmatan kurier atau agensi kerajaan.",
+    "trends.safety_tip3_title": "Jangan kongsi kod OTP atau TAC.",
+    "trends.safety_tip3_desc": "Organisasi rasmi tidak akan sekali-kali meminta kod pengesahan anda.",
+    "trends.safety_tip4_title": "Imbas kandungan mencurigakan.",
+    "trends.safety_tip4_desc": "Gunakan Pengimbas ScamShield untuk menyemak URL, mesej dan kod QR sebelum mengambil tindakan.",
+
+    "trends.info_title": "Wawasan Komuniti",
+    "trends.info_content": "Carta ini berdasarkan laporan scam yang dihantar oleh pengguna ScamShield. Ia membantu anda memahami jenis scam yang paling kerap berlaku serta mengenal pasti trend scam yang sedang meningkat dalam komuniti.",
+
+    "trends.summary_title": "Ringkasan Ringkas Scam",
+    "trends.card_most_active": "Scam Paling Aktif",
+    "trends.card_most_active_suffix": "merupakan penipuan yang paling kerap dilaporkan oleh komuniti ScamShield pada masa ini.",
+    "trends.card_target": "Sasaran Utama",
+    "trends.card_method": "Kaedah Penipuan Biasa",
+    "trends.card_trend": "Trend Semasa",
+
+    // Target descriptions
+    "trends.target_parcel": "Orang yang menunggu penghantaran bungkusan.",
+    "trends.target_marketplace": "Pembeli dan penjual dalam talian.",
+    "trends.target_banking": "Pemegang akaun bank.",
+    "trends.target_investment": "Individu yang mencari peluang pelaburan.",
+    "trends.target_job": "Pencari kerja.",
+    "trends.target_government": "Orang awam yang dihubungi oleh pihak berkuasa palsu.",
+    "trends.target_default": "Orang awam yang menggunakan perkhidmatan mudah alih.",
+
+    // Method descriptions
+    "trends.method_parcel": "Mangsa menerima SMS kurier palsu yang mengandungi pautan bayaran.",
+    "trends.method_marketplace": "Mangsa dipujuk untuk membuat pemindahan bank secara terus di luar platform dipercayai.",
+    "trends.method_banking": "Mangsa ditipu untuk mendedahkan OTP atau maklumat perbankan.",
+    "trends.method_investment": "Mangsa dijanjikan pulangan tinggi terjamin untuk pelan pelaburan palsu.",
+    "trends.method_job": "Mangsa diminta membayar yuran pendahuluan atau deposit untuk memulakan tugasan.",
+    "trends.method_government": "Mangsa diancam dengan tindakan undang-undang atau tangkapan kecuali memindahkan dana.",
+    "trends.method_default": "Mangsa ditipu untuk membuka pautan berbahaya atau memindahkan wang.",
+
     "trends.chart_category": "Kategori Scam Paling Banyak Dilaporkan",
-    "trends.chart_status": "Status Pengesahan Laporan",
-    "trends.chart_timeline": "Laporan Scam Terkini",
+    "trends.chart_category_sub": "Ini merupakan kategori penipuan yang paling kerap dilaporkan oleh komuniti ScamShield.",
+
+    "trends.operate_title": "Bagaimana Penipu Beroperasi",
+    
+    // Operate steps - Marketplace
+    "trends.operate_market_step1": "1. Penipu menghubungi mangsa melalui pasaran dalam talian.",
+    "trends.operate_market_step2": "2. Mangsa digalakkan meneruskan perbualan di luar platform.",
+    "trends.operate_market_step3": "3. Penipu meminta bayaran melalui pemindahan bank terus.",
+    "trends.operate_market_step4": "4. Selepas menerima bayaran, penipu hilang.",
+
+    // Operate steps - Parcel
+    "trends.operate_parcel_step1": "1. SMS kurier palsu dihantar.",
+    "trends.operate_parcel_step2": "2. Mangsa menekan pautan bayaran palsu.",
+    "trends.operate_parcel_step3": "3. Maklumat peribadi atau perbankan dikumpul.",
+    "trends.operate_parcel_step4": "4. Mangsa kehilangan wang atau akses akaun.",
+
+    // Operate steps - Banking
+    "trends.operate_banking_step1": "1. Penipu menyamar sebagai pegawai bank.",
+    "trends.operate_banking_step2": "2. Mangsa dimaklumkan mengenai isu perbankan mendesak.",
+    "trends.operate_banking_step3": "3. OTP atau maklumat perbankan diminta.",
+    "trends.operate_banking_step4": "4. Penipu mendapat akses ke akaun mangsa.",
+
+    // Operate steps - Job
+    "trends.operate_job_step1": "1. Tawaran kerja dari rumah bergaji tinggi diiklankan.",
+    "trends.operate_job_step2": "2. Mangsa menyiapkan tugasan mudah awal untuk membina kepercayaan.",
+    "trends.operate_job_step3": "3. Penipu meminta deposit pendahuluan untuk membuka ganjaran lebih tinggi.",
+    "trends.operate_job_step4": "4. Deposit dicuri dan permintaan pengeluaran disekat.",
+
+    // Operate steps - Investment
+    "trends.operate_invest_step1": "1. Skim pelaburan eksklusif dengan pulangan terjamin dipromosikan.",
+    "trends.operate_invest_step2": "2. Mangsa ditunjukkan papan pemuka keuntungan palsu.",
+    "trends.operate_invest_step3": "3. Dana tambahan diminta untuk mengeluarkan keuntungan.",
+    "trends.operate_invest_step4": "4. Platform ditutup dan dana tidak dapat dipulihkan.",
+
+    // Operate steps - Government
+    "trends.operate_gov_step1": "1. Penipu menelefon menyamar sebagai polis, LHDN, atau mahkamah.",
+    "trends.operate_gov_step2": "2. Mangsa dituduh terlibat dalam jenayah atau tunggakan cukai.",
+    "trends.operate_gov_step3": "3. Penipu mengarahkan mangsa memindahkan wang ke akaun selamat.",
+    "trends.operate_gov_step4": "4. Dana mangsa dicuri tanpa sebarang resit.",
+
+    // Operate steps - Default
+    "trends.operate_default_step1": "1. Penipu memulakan hubungan melalui SMS, panggilan, atau media sosial.",
+    "trends.operate_default_step2": "2. Desakan atau ganjaran tinggi digunakan untuk memanipulasi mangsa.",
+    "trends.operate_default_step3": "3. Mangsa diminta menekan pautan atau memindahkan dana.",
+    "trends.operate_default_step4": "4. Penipu memutuskan hubungan sebaik sahaja wang atau data diambil.",
+
+    "trends.chart_timeline_title": "Aktiviti Penipuan",
+    "trends.chart_timeline_sub": "Carta ini menunjukkan bagaimana laporan penipuan telah berubah sejak beberapa hari lalu.",
+    "trends.trend_increased": "📈 Laporan penipuan meningkat baru-baru ini.",
+    "trends.trend_decreased": "📉 Laporan penipuan menurun baru-baru ini.",
+    "trends.trend_stable": "📊 Aktiviti penipuan kekal stabil.",
+    "trends.sparse_notice": "Data komuniti masih berkembang. Trend menjadi lebih bermakna apabila lebih banyak laporan penipuan diserahkan.",
     "trends.no_data": "Tiada data laporan tersedia untuk memaparkan trend.",
-    "trends.tooltip_count": "Jumlah",
-    "trends.tooltip_reports": "Laporan",
 
     // Admin Dashboard
     "admin.queue": "Gilir Kes",
