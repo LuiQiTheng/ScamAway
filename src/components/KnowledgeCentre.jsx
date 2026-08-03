@@ -1,11 +1,32 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Award, BookOpen, ShieldAlert, CheckCircle, XCircle, RefreshCw, ChevronRight, ChevronDown, ChevronUp, Filter, AlertTriangle, Eye, Layers, Flame, Search, ExternalLink } from 'lucide-react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { Award, BookOpen, ShieldAlert, CheckCircle, XCircle, RefreshCw, ChevronRight, ChevronDown, ChevronUp, Filter, AlertTriangle, Eye, Layers, Flame, Search, ExternalLink, Target, HelpCircle, ShieldCheck, Lightbulb } from 'lucide-react';
 import { getDailyQuestions } from '../utils/quizDatabase';
 import { useLanguage } from '../context/LanguageContext';
 import { LESSON_CARDS } from '../utils/lessonCards';
+import { getTodayScamLesson } from '../data/dailyScamLessons';
+
+const CATEGORY_ICONS = {
+  parcel: '📦',
+  banking: '🏦',
+  investment: '💰',
+  job: '💼',
+  marketplace: '🛒',
+  government: '🏛',
+  romance: '❤️',
+  malware: '📱',
+  ai: '🤖'
+};
 
 export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = false, isKidMode = false }) {
   const { t, lang } = useLanguage();
+
+  // Daily Scam Lesson expand/collapse state
+  const [isLessonExpanded, setIsLessonExpanded] = useState(false);
+
+  // Daily Scam Lesson from rotation
+  const todayLesson = useMemo(() => {
+    return getTodayScamLesson();
+  }, []);
 
   // Helper to load saved state
   const getInitialState = (key, defaultVal) => {
@@ -232,6 +253,157 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
 
   return (
     <div className={`page-shell knowledge-page mode-${userMode} ${isElderlyMode ? 'elderly-mode' : ''} ${isKidMode ? 'kid-mode' : ''}`}>
+
+      {/* SECTION 1 — TODAY'S SCAM LESSON (DAILY ROTATION CARD) */}
+      <div 
+        className="glass-panel" 
+        style={{ 
+          padding: '1.75rem 2rem', 
+          borderLeft: '6px solid var(--primary)', 
+          background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.08) 0%, rgba(15, 23, 42, 0.7) 100%)',
+          borderRadius: '16px',
+          boxShadow: '0 8px 32px rgba(6, 182, 212, 0.1)',
+          marginBottom: '0.25rem'
+        }}
+      >
+        <div style={{ marginBottom: '1.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            <div style={{ background: 'rgba(6, 182, 212, 0.15)', padding: '0.45rem', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <BookOpen size={22} color="var(--primary)" />
+            </div>
+            <div>
+              <h3 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#fff', margin: 0 }}>
+                🎓 {t('trends.lesson_header')}
+              </h3>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.2rem', margin: 0 }}>
+                {t('trends.lesson_subtitle')}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Lesson Topic Title & Category Badge */}
+        <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1rem 1.25rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)', marginBottom: '1.25rem' }}>
+          {todayLesson.category && (
+            <div style={{ marginBottom: '0.45rem' }}>
+              <span style={{ 
+                fontSize: '0.75rem', 
+                fontWeight: 700, 
+                padding: '0.2rem 0.65rem', 
+                borderRadius: '20px', 
+                background: 'rgba(6, 182, 212, 0.15)', 
+                border: '1px solid rgba(6, 182, 212, 0.3)', 
+                color: 'var(--primary)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem'
+              }}>
+                {CATEGORY_ICONS[todayLesson.category.id] || '💡'} {todayLesson.category[lang] || todayLesson.category.en}
+              </span>
+            </div>
+          )}
+          <h4 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#e0f2fe', margin: 0 }}>
+            {todayLesson.topic[lang] || todayLesson.topic.en}
+          </h4>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          
+          {/* Who is Targeted? (Always Visible) */}
+          <div>
+            <h5 style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: '0 0 0.35rem 0' }}>
+              <Target size={16} />
+              {t('trends.lesson_target_label')}
+            </h5>
+            <p style={{ fontSize: '0.9rem', color: '#cbd5e1', margin: 0, lineHeight: 1.5 }}>
+              {todayLesson.target[lang] || todayLesson.target.en}
+            </p>
+          </div>
+
+          {/* Hidden when Collapsed: How it Works & Warning Signs */}
+          {isLessonExpanded && (
+            <>
+              {/* How it Works */}
+              <div>
+                <h5 style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: '0 0 0.35rem 0' }}>
+                  <HelpCircle size={16} />
+                  {t('trends.lesson_how_label')}
+                </h5>
+                <p style={{ fontSize: '0.9rem', color: '#cbd5e1', margin: 0, lineHeight: 1.5 }}>
+                  {todayLesson.howItWorks[lang] || todayLesson.howItWorks.en}
+                </p>
+              </div>
+
+              {/* Warning Signs */}
+              <div>
+                <h5 style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--color-caution)', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: '0 0 0.5rem 0' }}>
+                  <AlertTriangle size={16} />
+                  {t('trends.lesson_warning_label')}
+                </h5>
+                <ul style={{ margin: 0, paddingLeft: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                  {(todayLesson.warningSigns[lang] || todayLesson.warningSigns.en).map((sign, i) => (
+                    <li key={i} style={{ fontSize: '0.85rem', color: '#f1f5f9', lineHeight: 1.5 }}>
+                      {sign}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </>
+          )}
+
+          {/* Stay Safe Recommendation (Always Visible) */}
+          <div style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: '12px', padding: '1rem 1.25rem' }}>
+            <h5 style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--color-low)', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: '0 0 0.35rem 0' }}>
+              <ShieldCheck size={16} />
+              {t('trends.lesson_stay_safe_label')}
+            </h5>
+            <p style={{ fontSize: '0.9rem', color: '#ecfdf5', margin: 0, lineHeight: 1.5, fontWeight: 500 }}>
+              💡 {todayLesson.staySafe[lang] || todayLesson.staySafe.en}
+            </p>
+          </div>
+
+          {/* Hidden when Collapsed: Did You Know? */}
+          {isLessonExpanded && (
+            <div style={{ background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.2)', borderRadius: '12px', padding: '0.85rem 1.25rem' }}>
+              <h5 style={{ fontSize: '0.85rem', fontWeight: 600, color: '#fef08a', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: '0 0 0.25rem 0' }}>
+                <Lightbulb size={15} color="#fef08a" />
+                💭 {t('trends.lesson_did_you_know')}
+              </h5>
+              <p style={{ fontSize: '0.85rem', color: '#fef3c7', margin: 0, lineHeight: 1.5 }}>
+                {todayLesson.didYouKnow[lang] || todayLesson.didYouKnow.en}
+              </p>
+            </div>
+          )}
+
+          {/* Action Toggle Button */}
+          <div style={{ textAlign: 'center', marginTop: '0.25rem', borderTop: '1px dashed rgba(255,255,255,0.08)', paddingTop: '0.75rem' }}>
+            <button 
+              onClick={() => setIsLessonExpanded(prev => !prev)}
+              style={{ 
+                background: 'transparent', 
+                border: 'none', 
+                color: 'var(--primary)', 
+                fontSize: '0.85rem', 
+                fontWeight: 700, 
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <span>
+                {isLessonExpanded ? (
+                  lang === 'ms' ? '▲ Tunjukkan Kurang' : '▲ Show Less'
+                ) : (
+                  lang === 'ms' ? '▼ Tunjukkan Pelajaran Penuh' : '▼ Show Full Lesson'
+                )}
+              </span>
+            </button>
+          </div>
+
+        </div>
+      </div>
 
       {/* Quiz Section */}
       <div className="glass-panel knowledge-quiz-panel">

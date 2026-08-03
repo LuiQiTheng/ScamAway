@@ -113,13 +113,6 @@ export default function App() {
               >
                 👤 {t('nav.profile')}
               </button>
-              <button 
-                onClick={() => setActiveTab('trends')} 
-                className={`nav-link ${activeTab === 'trends' ? 'active' : ''}`}
-                style={{ fontSize: isElderlyMode ? '1.15rem' : '0.9rem' }}
-              >
-                📈 {t('nav.trends')}
-              </button>
             </>
           ) : (
             <button
@@ -266,10 +259,6 @@ export default function App() {
             isElderlyMode={isElderlyMode}
             isKidMode={isKidMode}
           />
-        )}
-
-        {activeTab === 'trends' && (
-          <TrendsDashboard />
         )}
 
         {activeTab === 'moderator' && (

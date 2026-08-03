@@ -13,7 +13,6 @@ const translations = {
     "nav.elderly": "Elderly Mode",
     "nav.submit_report": "Submit Report",
     "nav.moderator": "Admin Moderation",
-    "nav.trends": "Community Alerts",
 
     // Login
     "login.welcome": "Welcome to Scam Away",
@@ -563,7 +562,6 @@ const translations = {
     "nav.elderly": "Mod Warga Emas",
     "nav.submit_report": "Hantar Laporan",
     "nav.moderator": "Moderasi Admin",
-    "nav.trends": "Amaran Komuniti",
 
     // Login
     "login.welcome": "Selamat Datang ke Scam Away",
