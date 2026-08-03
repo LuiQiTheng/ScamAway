@@ -91,7 +91,7 @@ export default function EmergencyHelp() {
           >
             
             {/* MODAL HEADER */}
-            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)' }}>
+            <div style={{ padding: '1.00rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)' }}>
               <div>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   {t('emergency.modal_title')}
@@ -106,7 +106,7 @@ export default function EmergencyHelp() {
             </div>
 
             {/* MODAL BODY CONTENT */}
-            <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <div style={{ padding: '1.00rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               
               {/* BACK BUTTON (IF IN DETAILED VIEW) */}
               {activeView !== 'options' && (
@@ -134,12 +134,12 @@ export default function EmergencyHelp() {
 
               {/* VIEW 1: OPTIONS MENU */}
               {activeView === 'options' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.80rem' }}>
                   <p style={{ fontSize: '0.95rem', color: '#cbd5e1', margin: 0, fontWeight: 500, lineHeight: 1.4 }}>
                     {t('emergency.modal_subtitle')}
                   </p>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.60rem' }}>
                     
                     {/* Scenario 1: Money */}
                     <button 
@@ -171,10 +171,10 @@ export default function EmergencyHelp() {
                     {/* Scenario 4: APK (NEW) */}
                     <button 
                       onClick={() => setActiveView('guide_apk')}
-                      style={{ ...optionStyle, borderLeft: '4px solid var(--color-caution)' }}
+                      style={optionStyle}
                     >
                       <span style={{ fontSize: '1rem', fontWeight: 600, color: '#fff' }}>{t('emergency.opt_apk')}</span>
-                      <ChevronRight size={18} color="var(--text-muted)" />
+                      <ChevronRight size={18} color="var(--primary)" />
                     </button>
 
                     {/* Scenario 5: Call */}
@@ -196,6 +196,13 @@ export default function EmergencyHelp() {
                     </button>
 
                     <div style={{ height: '1px', background: 'var(--border-color)', margin: '0.25rem 0' }} />
+
+                    <div style={{ marginTop: '0.10rem', marginBottom: '0.25rem' }}>
+                      <p style={{ fontSize: '0.95rem', color: '#cbd5e1', margin: 0, fontWeight: 500, lineHeight: 1.4 }}>
+                        📞 <strong>Need Immediate Assistance?</strong><br />
+                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Contact your bank or the relevant authorities for urgent support.</span>
+                      </p>
+                    </div>
 
                     {/* Directory 1: Banks */}
                     <button 
@@ -224,7 +231,7 @@ export default function EmergencyHelp() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                   
                   {/* Guide Header */}
-                  <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.25rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.00rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
                     <h4 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#fff', margin: 0 }}>
                       {t(`emergency.${activeView}_title`)}
                     </h4>

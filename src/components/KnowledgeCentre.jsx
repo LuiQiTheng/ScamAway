@@ -258,15 +258,15 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
       <div 
         className="glass-panel" 
         style={{ 
-          padding: '1.75rem 2rem', 
+          padding: '1.00rem 2rem', 
           borderLeft: '6px solid var(--primary)', 
           background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.08) 0%, rgba(15, 23, 42, 0.7) 100%)',
           borderRadius: '16px',
           boxShadow: '0 8px 32px rgba(6, 182, 212, 0.1)',
-          marginBottom: '0.25rem'
+          marginBottom: '0.10rem'
         }}
       >
-        <div style={{ marginBottom: '1.25rem' }}>
+        <div style={{ marginBottom: '0.50rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
             <div style={{ background: 'rgba(6, 182, 212, 0.15)', padding: '0.45rem', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <BookOpen size={22} color="var(--primary)" />
@@ -283,13 +283,13 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
         </div>
 
         {/* Lesson Topic Title & Category Badge */}
-        <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1rem 1.25rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)', marginBottom: '1.25rem' }}>
+        <div style={{ background: 'rgba(255,255,255,0.03)', padding: '0.6rem 1.25rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)', marginBottom: '0.80rem' }}>
           {todayLesson.category && (
-            <div style={{ marginBottom: '0.45rem' }}>
+            <div style={{ marginBottom: '0.20rem' }}>
               <span style={{ 
                 fontSize: '0.75rem', 
                 fontWeight: 700, 
-                padding: '0.2rem 0.65rem', 
+                padding: '0.2rem 0.50rem', 
                 borderRadius: '20px', 
                 background: 'rgba(6, 182, 212, 0.15)', 
                 border: '1px solid rgba(6, 182, 212, 0.3)', 
@@ -307,11 +307,11 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
           </h4>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.80rem' }}>
           
           {/* Who is Targeted? (Always Visible) */}
           <div>
-            <h5 style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: '0 0 0.35rem 0' }}>
+            <h5 style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: '0 0 0.10rem 0' }}>
               <Target size={16} />
               {t('trends.lesson_target_label')}
             </h5>
@@ -325,7 +325,7 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
             <>
               {/* How it Works */}
               <div>
-                <h5 style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: '0 0 0.35rem 0' }}>
+                <h5 style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: '0 0 0.10rem 0' }}>
                   <HelpCircle size={16} />
                   {t('trends.lesson_how_label')}
                 </h5>
@@ -336,11 +336,11 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
 
               {/* Warning Signs */}
               <div>
-                <h5 style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--color-caution)', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: '0 0 0.5rem 0' }}>
+                <h5 style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--color-caution)', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: '0 0 0.10rem 0' }}>
                   <AlertTriangle size={16} />
                   {t('trends.lesson_warning_label')}
                 </h5>
-                <ul style={{ margin: 0, paddingLeft: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                <ul style={{ margin: 0, paddingLeft: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.10rem' }}>
                   {(todayLesson.warningSigns[lang] || todayLesson.warningSigns.en).map((sign, i) => (
                     <li key={i} style={{ fontSize: '0.85rem', color: '#f1f5f9', lineHeight: 1.5 }}>
                       {sign}
@@ -352,8 +352,8 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
           )}
 
           {/* Stay Safe Recommendation (Always Visible) */}
-          <div style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: '12px', padding: '1rem 1.25rem' }}>
-            <h5 style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--color-low)', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: '0 0 0.35rem 0' }}>
+          <div style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: '12px', padding: '0.5rem 1.25rem' }}>
+            <h5 style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--color-low)', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: '0 0 0.10rem 0' }}>
               <ShieldCheck size={16} />
               {t('trends.lesson_stay_safe_label')}
             </h5>
@@ -364,8 +364,8 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
 
           {/* Hidden when Collapsed: Did You Know? */}
           {isLessonExpanded && (
-            <div style={{ background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.2)', borderRadius: '12px', padding: '0.85rem 1.25rem' }}>
-              <h5 style={{ fontSize: '0.85rem', fontWeight: 600, color: '#fef08a', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: '0 0 0.25rem 0' }}>
+            <div style={{ background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.2)', borderRadius: '12px', padding: '0.50rem 1.25rem' }}>
+              <h5 style={{ fontSize: '0.85rem', fontWeight: 600, color: '#fef08a', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: '0 0 0.10rem 0' }}>
                 <Lightbulb size={15} color="#fef08a" />
                 💭 {t('trends.lesson_did_you_know')}
               </h5>
@@ -376,7 +376,7 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
           )}
 
           {/* Action Toggle Button */}
-          <div style={{ textAlign: 'center', marginTop: '0.25rem', borderTop: '1px dashed rgba(255,255,255,0.08)', paddingTop: '0.75rem' }}>
+          <div style={{ textAlign: 'center', marginTop: '0.05rem' }}>
             <button 
               onClick={() => setIsLessonExpanded(prev => !prev)}
               style={{ 

@@ -233,6 +233,20 @@ h6 {
   gap: 1rem;
 }
 
+@media (min-width: 769px) {
+  .nav-links {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+
+.app-control-group {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
 .nav-link {
   color: var(--text-secondary);
   background: transparent;
@@ -394,6 +408,12 @@ select option,
   .nav-links {
     flex-wrap: wrap;
     justify-content: center;
+  }
+
+  .emergency-float-btn {
+    bottom: 90px !important;
+    right: 16px !important;
+    padding: 0.75rem 1.15rem !important;
   }
 
   .elderly-mode {
