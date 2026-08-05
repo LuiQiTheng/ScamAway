@@ -129,7 +129,8 @@ export default function App() {
         <div className="app-control-group">
           {/* Mode Selector Segmented Pill Control */}
           {userRole !== 'admin' && (
-            <div 
+            <div
+              className="mode-selector"
               style={{ 
                 display: 'flex', 
                 alignItems: 'center', 
