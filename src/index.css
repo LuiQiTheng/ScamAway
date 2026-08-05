@@ -239,6 +239,76 @@ h6 {
     left: 50%;
     transform: translateX(-50%);
   }
+
+  /* Elderly mode uses larger text and touch targets. Give navigation its own
+     row so it never competes with the mode, language, and logout controls. */
+  .mode-elderly .app-header {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      "logo controls"
+      "nav nav";
+    column-gap: 1.5rem;
+    row-gap: 0.75rem;
+  }
+
+  .mode-elderly .app-logo {
+    grid-area: logo;
+  }
+
+  .mode-elderly .nav-links {
+    grid-area: nav;
+    position: static;
+    left: auto;
+    transform: none;
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .mode-elderly .app-control-group {
+    grid-area: controls;
+    justify-self: end;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+}
+
+.elderly-mode .app-header .nav-link {
+  padding: 0.75rem 1rem !important;
+  min-height: 52px;
+  font-size: 1.15rem !important;
+  line-height: 1.25 !important;
+  white-space: nowrap;
+}
+
+.elderly-mode .app-header .app-control-group button {
+  padding: 0.65rem 0.85rem !important;
+  min-height: 48px;
+  font-size: 1rem !important;
+  line-height: 1.25 !important;
+  white-space: nowrap;
+}
+
+.elderly-mode .app-header .mode-selector {
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+@media (min-width: 769px) and (max-width: 1200px) {
+  .mode-elderly .app-header {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "logo"
+      "controls"
+      "nav";
+  }
+
+  .mode-elderly .app-logo,
+  .mode-elderly .app-control-group {
+    justify-self: center;
+  }
 }
 
 .app-control-group {
@@ -406,6 +476,11 @@ select option,
   }
 
   .nav-links {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .app-control-group {
     flex-wrap: wrap;
     justify-content: center;
   }
