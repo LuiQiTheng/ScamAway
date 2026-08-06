@@ -420,7 +420,7 @@ export default function LoginScreen({ onLogin }) {
         
         <div style={{ textAlign: 'center', marginTop: '2rem' }}>
           <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)' }}>
-            UCRIX Demo Version • Extensible Auth Ready
+            {t("login.footer")}
           </p>
         </div>
 

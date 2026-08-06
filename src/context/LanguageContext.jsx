@@ -21,6 +21,7 @@ const translations = {
     "login.user_desc": "Access scanner & reporting profile",
     "login.admin": "Moderator / Admin",
     "login.admin_desc": "Manage reports & review dashboard",
+    "login.footer": "UCRIX Demo Version • Extensible Auth Ready",
 
     //Logout
     "app.logout": "Log Out",
@@ -570,7 +571,8 @@ const translations = {
     "login.user_desc": "Akses pengimbas & profil pelaporan",
     "login.admin": "Moderator / Admin",
     "login.admin_desc": "Urus laporan & pusat tinjauan",
-
+    "login.footer": "Versi Demo UCRIX • Pengesahan Boleh Diperluas",
+    
     //Logout
     "app.logout": "Log Keluar",
 

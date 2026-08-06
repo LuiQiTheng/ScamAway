@@ -543,7 +543,7 @@ export default function ModeratorDashboard() {
 
                       <div className="admin-report-copy" style={{ flex: 1, minWidth: '200px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                          <span className="badge badge-caution" style={{ fontSize: '0.7rem' }}>{report.category}</span>
+                          <span className="badge badge-caution" style={{ fontSize: '0.7rem' }}>{categoryLabels[(report.category || '').toLowerCase()] || report.category}</span>
                           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>ID: #{report.id.toString().slice(-6)}</span>
                           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>• {new Date(report.timestamp).toLocaleTimeString()}</span>
                         </div>
