@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { collection, onSnapshot, addDoc, updateDoc, doc, setDoc, getDocs } from "firebase/firestore";
+import { collection, onSnapshot, addDoc, updateDoc, doc, setDoc, getDocs, query, where } from "firebase/firestore";
 import { db } from '../config/firebase';
 
 const AppContext = createContext();
@@ -7,48 +7,7 @@ const AppContext = createContext();
 export const useAppContext = () => useContext(AppContext);
 
 // Seed data
-const INITIAL_REPORTS = [
-  {
-    id: 1001,
-    category: 'parcel',
-    text: "Your parcel is being held. Pay RM2.50 within 30 minutes using the QR code below or the parcel will be returned. pos-laju.info/claim-fee/2.50",
-    score: 76,
-    riskBand: "High risk",
-    timestamp: new Date("2026-07-26T14:32:00.000Z").toISOString(),
-    status: 'unverified',
-    reporterId: 'rep_101'
-  },
-  {
-    id: 1002,
-    category: 'job',
-    text: "CONGRATULATIONS! Online marketing role. Earn RM300-800 daily. Pay RM50 registration deposit to start task processing. Call +6011-8762512.",
-    score: 82,
-    riskBand: "Critical",
-    timestamp: new Date("2026-07-25T11:15:00.000Z").toISOString(),
-    status: 'confirmed',
-    reporterId: 'rep_102'
-  },
-  {
-    id: 1003,
-    category: 'emergency',
-    text: "Mum, I damaged my phone speaker. Need you to transfer RM1,000 urgently to my friend's account 164228910239 for my medical bill. Don't call me.",
-    score: 90,
-    riskBand: "Critical",
-    timestamp: new Date("2026-07-26T09:04:00.000Z").toISOString(),
-    status: 'confirmed',
-    reporterId: 'rep_103'
-  },
-  {
-    id: 1004,
-    category: 'marketplace',
-    text: "Seller asks to proceed with payment via bank transfer outside Shopee guarantee page to get 10% discount.",
-    score: 55,
-    riskBand: "Caution",
-    timestamp: new Date("2026-07-26T15:10:00.000Z").toISOString(),
-    status: 'under_review',
-    reporterId: 'rep_101'
-  }
-];
+const INITIAL_REPORTS = [];
 
 const INITIAL_REPUTATIONS = [
   { profileId: 'rep_101', userName: 'Ahmad Rafiq (Kuala Lumpur)', role: 'Citizen', identityLevel: 2, agreementRate: 94, verifiedReports: 5, abuseFlags: 0 },
@@ -75,12 +34,191 @@ export const AppProvider = ({ children }) => {
 
   const [reputationProfiles, setReputationProfiles] = useState(INITIAL_REPUTATIONS);
   const [blacklist, setBlacklist] = useState(INITIAL_BLACKLIST);
-  const [activeAlert, setActiveAlert] = useState(null);
+  const [activeAlert, setActiveAlert] = useState(() => {
+    try {
+      const saved = localStorage.getItem('scam_shield_active_alert');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  // Sync active alert to localStorage for offline/fallback mode
+  useEffect(() => {
+    try {
+      if (activeAlert) {
+        localStorage.setItem('scam_shield_active_alert', JSON.stringify(activeAlert));
+      } else {
+        localStorage.removeItem('scam_shield_active_alert');
+      }
+    } catch (e) {
+      console.warn("Could not save active alert to localStorage", e);
+    }
+  }, [activeAlert]);
   const [userNotifications, setUserNotifications] = useState([]);
+  
+  // -- AUTHENTICATION STATE & SESSION --
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('scam_shield_user_session');
+      if (saved) {
+        const session = JSON.parse(saved);
+        // Check 12 hours expiry
+        if (new Date().getTime() - session.timestamp < 12 * 60 * 60 * 1000) {
+          return session.user;
+        }
+      }
+    } catch { }
+    return null;
+  });
+
+  const [adminProfile, setAdminProfile] = useState(() => {
+    try {
+      const saved = localStorage.getItem('scam_shield_admin_session');
+      if (saved) {
+        const session = JSON.parse(saved);
+        if (new Date().getTime() - session.timestamp < 12 * 60 * 60 * 1000) {
+          return session.user;
+        }
+      }
+    } catch { }
+    return null;
+  });
+
+  // Sync Current User Session
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem('scam_shield_user_session', JSON.stringify({ user: currentUser, timestamp: new Date().getTime() }));
+    } else {
+      localStorage.removeItem('scam_shield_user_session');
+    }
+  }, [currentUser]);
+
+  // Sync Admin Profile Session
+  useEffect(() => {
+    if (adminProfile) {
+      localStorage.setItem('scam_shield_admin_session', JSON.stringify({ user: adminProfile, timestamp: new Date().getTime() }));
+    } else {
+      localStorage.removeItem('scam_shield_admin_session');
+    }
+  }, [adminProfile]);
+
+  // Auth Helpers
+  const registerUser = async (userData) => {
+    const q = query(collection(db, "users"), where("username", "==", userData.username));
+    const snapshot = await getDocs(q);
+    if (!snapshot.empty) throw new Error("Username already exists");
+    const docRef = await addDoc(collection(db, "users"), userData);
+    const createdUser = { id: docRef.id, ...userData };
+    setCurrentUser(createdUser);
+    return createdUser;
+  };
+
+  const loginUser = async (username, password) => {
+    const q = query(collection(db, "users"), where("username", "==", username), where("password", "==", password));
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) throw new Error("Invalid username or password");
+    const userDoc = snapshot.docs[0];
+    const user = { id: userDoc.id, ...userDoc.data() };
+    setCurrentUser(user);
+    return user;
+  };
+
+  const registerAdmin = async (adminData) => {
+    const q = query(collection(db, "admins"), where("officerId", "==", adminData.officerId));
+    const snapshot = await getDocs(q);
+    if (!snapshot.empty) throw new Error("Officer ID already exists");
+    const docRef = await addDoc(collection(db, "admins"), adminData);
+    const createdAdmin = { id: docRef.id, ...adminData };
+    setAdminProfile(createdAdmin);
+    return createdAdmin;
+  };
+
+  const loginAdmin = async (officerId, password) => {
+    const q = query(collection(db, "admins"), where("officerId", "==", officerId), where("password", "==", password));
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) throw new Error("Invalid Officer ID or password");
+    const adminDoc = snapshot.docs[0];
+    const admin = { id: adminDoc.id, ...adminDoc.data() };
+    setAdminProfile(admin);
+    return admin;
+  };
+
+  const updateAdminProfile = async (adminData) => {
+    if (!adminProfile?.id) return;
+    
+    if (adminData.officerId && adminData.officerId !== adminProfile.officerId) {
+      const q = query(collection(db, "admins"), where("officerId", "==", adminData.officerId));
+      const snapshot = await getDocs(q);
+      if (!snapshot.empty) throw new Error("Officer ID already exists");
+    }
+
+    const updatedAdmin = { ...adminProfile, ...adminData };
+    setAdminProfile(updatedAdmin);
+    await updateDoc(doc(db, "admins", adminProfile.id), adminData);
+  };
+
+  const updateGuardian = async (guardianData) => {
+    if (!currentUser?.id) return;
+    const updatedUser = { ...currentUser, guardian: guardianData };
+    setCurrentUser(updatedUser);
+    await updateDoc(doc(db, "users", currentUser.id), { guardian: guardianData });
+  };
+
+  const updateCurrentUser = async (userData) => {
+    if (!currentUser?.id) return;
+    
+    // Check if new username is unique if it changed
+    if (userData.username && userData.username !== currentUser.username) {
+      const q = query(collection(db, "users"), where("username", "==", userData.username));
+      const snapshot = await getDocs(q);
+      if (!snapshot.empty) throw new Error("Username already taken");
+    }
+
+    const updatedUser = { ...currentUser, ...userData };
+    setCurrentUser(updatedUser);
+    await updateDoc(doc(db, "users", currentUser.id), userData);
+  };
+
+
+  
+  // Persistent Audit Logs State
+  const [auditLogs, setAuditLogs] = useState(() => {
+    try {
+      const saved = localStorage.getItem('scam_shield_audit_logs');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
 
   const dismissNotification = (id) => {
     setUserNotifications(prev => prev.filter(n => n.id !== id));
   };
+
+  // Helper to add audit log entries with actor identity tracking
+  const addAuditLog = useCallback((action, reportId = null, rationale = '', details = '', performedBy = 'System Admin') => {
+    const actor = adminProfile?.officerId || performedBy;
+    const entry = {
+      id: Date.now() + Math.random(),
+      reportId,
+      action,
+      rationale,
+      details,
+      performedBy: actor,
+      timestamp: new Date().toISOString()
+    };
+    setAuditLogs(prev => [entry, ...prev]);
+  }, [adminProfile]);
+
+  // Sync audit logs to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('scam_shield_audit_logs', JSON.stringify(auditLogs));
+    } catch (e) {
+      console.warn("Could not save audit logs to localStorage", e);
+    }
+  }, [auditLogs]);
 
   // Keep localStorage in sync for tests and offline state
   useEffect(() => {
@@ -109,10 +247,8 @@ export const AppProvider = ({ children }) => {
           if (prevList.length > 0) {
             reports.forEach(newReport => {
               const oldReport = prevList.find(r => r.id === newReport.id);
-              // 'rep_103' is the hardcoded reporterId for the Guest User
               if (oldReport && oldReport.status !== newReport.status && newReport.reporterId === 'rep_103') {
                 setUserNotifications(prev => {
-                  // Prevent duplicate notifications for the same state change
                   if (prev.some(n => n.reportId === newReport.id && n.newStatus === newReport.status)) return prev;
                   return [{
                     id: Date.now() + Math.random(),
@@ -129,7 +265,7 @@ export const AppProvider = ({ children }) => {
         });
       }
     }, (error) => {
-      console.warn("⚠️ [Firestore] Could not connect to Cloud Database. (Check if Firestore Database is created in Test Mode in Firebase Console). Using local fallback.", error?.message);
+      console.warn("⚠️ [Firestore] Could not connect to Cloud Database. Using local fallback.", error?.message);
       setReportsList(prev => prev.length === 0 ? INITIAL_REPORTS : prev);
     });
 
@@ -170,19 +306,18 @@ export const AppProvider = ({ children }) => {
   }, []);
 
   const addReport = useCallback(async (newReport) => {
-    const reportData = { ...newReport, id: Date.now(), reporterId: 'rep_103' };
-    // Optimistic local update
+    const reportData = { ...newReport, id: Date.now(), reporterId: currentUser?.id || 'guest' };
     setReportsList(prev => [reportData, ...prev]);
     try {
       await addDoc(collection(db, "reports"), reportData);
     } catch (e) {
       console.warn("⚠️ [Firestore] Failed to write report to cloud:", e?.message);
     }
-  }, []);
+  }, [currentUser]);
 
   const updateReportStatus = useCallback(async (id, newStatus, rationale) => {
-    // Optimistic local update
     setReportsList(prev => prev.map(r => r.id === id ? { ...r, status: newStatus, rationale } : r));
+    addAuditLog(`Case Status Updated to ${newStatus}`, id, rationale);
     try {
       const report = reportsList.find(r => r.id === id);
       if (report && report.firebaseId) {
@@ -191,7 +326,7 @@ export const AppProvider = ({ children }) => {
     } catch (e) {
       console.warn("⚠️ [Firestore] Failed to update status in cloud:", e?.message);
     }
-  }, [reportsList]);
+  }, [reportsList, addAuditLog]);
 
   const updateReputation = useCallback(async (profileId, wasCorrect) => {
     setReputationProfiles(prev => prev.map(p => {
@@ -219,12 +354,13 @@ export const AppProvider = ({ children }) => {
 
   const addAlert = useCallback(async (alert) => {
     setActiveAlert(alert);
+    addAuditLog('Broadcast Threat Alert Published', null, alert.category || alert.message, alert.solution || '');
     try {
       await setDoc(doc(db, "system", "activeAlert"), alert);
     } catch (e) {
       console.warn("⚠️ [Firestore] Failed to update active alert in cloud:", e?.message);
     }
-  }, []);
+  }, [addAuditLog]);
 
   const addBlacklistItem = useCallback(async (type, value) => {
     if (!['phoneNumbers', 'urls', 'bankAccounts'].includes(type)) return;
@@ -232,6 +368,7 @@ export const AppProvider = ({ children }) => {
       ...prev,
       [type]: Array.from(new Set([...prev[type], value]))
     }));
+    addAuditLog(`Added to Blacklist (${type})`, null, `Value: ${value}`);
     try {
       const updatedList = Array.from(new Set([...blacklist[type], value]));
       await updateDoc(doc(db, "system", "blacklist"), {
@@ -240,7 +377,7 @@ export const AppProvider = ({ children }) => {
     } catch (e) {
       console.warn("⚠️ [Firestore] Failed to update blacklist in cloud:", e?.message);
     }
-  }, [blacklist]);
+  }, [blacklist, addAuditLog]);
 
   const removeBlacklistItem = useCallback(async (type, value) => {
     if (!['phoneNumbers', 'urls', 'bankAccounts'].includes(type)) return;
@@ -248,6 +385,7 @@ export const AppProvider = ({ children }) => {
       ...prev,
       [type]: prev[type].filter(item => item !== value)
     }));
+    addAuditLog(`Removed from Blacklist (${type})`, null, `Value: ${value}`);
     try {
       const updatedList = blacklist[type].filter(item => item !== value);
       await updateDoc(doc(db, "system", "blacklist"), {
@@ -256,7 +394,7 @@ export const AppProvider = ({ children }) => {
     } catch (e) {
       console.warn("⚠️ [Firestore] Failed to remove blacklist item in cloud:", e?.message);
     }
-  }, [blacklist]);
+  }, [blacklist, addAuditLog]);
 
   const updateBlacklistItem = useCallback(async (type, oldValue, newValue) => {
     if (!['phoneNumbers', 'urls', 'bankAccounts'].includes(type)) return;
@@ -264,6 +402,7 @@ export const AppProvider = ({ children }) => {
       ...prev,
       [type]: prev[type].map(item => item === oldValue ? newValue : item)
     }));
+    addAuditLog(`Updated Blacklist Item (${type})`, null, `From: ${oldValue} -> To: ${newValue}`);
     try {
       const updatedList = blacklist[type].map(item => item === oldValue ? newValue : item);
       await updateDoc(doc(db, "system", "blacklist"), {
@@ -272,16 +411,24 @@ export const AppProvider = ({ children }) => {
     } catch (e) {
       console.warn("⚠️ [Firestore] Failed to update blacklist item in cloud:", e?.message);
     }
-  }, [blacklist]);
+  }, [blacklist, addAuditLog]);
 
 
   const contextValue = useMemo(() => ({
-    reportsList, addReport, updateReportStatus,
+    reportsList, addReport,    updateReportStatus, addAlert, activeAlert,
     reputationProfiles, updateReputation,
     blacklist, addBlacklistItem, removeBlacklistItem, updateBlacklistItem,
-    activeAlert, addAlert,
-    userNotifications, dismissNotification
-  }), [reportsList, reputationProfiles, blacklist, activeAlert, userNotifications, addReport, updateReportStatus, updateReputation, addBlacklistItem, removeBlacklistItem, updateBlacklistItem, addAlert]);
+    adminProfile, setAdminProfile,
+    currentUser, setCurrentUser,
+    registerUser, loginUser, registerAdmin, loginAdmin, updateAdminProfile, updateGuardian, updateCurrentUser,
+    auditLogs, addAuditLog
+  }), [
+    reportsList, addReport, activeAlert, auditLogs, userNotifications, dismissNotification,
+    updateReportStatus, addAlert,
+    reputationProfiles, updateReputation,
+    blacklist, addBlacklistItem, removeBlacklistItem, updateBlacklistItem,
+    adminProfile, currentUser, registerUser, loginUser, registerAdmin, loginAdmin, updateGuardian, updateCurrentUser
+  ]);
 
   return (
     <AppContext.Provider value={contextValue}>

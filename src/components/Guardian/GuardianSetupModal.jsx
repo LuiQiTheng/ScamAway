@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ShieldCheck, UserRound, Phone, Users } from "lucide-react";
+import { ShieldCheck, UserRound, Phone, Users, X } from "lucide-react";
 import { useLanguage } from "../../context/LanguageContext";
 
 const RELATIONSHIP_OPTIONS = [
@@ -7,8 +7,6 @@ const RELATIONSHIP_OPTIONS = [
   "Mother",
   "Son",
   "Daughter",
-  "Sibling",
-  "Relative",
   "Caregiver",
   "Other",
 ];
@@ -21,17 +19,28 @@ export default function GuardianSetupModal({
   onSave,
   guardian = null,
   mode = "create",
+  inline = false,
 }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
+  const isPredefined = (rel) => RELATIONSHIP_OPTIONS.includes(rel);
+
   const [name, setName] = useState(guardian?.name || "");
   const [relationship, setRelationship] = useState(
-    guardian?.relationship || ""
+    guardian?.relationship 
+      ? (isPredefined(guardian.relationship) ? guardian.relationship : "Other") 
+      : ""
+  );
+  const [customRelationship, setCustomRelationship] = useState(
+    guardian?.relationship && !isPredefined(guardian.relationship) ? guardian.relationship : ""
   );
   const [phone, setPhone] = useState(guardian?.phone || "");
   const [errors, setErrors] = useState({});
+
   useEffect(() => {
     setName(guardian?.name || "");
-    setRelationship(guardian?.relationship || "");
+    const rel = guardian?.relationship || "";
+    setRelationship(rel ? (isPredefined(rel) ? rel : "Other") : "");
+    setCustomRelationship(rel && !isPredefined(rel) ? rel : "");
     setPhone(guardian?.phone || "");
     setErrors({});
   }, [guardian, isOpen]);
@@ -47,6 +56,8 @@ export default function GuardianSetupModal({
 
     if (!relationship) {
       nextErrors.relationship = t("guardian.errors.relationship_required");
+    } else if (relationship === "Other" && !customRelationship.trim()) {
+      nextErrors.relationship = lang === 'ms' ? "Sila nyatakan hubungan" : "Please specify the relationship";
     }
 
     if (!phone.trim()) {
@@ -66,29 +77,15 @@ export default function GuardianSetupModal({
 
     onSave({
       name: name.trim(),
-      relationship,
+      relationship: relationship === "Other" ? customRelationship.trim() : relationship,
       phone: phone.trim(),
     });
   };
 
-  return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 1000,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "80px 24px 24px",
-        background: "rgba(0, 0, 0, 0.65)",
-        backdropFilter: "blur(6px)",
-        WebkitBackdropFilter: "blur(6px)",
-      }}
-    >
+  const content = (
       <div
-        className="glass-panel"
-        style={{
+        className={inline ? "" : "glass-panel"}
+        style={inline ? { width: "100%", position: "relative", marginTop: "1rem" } : {
           width: "100%",
           maxWidth: "480px",
           maxHeight: "calc(100vh - 120px)",
@@ -98,6 +95,36 @@ export default function GuardianSetupModal({
           borderRadius: "20px",
         }}
       >
+        {!inline && (
+          <button
+            onClick={onClose}
+            style={{
+              position: "absolute",
+              top: "16px",
+              right: "16px",
+              background: "transparent",
+              border: "none",
+              color: "var(--text-muted)",
+              cursor: "pointer",
+              padding: "4px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: "50%",
+              transition: "all 0.2s",
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.background = "var(--hover-bg)";
+              e.currentTarget.style.color = "var(--text-primary)";
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.color = "var(--text-muted)";
+            }}
+          >
+            <X size={20} />
+          </button>
+        )}
         <div
           style={{
             display: "flex",
@@ -202,13 +229,13 @@ export default function GuardianSetupModal({
               }}
             >
               <Users size={16} style={{ color: "var(--primary)" }} />
-              {t("guardian.relationship")}
+              {lang === 'ms' ? 'Hubungan dengan Penjaga' : 'Relationship to Guardian'}
             </label>
             <select
               className="input-field"
               value={relationship}
               onChange={(e) => setRelationship(e.target.value)}
-              style={{ width: "100%" }}
+              style={{ width: "100%", marginBottom: relationship === "Other" ? "8px" : "0" }}
             >
               <option value=""> {t("guardian.select_relationship")} </option>
               {RELATIONSHIP_OPTIONS.map((option) => (
@@ -217,6 +244,16 @@ export default function GuardianSetupModal({
                 </option>
               ))}
             </select>
+            {relationship === "Other" && (
+              <input
+                type="text"
+                className="input-field"
+                placeholder={lang === 'ms' ? 'Sila nyatakan (cth. Makcik, Jiran)' : 'Please specify (e.g. Aunt, Neighbor)'}
+                value={customRelationship}
+                onChange={(e) => setCustomRelationship(e.target.value)}
+                style={{ width: "100%" }}
+              />
+            )}
             {errors.relationship && (
               <p
                 style={{
@@ -271,18 +308,51 @@ export default function GuardianSetupModal({
           style={{
             display: "flex",
             marginTop: "28px",
+            gap: "12px",
           }}
         >
+          {inline && (
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={onClose}
+              style={{ flex: 1 }}
+            >
+              {lang === 'ms' ? 'Batal' : 'Cancel'}
+            </button>
+          )}
           <button
             type="button"
             className="btn-primary"
             onClick={handleSave}
-            style={{ width: "100%" }}
+            style={{ flex: inline ? 1 : 'none', width: inline ? 'auto' : "100%" }}
           >
             {mode === "create" ? t("guardian.add") : t("guardian.update")}
           </button>
         </div>
       </div>
+  );
+
+  if (inline) {
+    return content;
+  }
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 1000,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "80px 24px 24px",
+        background: "rgba(0, 0, 0, 0.65)",
+        backdropFilter: "blur(6px)",
+        WebkitBackdropFilter: "blur(6px)",
+      }}
+    >
+      {content}
     </div>
   );
 }

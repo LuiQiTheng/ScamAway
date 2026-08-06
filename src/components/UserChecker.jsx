@@ -16,14 +16,12 @@ import ReportModal from './ReportModal';
 import GuardianAlertModal from "../components/Guardian/GuardianAlertModal";
 import { useAppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
-import Tesseract from 'tesseract.js';
-import { Html5QrcodeScanner } from 'html5-qrcode';
 
 export default function UserChecker({ userMode = 'normal', isElderlyMode = false, isKidMode = false, onSetUserMode }) {
-  const { reportsList, activeAlert, addReport, blacklist } = useAppContext();
+  const { reportsList, activeAlert, addReport, blacklist, currentUser } = useAppContext();
   const { t, lang } = useLanguage();
   const lastScanRef = useRef(null);
-  const [activeTab, setActiveTab] = useState('text'); // text, screenshot, qr, url
+  const [activeTab, setActiveTab] = useState('text'); // text, url
   const [inputText, setInputText] = useState('');
   const [urlInput, setUrlInput] = useState('');
   const [urlError, setUrlError] = useState('');
@@ -34,10 +32,6 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
   const [isScanning, setIsScanning] = useState(false);
   const [scanSteps, setScanSteps] = useState([]);
   const [scanResult, setScanResult] = useState(null);
-
-  // OCR Screenshot State
-  const [selectedDemoScreenshot, setSelectedDemoScreenshot] = useState('');
-  const [customScreenshotName, setCustomScreenshotName] = useState(null);
 
   // Text to Speech
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
@@ -96,40 +90,6 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
       stopSpeech();
     };
   }, []);
-
-  // QR Scanner Lifecycle
-  useEffect(() => {
-    if (activeTab !== 'qr' && qrScannerEnabled) {
-      setQrScannerEnabled(false);
-    }
-  }, [activeTab]);
-
-  useEffect(() => {
-    let html5QrcodeScanner = null;
-    if (qrScannerEnabled) {
-      html5QrcodeScanner = new Html5QrcodeScanner(
-        "qr-reader",
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        /* verbose= */ false
-      );
-      html5QrcodeScanner.render(
-        (decodedText) => {
-          setQrInput(decodedText);
-          setQrScannerEnabled(false);
-          triggerScanAnimation(`Scanned QR Destination: ${decodedText}`, { qrCode: decodedText });
-        },
-        (error) => {
-          // Ignored. html5qrcode throws errors continuously when no QR is found.
-        }
-      );
-    }
-
-    return () => {
-      if (html5QrcodeScanner) {
-        html5QrcodeScanner.clear().catch(error => console.error("Failed to clear scanner", error));
-      }
-    };
-  }, [qrScannerEnabled]);
 
   const triggerScanAnimation = (finalText, metadata = {}) => {
     lastScanRef.current = {
@@ -211,8 +171,8 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
       setScanResult(res);
 
       if (
-        res.bandColor === "high" ||
-        res.bandColor === "critical"
+        (res.bandColor === "high" || res.bandColor === "critical") && 
+        (isKidMode || isElderlyMode)
       ) {
         setShowGuardianAlert(true);
       }
@@ -313,48 +273,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
     triggerScanAnimation(combinedText);
   };
 
-  const handleSelectDemoScreenshot = (key) => {
-    if (!key) return;
-    setSelectedDemoScreenshot(key);
-    const demo = DEMO_SCREENSHOTS[key];
-    setInputText(demo.extractedText);
 
-    // Simulate selection and scanner
-    setCustomScreenshotName(demo.name);
-
-    const meta = {};
-    if (demo.detectedQr) meta.qrCode = demo.detectedQr;
-    triggerScanAnimation(demo.extractedText, meta);
-  };
-
-  const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setCustomScreenshotName(file.name);
-    setIsScanning(true);
-    setScanSteps([t('common.loading'), t('scanner.step_ocr')]);
-
-    try {
-      const result = await Tesseract.recognize(file, 'eng', {
-        logger: m => {
-          if (m.status === 'recognizing text') {
-            setScanSteps([`${t('scanner.step_ocr')} ${Math.round(m.progress * 100)}%`]);
-          }
-        }
-      });
-      const extractedText = result.data.text;
-      setInputText(extractedText);
-      triggerScanAnimation(extractedText);
-    } catch (error) {
-      console.error("OCR Error:", error);
-      triggerScanAnimation(t("scanner.ocr_failed"));
-    }
-  };
-
-  const handleSimulateQrScanner = () => {
-    setQrScannerEnabled(true);
-  };
 
   const toggleCheckAction = (idx) => {
     setCheckedActions(prev => ({
@@ -505,24 +424,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
             >
               <Clipboard size={16} /> {t('scanner.text_paste')}
             </button>
-            <button
-              onClick={() => { setActiveTab('screenshot'); setScanResult(null); }}
-              className={`nav-link scanner-method-tab ${activeTab === 'screenshot' ? 'active' : ''}`}
-              role="tab"
-              aria-selected={activeTab === 'screenshot'}
-              style={{ fontSize: isElderlyMode ? '1.15rem' : '0.9rem' }}
-            >
-              <Upload size={16} /> {t('scanner.upload_btn')}
-            </button>
-            <button
-              onClick={() => { setActiveTab('qr'); setScanResult(null); }}
-              className={`nav-link scanner-method-tab ${activeTab === 'qr' ? 'active' : ''}`}
-              role="tab"
-              aria-selected={activeTab === 'qr'}
-              style={{ fontSize: isElderlyMode ? '1.15rem' : '0.9rem' }}
-            >
-              <QrCode size={16} /> {t('scanner.qr_btn')}
-            </button>
+
             <button
               onClick={() => { setActiveTab('url'); setScanResult(null); }}
               className={`nav-link scanner-method-tab ${activeTab === 'url' ? 'active' : ''}`}
@@ -590,122 +492,6 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                 {isScanning ? <RefreshCw className="spinning" size={18} /> : <ShieldAlert size={18} />}
                 {isScanning ? t('common.loading') : t('scanner.button')}
               </button>
-            </div>
-          )}
-
-          {activeTab === 'screenshot' && (
-            <div role="tabpanel" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-
-              {/* Presets for Demo */}
-              <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '1rem', borderRadius: '10px', border: '1px dashed var(--border-color)' }}>
-                <strong style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.75rem' }}>
-                  {t('scanner.demo_select')}
-                </strong>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
-                  <button
-                    type="button"
-                    onClick={() => handleSelectDemoScreenshot('pos_laju_scam')}
-                    className="btn-secondary"
-                    style={{ fontSize: '0.8rem', padding: '0.5rem 0.75rem', textAlign: 'left' }}
-                  >
-                    {t('scanner.demo_courier')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSelectDemoScreenshot('shopee_job_scam')}
-                    className="btn-secondary"
-                    style={{ fontSize: '0.8rem', padding: '0.5rem 0.75rem', textAlign: 'left' }}
-                  >
-                    {t('scanner.demo_job')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSelectDemoScreenshot('family_emergency')}
-                    className="btn-secondary"
-                    style={{ fontSize: '0.8rem', padding: '0.5rem 0.75rem', textAlign: 'left' }}
-                  >
-                    {t('scanner.demo_emergency')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSelectDemoScreenshot('legitimate_tnb')}
-                    className="btn-secondary"
-                    style={{ fontSize: '0.8rem', padding: '0.5rem 0.75rem', textAlign: 'left' }}
-                  >
-                    {t('scanner.demo_legit')}
-                  </button>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px dashed var(--border-color)', borderRadius: '12px', padding: '2rem', background: 'rgba(255,255,255,0.01)', cursor: 'pointer', position: 'relative' }}>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileUpload}
-                  aria-label={t('scanner.upload_title')}
-                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }}
-                />
-                <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-                  <Upload size={32} color="var(--primary)" />
-                  <p style={{ fontWeight: 500 }}>{t('scanner.upload_title')}</p>
-                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{t('scanner.upload_desc')}</p>
-                </div>
-              </div>
-
-              {customScreenshotName && (
-                <div style={{ background: 'rgba(6, 182, 212, 0.1)', border: '1px solid var(--primary)', borderRadius: '8px', padding: '0.75rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.85rem', color: '#fff' }}>📁 {t('scanner.loaded')} {customScreenshotName}</span>
-                  <button onClick={() => { setCustomScreenshotName(null); setInputText(''); setScanResult(null); }} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>{t('scanner.clear')}</button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === 'qr' && (
-            <div role="tabpanel" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <div style={{
-                minHeight: '180px',
-                background: '#090d16',
-                border: '1px solid var(--border-color)',
-                borderRadius: '12px',
-                position: 'relative',
-                overflow: 'hidden',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexDirection: 'column'
-              }}>
-                {qrScannerEnabled ? (
-                  <div id="qr-reader" style={{ width: '100%', minHeight: '300px' }}></div>
-                ) : (
-                  <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', padding: '2rem' }}>
-                    <QrCode size={40} color="var(--primary)" />
-                    <button onClick={handleSimulateQrScanner} className="btn-primary" style={{ marginTop: '0.5rem' }}>
-                      {t('scanner.open_camera')}
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <label htmlFor="qr-content-input" className="form-label">{t('scanner.paste_qr')}</label>
-                <input
-                  id="qr-content-input"
-                  type="text"
-                  value={qrInput}
-                  onChange={(e) => setQrInput(e.target.value)}
-                  className="input-field"
-                  placeholder={t("scanner.qr_placeholder")}
-                />
-                <button
-                  onClick={() => triggerScanAnimation(`Manual QR redirect code: ${qrInput}`, { qrCode: qrInput })}
-                  className="btn-secondary"
-                  disabled={!qrInput.trim()}
-                  style={{ width: '100%' }}
-                >
-                  {t('scanner.verify_qr')}
-                </button>
-              </div>
             </div>
           )}
 
@@ -1023,7 +809,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                 {t('result.report_scam_btn')}
               </button>
               <button
-                onClick={() => { setScanResult(null); setInputText(''); setUrlInput(''); setPhoneInput(''); setQrInput(''); setSelectedDemoScreenshot(''); setCustomScreenshotName(null); setShowGuardianAlert(false); setVtResult(null); setVtLoading(false);}}
+                onClick={() => { setScanResult(null); setInputText(''); setUrlInput(''); setPhoneInput(''); setQrInput(''); setShowGuardianAlert(false); setVtResult(null); setVtLoading(false);}}
                 className="btn-secondary"
                 style={{ flex: 1 }}
               >
@@ -1047,9 +833,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
 
       <GuardianAlertModal
         isOpen={showGuardianAlert}
-        guardianName="Tan Yee Xing"
-        //future: pass in guardianName from context or props
-        //use this: guardianName={currentUser.guardianName}
+        guardianName={currentUser?.guardian?.name || "Guardian"}
         onClose={() => setShowGuardianAlert(false)}
       />
 

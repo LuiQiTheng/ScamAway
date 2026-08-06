@@ -14,7 +14,7 @@ export default function ModeratorDashboard() {
   const { 
     reportsList, updateReportStatus, addAlert, 
     reputationProfiles, updateReputation, addBlacklistItem, blacklist,
-    removeBlacklistItem, updateBlacklistItem 
+    removeBlacklistItem, updateBlacklistItem, auditLogs
   } = useAppContext();
   const { t, lang } = useLanguage();
   const [selectedReport, setSelectedReport] = useState(null);
@@ -28,10 +28,11 @@ export default function ModeratorDashboard() {
 
   // New features state
   const [activeSubTab, setActiveSubTab] = useState('queue'); // queue, blacklist, audit
+  const [isQueueExpanded, setIsQueueExpanded] = useState(false);
+  const [isAuditExpanded, setIsAuditExpanded] = useState(false);
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
-  const [auditLogs, setAuditLogs] = useState([]);
   const [selectedForBulk, setSelectedForBulk] = useState(new Set());
 
   // Blacklist Management State
@@ -57,18 +58,7 @@ export default function ModeratorDashboard() {
       updateReputation(report.reporterId, decision === 'confirmed');
     }
 
-    // Confirming a report does not prove that every phone number or domain
-    // inside it is malicious. Indicators must be reviewed and added manually
     // in the Blacklists tab so legitimate company details are not poisoned.
-
-    // Log action to audit trail
-    setAuditLogs(prev => [{
-      id: Date.now(),
-      reportId: id,
-      action: decision,
-      rationale,
-      timestamp: new Date().toISOString()
-    }, ...prev]);
 
     setSelectedReport(null);
     setRationale('');
@@ -505,7 +495,7 @@ export default function ModeratorDashboard() {
                     {searchQuery.trim() || filterCategory !== 'all' || filterStatus !== 'all' ? t('admin.no_reports_search') : t('admin.no_reports')}
                   </div>
                 ) : (
-                  filteredReports.slice(0, 10).map(report => ( // Basic Pagination / Limiting for MVP
+                  (isQueueExpanded ? filteredReports : filteredReports.slice(0, 3)).map(report => (
                   <div key={report.id} className="admin-report-card-container" style={{ display: 'flex', flexDirection: 'column' }}>
                     <div 
                       onClick={() => setSelectedReport(selectedReport?.id === report.id ? null : report)}
@@ -700,6 +690,18 @@ export default function ModeratorDashboard() {
                   </div>
                   ))
                 )}
+                
+                {filteredReports.length > 3 && (
+                  <div style={{ textAlign: 'center', marginTop: '0.5rem', marginBottom: '0.5rem' }}>
+                    <button 
+                      onClick={() => setIsQueueExpanded(!isQueueExpanded)}
+                      className="btn-secondary"
+                      style={{ padding: '0.5rem 1.5rem', fontSize: '0.85rem' }}
+                    >
+                      {isQueueExpanded ? (lang === 'ms' ? 'Tunjuk Kurang' : 'Show Less') : (lang === 'ms' ? 'Tunjuk Lebih' : 'Show More')}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
@@ -760,15 +762,31 @@ export default function ModeratorDashboard() {
                     {t('admin.no_audit')}
                   </div>
                 ) : (
-                  auditLogs.map(log => (
-                    <div key={log.id} style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                        <span style={{ fontSize: '0.85rem', color: '#fff' }}>{t('admin.action')} <strong style={{ color: 'var(--primary)', textTransform: 'capitalize' }}>{log.action}</strong> {t('admin.on_report')}{log.reportId.toString().slice(-6)}</span>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{new Date(log.timestamp).toLocaleString()}</span>
+                  <>
+                    {(isAuditExpanded ? auditLogs : auditLogs.slice(0, 3)).map(log => (
+                      <div key={log.id} style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                          <span style={{ fontSize: '0.85rem', color: '#fff' }}>
+                            {t('admin.action')} <strong style={{ color: 'var(--primary)', textTransform: 'capitalize' }}>{log.action}</strong> 
+                            {log.reportId && <span> {t('admin.on_report')}{log.reportId.toString().slice(-6)}</span>}
+                            {log.performedBy && <span style={{ color: 'var(--text-muted)', marginLeft: '0.5rem' }}>by {log.performedBy}</span>}
+                          </span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{new Date(log.timestamp).toLocaleString()}</span>
+                        </div>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{t('admin.note')} {log.rationale || 'N/A'}</span>
                       </div>
-                      <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{t('admin.note')} {log.rationale || 'N/A'}</span>
-                    </div>
-                  ))
+                    ))}
+                    
+                    {auditLogs.length > 3 && (
+                      <button 
+                        onClick={() => setIsAuditExpanded(!isAuditExpanded)}
+                        className="btn-secondary"
+                        style={{ alignSelf: 'center', marginTop: '0.5rem', fontSize: '0.85rem', padding: '0.4rem 1rem' }}
+                      >
+                        {isAuditExpanded ? (lang === 'ms' ? 'Papar Sedikit' : 'Show Less') : (lang === 'ms' ? 'Papar Lebih' : 'Show More')}
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             )}

@@ -9,53 +9,50 @@ import UserProfile from './components/UserProfile';
 import TrendsDashboard from './components/TrendsDashboard';
 import LoginScreen from './components/LoginScreen';
 import EmergencyHelp from './components/EmergencyHelp';
+import GuardianSetupModal from './components/Guardian/GuardianSetupModal';
+import AdminProfile from './components/AdminProfile';
 
 export default function App() {
-  const { userNotifications, dismissNotification } = useAppContext();
-  const [activeTab, setActiveTab] = useState('check'); // check, knowledge, moderator, profile
-  const [userRole, setUserRole] = useState('user'); // 'user' or 'admin'
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userMode, setUserMode] = useState(() => {
-    try {
-      const savedMode = localStorage.getItem('scam_away_user_mode');
-      if (savedMode && ['normal', 'elderly', 'kid'].includes(savedMode)) {
-        return savedMode;
-      }
-      const legacyElderly = localStorage.getItem('scam_away_elderly_mode');
-      if (legacyElderly && JSON.parse(legacyElderly) === true) {
-        return 'elderly';
-      }
-      return 'normal';
-    } catch (e) {
-      return 'normal';
-    }
-  });
-
+  const { userNotifications, dismissNotification, adminProfile, setAdminProfile, currentUser, setCurrentUser, updateGuardian } = useAppContext();
+  const [activeTab, setActiveTab] = useState(() => localStorage.getItem('scam_shield_active_tab') || 'check');
+  
   const { lang, toggleLanguage, t } = useLanguage();
 
+  const userRole = adminProfile ? 'admin' : (currentUser ? 'user' : null);
+  const isLoggedIn = !!userRole;
+
   const handleRoleChange = (role) => {
-    setUserRole(role);
-    setIsLoggedIn(true);
-    if (role === 'admin') {
-      setActiveTab('moderator');
-    } else {
-      setActiveTab('check');
-    }
+    const newTab = role === 'admin' ? 'moderator' : 'check';
+    setActiveTab(newTab);
+    localStorage.setItem('scam_shield_active_tab', newTab);
   };
 
-  const handleSetUserMode = (mode) => {
-    setUserMode(mode);
-    try {
-      localStorage.setItem('scam_away_user_mode', mode);
-      localStorage.setItem('scam_away_elderly_mode', JSON.stringify(mode === 'elderly'));
-    } catch (e) {
-      console.error(e);
-    }
+  const handleLogout = () => {
+    setAdminProfile(null);
+    setCurrentUser(null);
+    localStorage.removeItem('scam_shield_active_tab');
   };
+
+  let activeMode = 'normal';
+  if (currentUser) {
+    if (currentUser.age >= 55) activeMode = 'elderly';
+    else if (currentUser.age <= 16) activeMode = 'kid';
+  }
   
-  const activeMode = userRole === 'admin' ? 'normal' : userMode;
   const isElderlyMode = activeMode === 'elderly';
   const isKidMode = activeMode === 'kid';
+
+  // Enforce Guardian Setup
+  const [showGuardianPrompt, setShowGuardianPrompt] = useState(false);
+  React.useEffect(() => {
+    if (currentUser && (isElderlyMode || isKidMode)) {
+      if (!currentUser.guardian) {
+        setShowGuardianPrompt(true);
+      }
+    } else {
+      setShowGuardianPrompt(false);
+    }
+  }, [currentUser, isElderlyMode, isKidMode]);
 
   if (!isLoggedIn) {
     return <LoginScreen onLogin={handleRoleChange} />;
@@ -115,88 +112,28 @@ export default function App() {
               </button>
             </>
           ) : (
-            <button
-              onClick={() => setActiveTab('moderator')}
-              className={`nav-link ${activeTab === 'moderator' ? 'active' : ''}`}
-              aria-current={activeTab === 'moderator' ? 'page' : undefined}
-              style={{ fontSize: isElderlyMode ? '1.25rem' : '0.9rem' }}
-            >
-              👮 {t('nav.moderator')}
-            </button>
+            <>
+              <button
+                onClick={() => setActiveTab('moderator')}
+                className={`nav-link ${activeTab === 'moderator' ? 'active' : ''}`}
+                aria-current={activeTab === 'moderator' ? 'page' : undefined}
+                style={{ fontSize: isElderlyMode ? '1.25rem' : '0.9rem' }}
+              >
+                👮 {t('nav.moderator')}
+              </button>
+              <button
+                onClick={() => setActiveTab('admin_profile')}
+                className={`nav-link ${activeTab === 'admin_profile' ? 'active' : ''}`}
+                aria-current={activeTab === 'admin_profile' ? 'page' : undefined}
+                style={{ fontSize: isElderlyMode ? '1.25rem' : '0.9rem' }}
+              >
+                👤 {lang === 'ms' ? 'Profil' : 'Profile'}
+              </button>
+            </>
           )}
         </nav>
 
         <div className="app-control-group">
-          {/* Mode Selector Segmented Pill Control */}
-          {userRole !== 'admin' && (
-            <div
-              className="mode-selector"
-              style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                background: 'rgba(255,255,255,0.03)', 
-                padding: '0.2rem', 
-                borderRadius: '20px', 
-                border: '1px solid var(--border-color)',
-                gap: '0.15rem'
-              }}
-            >
-              <button
-                onClick={() => handleSetUserMode('normal')}
-                title={t('mode.normal')}
-                aria-pressed={activeMode === 'normal'}
-                style={{
-                  padding: '0.3rem 0.6rem',
-                  borderRadius: '16px',
-                  border: 'none',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  background: activeMode === 'normal' ? 'var(--primary)' : 'transparent',
-                  color: activeMode === 'normal' ? '#fff' : 'var(--text-muted)',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                {t('mode.normal')}
-              </button>
-              <button
-                onClick={() => handleSetUserMode('elderly')}
-                title={t('mode.elderly')}
-                aria-pressed={activeMode === 'elderly'}
-                style={{
-                  padding: '0.3rem 0.6rem',
-                  borderRadius: '16px',
-                  border: 'none',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  background: activeMode === 'elderly' ? '#06b6d4' : 'transparent',
-                  color: activeMode === 'elderly' ? '#fff' : 'var(--text-muted)',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                {t('mode.elderly')}
-              </button>
-              <button
-                onClick={() => handleSetUserMode('kid')}
-                title={t('mode.kid')}
-                aria-pressed={activeMode === 'kid'}
-                style={{
-                  padding: '0.3rem 0.6rem',
-                  borderRadius: '16px',
-                  border: 'none',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  background: activeMode === 'kid' ? 'var(--primary)' : 'transparent',
-                  color: activeMode === 'kid' ? '#fff' : 'var(--text-muted)',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                {t('mode.kid')}
-              </button>
-            </div>
-          )}
 
           {/* Language Toggle */}
           <button
@@ -215,7 +152,7 @@ export default function App() {
 
           {/* Logout Button */}
           <button
-            onClick={() => setIsLoggedIn(false)}
+            onClick={handleLogout}
             style={{
               display: 'flex', alignItems: 'center', gap: '0.35rem',
               background: 'transparent', border: '1px solid rgba(239, 68, 68, 0.4)',
@@ -235,35 +172,42 @@ export default function App() {
         </div>
       </header>
 
-      {/* Main Content Layout */}
       <main className="app-main">
         {activeTab === 'check' && (
           <UserChecker
-            userMode={userMode}
+            userMode={activeMode}
             isElderlyMode={isElderlyMode}
             isKidMode={isKidMode}
-            onSetUserMode={handleSetUserMode}
           />
         )}
-
         {activeTab === 'knowledge' && (
           <KnowledgeCentre
-            userMode={userMode}
             isElderlyMode={isElderlyMode}
             isKidMode={isKidMode}
           />
         )}
-
         {activeTab === 'profile' && (
           <UserProfile
-            userMode={userMode}
+            userMode={activeMode}
             isElderlyMode={isElderlyMode}
             isKidMode={isKidMode}
           />
         )}
-
-        {activeTab === 'moderator' && (
-          <ModeratorDashboard />
+        {activeTab === 'moderator' && <ModeratorDashboard />}
+        {activeTab === 'admin_profile' && <AdminProfile />}
+        
+        {/* Force Guardian Setup Modal for Vulnerable Ages */}
+        {showGuardianPrompt && (
+          <GuardianSetupModal
+            isOpen={true}
+            onClose={() => {}} // Cannot close until saved
+            guardian={null}
+            mode="create"
+            onSave={async (newGuardian) => {
+              await updateGuardian(newGuardian);
+              setShowGuardianPrompt(false);
+            }}
+          />
         )}
       </main>
 

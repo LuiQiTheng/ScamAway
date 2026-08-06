@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import GuardianSetupModal from "../components/Guardian/GuardianSetupModal";
-import { Bell, BellOff, CheckCircle, XCircle, Clock, Trash2, Check, MailOpen, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react';
+import EditProfileModal from "../components/EditProfileModal";
+import { Bell, BellOff, CheckCircle, XCircle, Clock, Trash2, Check, MailOpen, ChevronDown, ChevronUp, RotateCcw, User, Edit2 } from 'lucide-react';
 
 export default function UserProfile({ userMode = 'normal', isElderlyMode = false, isKidMode = false }) {
-  const { reportsList } = useAppContext();
+  const { reportsList, currentUser, updateGuardian, updateCurrentUser } = useAppContext();
   const { t, lang } = useLanguage();
   const [myReports, setMyReports] = useState([]);
+  const [isReportsExpanded, setIsReportsExpanded] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [isNotificationsExpanded, setIsNotificationsExpanded] = useState(false);
   
@@ -33,15 +35,17 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
   const [isGuardianModalOpen, setIsGuardianModalOpen] = useState(false);
   const [guardianMode, setGuardianMode] = useState("edit");
 
-  const [guardian, setGuardian] = useState({
-      name: "Tan Ah Beng",
-      relationship: "Father",
-      phone: "+60 12-3456789"
-  });
+  const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
+
+  const guardian = currentUser?.guardian || {
+      name: "",
+      relationship: "",
+      phone: ""
+  };
 
   useEffect(() => {
-    // Filter reports for the active user mock ID 'rep_103'
-    const userReports = reportsList.filter(r => r.reporterId === 'rep_103');
+    // Filter reports for the active user
+    const userReports = reportsList.filter(r => r.reporterId === currentUser?.id);
     setMyReports(userReports);
 
     // Get ALL reviewed reports (confirmed or rejected) as notifications
@@ -50,7 +54,7 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
     // Sort latest first
     recentReviewed.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     setNotifications(recentReviewed);
-  }, [reportsList]);
+  }, [reportsList, currentUser?.id]);
 
   // Handlers for read/delete/restore
   const handleToggleRead = (id) => {
@@ -98,9 +102,52 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
       sessionStorage.setItem('scam_away_read_notifications', JSON.stringify(nextRead));
     } catch (e) {}
   };
-
   return (
     <div className={`page-shell profile-page fade-in mode-${userMode} ${isElderlyMode ? 'elderly-mode' : ''} ${isKidMode ? 'kid-mode' : ''}`}>
+
+      {/* User Info Card */}
+      {currentUser && (
+        <div className="glass-panel" style={{ padding: '1.5rem 1.75rem', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+            <h2 style={{ fontSize: isElderlyMode ? '1.4rem' : '1.25rem', fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <User size={isElderlyMode ? 28 : 24} color="#60a5fa" style={{ flexShrink: 0 }} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{lang === 'ms' ? 'Profil Saya' : 'My Profile'}</span>
+            </h2>
+            <button
+              className="btn-secondary"
+              onClick={() => setIsEditProfileModalOpen(true)}
+              style={{ padding: '0.4rem 0.75rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}
+            >
+              <Edit2 size={14} />
+              {lang === 'ms' ? 'Kemaskini Profil' : 'Edit Profile'}
+            </button>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', color: 'var(--text-secondary)' }}>
+              <div><strong style={{ color: '#fff' }}>{lang === 'ms' ? 'Nama:' : 'Name:'}</strong> {currentUser.name}</div>
+              <div><strong style={{ color: '#fff' }}>{lang === 'ms' ? 'Umur:' : 'Age:'}</strong> {currentUser.age}</div>
+              <div><strong style={{ color: '#fff' }}>{lang === 'ms' ? 'No. Telefon:' : 'Phone No:'}</strong> {currentUser.phone}</div>
+              <div>
+                <strong style={{ color: '#fff' }}>{lang === 'ms' ? 'Mod Keselamatan:' : 'Safety Mode:'}</strong> 
+                <span style={{ marginLeft: '0.5rem', background: 'rgba(255,255,255,0.1)', padding: '0.2rem 0.5rem', borderRadius: '4px', textTransform: 'capitalize' }}>{userMode}</span>
+              </div>
+            </div>
+
+            {isEditProfileModalOpen && (
+              <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+                <EditProfileModal
+                  isOpen={true}
+                  inline={true}
+                  initialData={currentUser}
+                  onClose={() => setIsEditProfileModalOpen(false)}
+                  onSave={async (updatedData) => {
+                    await updateCurrentUser(updatedData);
+                    setIsEditProfileModalOpen(false);
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        )}
 
       {/* Notifications Card */}
       <div className="glass-panel" style={{ padding: '1.5rem 1.75rem' }}>
@@ -109,7 +156,7 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
             <Bell size={24} color="#3b82f6" />
             {lang === 'ms' ? 'Pemberitahuan Laporan' : 'Report Notifications'}
             {activeNotifications.length > 0 && (
-              <span className="badge" style={{ background: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa', fontSize: '0.75rem', padding: '0.15rem 0.6rem', borderRadius: '12px' }}>
+              <span className="badge" style={{ background: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa', fontSize: '0.75rem', padding: '0.15rem 0.6rem', borderRadius: '12px', flexShrink: 0, whiteSpace: 'nowrap' }}>
                 {activeNotifications.filter(n => !readIds.includes(n.id)).length} {lang === 'ms' ? 'Baru' : 'New'}
               </span>
             )}
@@ -233,10 +280,11 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
                       alignItems: 'center',
                       gap: '1rem',
                       opacity: isRead ? 0.75 : 1,
-                      transition: 'all 0.2s ease'
+                      transition: 'all 0.2s ease',
+                      flexWrap: 'wrap'
                     }}
                   >
-                    <div style={{ display: 'flex', gap: '0.85rem', alignItems: 'flex-start' }}>
+                    <div style={{ display: 'flex', gap: '0.85rem', alignItems: 'flex-start', flex: '1 1 200px' }}>
                       <Bell size={18} color={isRead ? 'var(--text-muted)' : '#3b82f6'} style={{ flexShrink: 0, marginTop: '3px' }} />
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.25rem', flexWrap: 'wrap' }}>
@@ -272,7 +320,7 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
                     </div>
 
                     {/* Actions */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0, marginLeft: 'auto' }}>
                       <button
                         onClick={() => handleToggleRead(item.id)}
                         title={isRead ? (lang === 'ms' ? 'Tanda belum dibaca' : 'Mark as unread') : (lang === 'ms' ? 'Tanda dibaca' : 'Mark as read')}
@@ -373,7 +421,7 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
                 <td className="profile-empty-cell" colSpan="4" style={{ textAlign: 'center', padding: '2rem' }}>{t('profile.no_reports')}</td>
               </tr>
             ) : (
-              myReports.map(report => (
+              (isReportsExpanded ? myReports : myReports.slice(0, 3)).map(report => (
                 <tr key={report.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                   <td data-label={t('profile.table_date')} style={{ padding: '1rem', fontSize: '0.85rem' }}>
                     {new Date(report.timestamp).toLocaleDateString()}
@@ -385,6 +433,7 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
                     "{report.text}"
                   </td>
                   <td data-label={t('profile.status')} style={{ padding: '1rem' }}>
+
                     {report.status === 'confirmed' && <span style={{ color: 'var(--color-low)', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem' }}><CheckCircle size={14} /> {t('profile.confirmed')}</span>}
                     {report.status === 'rejected' && <span style={{ color: 'var(--color-high)', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem' }}><XCircle size={14} /> {t('profile.rejected')}</span>}
                     {(report.status === 'unverified' || report.status === 'under_review') && <span style={{ color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem' }}><Clock size={14} /> {t('profile.pending')}</span>}
@@ -395,51 +444,90 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
           </tbody>
         </table>
         </div>
+
+        {/* Expand / Collapse Button for Reports */}
+        {myReports.length > 3 && (
+          <div style={{ textAlign: 'center', marginTop: '1.25rem' }}>
+            <button
+              onClick={() => setIsReportsExpanded(prev => !prev)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--primary)',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                padding: '0.25rem 0.5rem',
+                transition: 'color 0.2s ease'
+              }}
+            >
+              <span>
+                {isReportsExpanded
+                  ? (lang === 'ms' ? 'Tunjukkan Kurang' : 'Show Less')
+                  : (lang === 'ms'
+                      ? `Tunjukkan Lebih Banyak (${myReports.length - 3} lagi)`
+                      : `Show More (${myReports.length - 3} more)`)}
+              </span>
+              {isReportsExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Guardian Settings Card */}
-      <div className="glass-panel guardian-settings-card">
-        <div className="guardian-settings-text">
-          <h2
-            style={{
-              fontSize: isElderlyMode ? "1.6rem" : "1.35rem",
-              fontWeight: 700,
-              color: "#fff",
-              marginBottom: "0.5rem"
-            }}
-          >
-            🛡️ {t("guardian.settings")}
-          </h2>
-          <p
-            style={{
-              color: "var(--text-secondary)",
-              margin: 0,
-              fontSize: "0.9rem",
-            }}
-          >
-            {t("guardian.settings_desc")}
-          </p>
+      {/* Guardian Settings Card - Only for Kid/Elderly */}
+      {(isElderlyMode || isKidMode) && (
+        <div className="glass-panel" style={{ padding: '1.25rem 1.75rem', marginTop: '0.25rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
+            <div className="guardian-settings-text" style={{ flex: 1 }}>
+              <h2
+                style={{
+                  fontSize: isElderlyMode ? "1.6rem" : "1.35rem",
+                  fontWeight: 700,
+                  color: "#fff",
+                  marginBottom: "0.5rem"
+                }}
+              >
+                🛡️ {t("guardian.settings")}
+              </h2>
+              <p
+                style={{
+                  color: "var(--text-secondary)",
+                  margin: 0,
+                  fontSize: "0.9rem",
+                }}
+              >
+                {t("guardian.settings_desc")}
+              </p>
+            </div>
+
+            <button
+              className="btn-primary"
+              onClick={() => setIsGuardianModalOpen(!isGuardianModalOpen)}
+              style={{ flexShrink: 0 }}
+            >
+              {t("guardian.edit")}
+            </button>
+          </div>
+          {isGuardianModalOpen && (
+            <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+              <GuardianSetupModal
+                isOpen={true}
+                inline={true}
+                mode="edit"
+                guardian={guardian}
+                onClose={() => setIsGuardianModalOpen(false)}
+                onSave={async (updatedGuardian) => {
+                  await updateGuardian(updatedGuardian);
+                  setIsGuardianModalOpen(false);
+                }}
+              />
+            </div>
+          )}
         </div>
-
-        <button
-          className="btn-primary"
-          onClick={() => setIsGuardianModalOpen(true)}
-          style={{ flexShrink: 0 }}
-        >
-          {t("guardian.edit")}
-        </button>
-      </div>
-
-      <GuardianSetupModal
-        isOpen={isGuardianModalOpen}
-        onClose={() => setIsGuardianModalOpen(false)}
-        guardian={guardian}
-        mode="edit"
-        onSave={(updatedGuardian) => {
-          setGuardian(updatedGuardian);
-          setIsGuardianModalOpen(false);
-        }}
-      />
+      )}
     </div>
   );
 }

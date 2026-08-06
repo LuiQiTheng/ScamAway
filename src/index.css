@@ -151,6 +151,23 @@ h6 {
   font-size: 2rem !important;
 }
 
+.elderly-mode h1 span,
+.elderly-mode h2 span,
+.elderly-mode h3 span {
+  font-size: inherit !important;
+}
+
+.elderly-mode .app-logo {
+  font-size: 2.1rem !important;
+}
+.elderly-mode .app-logo span {
+  font-size: inherit !important;
+}
+.elderly-mode .app-logo svg {
+  width: 36px !important;
+  height: 36px !important;
+}
+
 .elderly-mode h3 {
   font-size: 1.6rem !important;
 }
@@ -160,7 +177,11 @@ h6 {
 .elderly-mode li,
 .elderly-mode button,
 .elderly-mode input,
-.elderly-mode textarea {
+.elderly-mode textarea,
+.elderly-mode strong,
+.elderly-mode td,
+.elderly-mode th,
+.elderly-mode label {
   font-size: 1.35rem !important;
   line-height: 1.6 !important;
 }
@@ -204,6 +225,10 @@ h6 {
   min-height: 100vh;
 }
 
+.elderly-mode .app-header {
+  background: var(--bg-dark) !important;
+}
+
 .app-header {
   border-bottom: 1px solid var(--border-color);
   background: rgba(7, 10, 19, 0.85);
@@ -214,6 +239,8 @@ h6 {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
 .app-logo {
@@ -230,7 +257,9 @@ h6 {
 
 .nav-links {
   display: flex;
+  flex-wrap: wrap;
   gap: 1rem;
+  justify-content: center;
 }
 
 @media (min-width: 769px) {
@@ -242,6 +271,7 @@ h6 {
 
   /* Elderly mode uses larger text and touch targets. Give navigation its own
      row so it never competes with the mode, language, and logout controls. */
+  .elderly-mode .app-header,
   .mode-elderly .app-header {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
@@ -278,9 +308,9 @@ h6 {
 .elderly-mode .app-header .nav-link {
   padding: 0.75rem 1rem !important;
   min-height: 52px;
-  font-size: 1.15rem !important;
+  font-size: 1.25rem !important;
   line-height: 1.25 !important;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .elderly-mode .app-header .app-control-group button {
@@ -322,13 +352,16 @@ h6 {
   background: transparent;
   border: none;
   cursor: pointer;
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 0.5rem;
   border-radius: 8px;
   font-weight: 500;
   transition: all var(--transition-fast);
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: center;
+  text-align: center;
+  gap: 0.25rem;
 }
 
 .nav-link:hover,
