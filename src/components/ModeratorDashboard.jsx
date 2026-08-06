@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Check, X, AlertTriangle, MessageSquare, ShieldAlert, Award, FileText, Send, UserCheck, Search, Filter, BarChart2, Edit2, Trash2, Save } from 'lucide-react';
+import { Shield, Check, X, UserCheck, ShieldAlert, FileText, CheckCircle, XCircle, Search, Filter, ShieldCheck, Mail, Send, Activity, User, BookOpen, BarChart2, Edit2, Trash2, Save } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
+import { translateText } from '../utils/translateText';
 import {
   extractIndicators,
   normalizeBankAccount,
@@ -13,7 +14,7 @@ import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, Resp
 export default function ModeratorDashboard() {
   const { 
     reportsList, updateReportStatus, addAlert, 
-    reputationProfiles, updateReputation, addBlacklistItem, blacklist,
+    addBlacklistItem, blacklist,
     removeBlacklistItem, updateBlacklistItem, auditLogs
   } = useAppContext();
   const { t, lang } = useLanguage();
@@ -51,12 +52,6 @@ export default function ModeratorDashboard() {
 
   const handleAction = (id, decision) => {
     updateReportStatus(id, decision, rationale);
-    
-    // Auto-update reputation profile if reporter is listed
-    const report = reportsList.find(r => r.id === id);
-    if (report && report.reporterId) {
-      updateReputation(report.reporterId, decision === 'confirmed');
-    }
 
     // in the Blacklists tab so legitimate company details are not poisoned.
 
@@ -77,17 +72,6 @@ export default function ModeratorDashboard() {
     setShowConfirmBroadcast(true);
   };
 
-  const translateText = async (text, sourceLang, targetLang) => {
-    try {
-      const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sourceLang}&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
-      const response = await fetch(url);
-      const data = await response.json();
-      return data[0][0][0];
-    } catch (error) {
-      console.error("Translation error:", error);
-      return `[Translation Failed] ${text}`;
-    }
-  };
 
   const confirmBroadcast = async () => {
     let catEn = alertCategory;
@@ -543,8 +527,8 @@ export default function ModeratorDashboard() {
 
                       <div className="admin-report-copy" style={{ flex: 1, minWidth: '200px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                          <span className="badge badge-caution" style={{ fontSize: '0.7rem' }}>{report.category}</span>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>ID: #{report.id.toString().slice(-6)}</span>
+                          <span className="badge badge-caution" style={{ fontSize: '0.7rem' }}>{categoryLabels[(report.category || '').toLowerCase()] || report.category}</span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>ID: {report.reportCode ? report.reportCode : `#${report.id.toString().slice(-6)}`}</span>
                           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>• {new Date(report.timestamp).toLocaleTimeString()}</span>
                         </div>
                         <p style={{ 
@@ -768,7 +752,7 @@ export default function ModeratorDashboard() {
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
                           <span style={{ fontSize: '0.85rem', color: '#fff' }}>
                             {t('admin.action')} <strong style={{ color: 'var(--primary)', textTransform: 'capitalize' }}>{log.action}</strong> 
-                            {log.reportId && <span> {t('admin.on_report')}{log.reportId.toString().slice(-6)}</span>}
+                            {lang === 'ms' ? 'Laporan' : 'Report'} {log.reportCode ? `${log.reportCode}` : `#${log.reportId?.toString().slice(-6)}`}
                             {log.performedBy && <span style={{ color: 'var(--text-muted)', marginLeft: '0.5rem' }}>by {log.performedBy}</span>}
                           </span>
                           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{new Date(log.timestamp).toLocaleString()}</span>
@@ -850,39 +834,6 @@ export default function ModeratorDashboard() {
 
         </div>
 
-        {/* Bottom: Community Reporters */}
-        <div className="glass-panel" style={{ padding: '1.5rem' }}>
-          <h3 style={{ fontSize: '1.1rem', color: '#fff', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <UserCheck size={20} color="var(--primary)" />
-            {t('admin.community_reporters')}
-          </h3>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-            {reputationProfiles.map(rep => (
-              <div 
-                key={rep.profileId}
-                style={{
-                  padding: '0.75rem',
-                  background: 'rgba(255,255,255,0.01)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}
-              >
-                <div>
-                  <strong style={{ fontSize: '0.85rem', color: '#fff', display: 'block' }}>{rep.userName}</strong>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{t('admin.role')} {rep.role} | {t('admin.level')} {rep.identityLevel}</span>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--color-low)', fontWeight: 600 }}>{rep.agreementRate}% {t('admin.agree')}</span>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'block' }}>{rep.verifiedReports} {t('admin.verified')}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
 
       </div>
 

@@ -66,8 +66,25 @@ export default function App() {
           <div key={notif.id} className="glass-panel" style={{ padding: '1rem', borderLeft: notif.newStatus === 'confirmed' ? '4px solid var(--color-low)' : '4px solid var(--color-high)', display: 'flex', alignItems: 'center', gap: '1rem', minWidth: '320px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)' }}>
             <Bell size={20} color={notif.newStatus === 'confirmed' ? 'var(--color-low)' : 'var(--color-high)'} />
             <div style={{ flex: 1 }}>
-              <p style={{ margin: 0, fontSize: '0.9rem', color: '#fff', fontWeight: 600 }}>Report #{notif.reportId.toString().slice(-4)} Updated</p>
-              <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>Status changed to <strong style={{ textTransform: 'capitalize' }}>{notif.newStatus}</strong></p>
+              <p style={{ margin: 0, fontSize: '0.85rem', color: '#fff', fontWeight: 500, lineHeight: '1.4' }}>
+                {lang === 'ms' 
+                  ? <>Laporan anda mengenai scam <strong style={{color: 'var(--primary)', textTransform: 'capitalize'}}>{notif.category || 'tiada kategori'}</strong> ({notif.reportCode || `#${notif.reportId?.toString().slice(-4)}`}) telah disemak oleh moderator.</>
+                  : <>Your report regarding a <strong style={{color: 'var(--primary)', textTransform: 'capitalize'}}>{notif.category || 'uncategorized'}</strong> scam ({notif.reportCode || `#${notif.reportId?.toString().slice(-4)}`}) was reviewed by a moderator.</>
+                }
+              </p>
+              <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.35rem' }}>
+                {lang === 'ms' ? 'Status ditukar kepada ' : 'Status changed to '}
+                <strong style={{ textTransform: 'capitalize' }}>
+                  {notif.newStatus === 'confirmed' ? (lang === 'ms' ? 'Disahkan' : 'Confirmed') : 
+                   notif.newStatus === 'rejected' ? (lang === 'ms' ? 'Ditolak' : 'Rejected') : 
+                   notif.newStatus}
+                </strong>
+              </p>
+              {notif.rationale && (
+                <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic', marginTop: '0.2rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '250px' }}>
+                  💬 {lang === 'ms' ? (notif.rationaleMs || notif.rationale) : (notif.rationaleEn || notif.rationale)}
+                </p>
+              )}
             </div>
             <button onClick={() => dismissNotification(notif.id)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0.25rem' }}>
               <X size={16} />

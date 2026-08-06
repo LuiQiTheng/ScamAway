@@ -21,6 +21,7 @@ const translations = {
     "login.user_desc": "Access scanner & reporting profile",
     "login.admin": "Moderator / Admin",
     "login.admin_desc": "Manage reports & review dashboard",
+    "login.footer": "UCRIX Demo Version • Extensible Auth Ready",
 
     //Logout
     "app.logout": "Log Out",
@@ -170,7 +171,7 @@ const translations = {
     "admin.add_blacklist": "Add to Blacklist",
     "admin.domain_url": "Domain / URL",
     "admin.phone_number": "Phone Number",
-    "admin.bank_account": "Blacklisted Bank Account",
+    "admin.bank_account": "Bank Account No",
     "admin.add_btn": "Add to List",
     "admin.blocked_domains": "Blacklisted Domains",
     "admin.blocked_phones": "Blacklisted Phone No",
@@ -570,7 +571,8 @@ const translations = {
     "login.user_desc": "Akses pengimbas & profil pelaporan",
     "login.admin": "Moderator / Admin",
     "login.admin_desc": "Urus laporan & pusat tinjauan",
-
+    "login.footer": "Versi Demo UCRIX • Pengesahan Boleh Diperluas",
+    
     //Logout
     "app.logout": "Log Keluar",
 
@@ -719,7 +721,7 @@ const translations = {
     "admin.add_blacklist": "Tambah ke Senarai Hitam",
     "admin.domain_url": "Domain / URL",
     "admin.phone_number": "Nombor Telefon",
-    "admin.bank_account": "Akaun Bank Senarai Hitam",
+    "admin.bank_account": "No Akaun Bank",
     "admin.add_btn": "Tambah ke Senarai",
     "admin.blocked_domains": "Domain Senarai Hitam",
     "admin.blocked_phones": "Nombor Telefon Senarai Hitam",
