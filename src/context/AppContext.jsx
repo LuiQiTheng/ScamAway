@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { collection, onSnapshot, addDoc, updateDoc, doc, setDoc, getDocs, query, where } from "firebase/firestore";
+import { collection, onSnapshot, addDoc, updateDoc, doc, setDoc, getDocs, getDoc, query, where } from "firebase/firestore";
 import { db } from '../config/firebase';
+import { translateText } from '../utils/translateText';
 
 const AppContext = createContext();
 
@@ -8,12 +9,6 @@ export const useAppContext = () => useContext(AppContext);
 
 // Seed data
 const INITIAL_REPORTS = [];
-
-const INITIAL_REPUTATIONS = [
-  { profileId: 'rep_101', userName: 'Ahmad Rafiq (Kuala Lumpur)', role: 'Citizen', identityLevel: 2, agreementRate: 94, verifiedReports: 5, abuseFlags: 0 },
-  { profileId: 'rep_102', userName: 'Lim Wei Han (Selangor)', role: 'Citizen', identityLevel: 3, agreementRate: 100, verifiedReports: 12, abuseFlags: 0 },
-  { profileId: 'rep_103', userName: 'Guest_User_912', role: 'Guest', identityLevel: 1, agreementRate: 75, verifiedReports: 2, abuseFlags: 0 }
-];
 
 const INITIAL_BLACKLIST = {
   id: 'global',
@@ -32,7 +27,7 @@ export const AppProvider = ({ children }) => {
     }
   });
 
-  const [reputationProfiles, setReputationProfiles] = useState(INITIAL_REPUTATIONS);
+
   const [blacklist, setBlacklist] = useState(INITIAL_BLACKLIST);
   const [activeAlert, setActiveAlert] = useState(() => {
     try {
@@ -196,11 +191,23 @@ export const AppProvider = ({ children }) => {
     setUserNotifications(prev => prev.filter(n => n.id !== id));
   };
 
+  // Fetch initial audit logs from Firestore
+  useEffect(() => {
+    const unsubAudit = onSnapshot(collection(db, "auditLogs"), (snapshot) => {
+      const logs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      logs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      setAuditLogs(logs);
+    }, (error) => {
+      console.warn("⚠️ [Firestore Audit Listener]", error?.message);
+    });
+
+    return () => unsubAudit();
+  }, []);
+
   // Helper to add audit log entries with actor identity tracking
   const addAuditLog = useCallback((action, reportId = null, rationale = '', details = '', performedBy = 'System Admin') => {
     const actor = adminProfile?.officerId || performedBy;
     const entry = {
-      id: Date.now() + Math.random(),
       reportId,
       action,
       rationale,
@@ -208,10 +215,16 @@ export const AppProvider = ({ children }) => {
       performedBy: actor,
       timestamp: new Date().toISOString()
     };
-    setAuditLogs(prev => [entry, ...prev]);
+    
+    // Write to Firestore (listener will update local state automatically)
+    addDoc(collection(db, "auditLogs"), entry).catch(e => {
+      console.warn("Failed to write audit log to Firestore:", e?.message);
+      // Fallback: write to local state
+      setAuditLogs(prev => [{ ...entry, id: Date.now() + Math.random() }, ...prev]);
+    });
   }, [adminProfile]);
 
-  // Sync audit logs to localStorage
+  // Keep localStorage in sync for tests and offline state
   useEffect(() => {
     try {
       localStorage.setItem('scam_shield_audit_logs', JSON.stringify(auditLogs));
@@ -247,14 +260,19 @@ export const AppProvider = ({ children }) => {
           if (prevList.length > 0) {
             reports.forEach(newReport => {
               const oldReport = prevList.find(r => r.id === newReport.id);
-              if (oldReport && oldReport.status !== newReport.status && newReport.reporterId === 'rep_103') {
+              if (oldReport && oldReport.status !== newReport.status && newReport.reporterId === currentUser?.id) {
                 setUserNotifications(prev => {
                   if (prev.some(n => n.reportId === newReport.id && n.newStatus === newReport.status)) return prev;
                   return [{
                     id: Date.now() + Math.random(),
                     reportId: newReport.id,
+                    reportCode: newReport.reportCode,
+                    category: newReport.category,
                     oldStatus: oldReport.status,
                     newStatus: newReport.status,
+                    rationale: newReport.rationale,
+                    rationaleEn: newReport.rationaleEn,
+                    rationaleMs: newReport.rationaleMs,
                     timestamp: new Date().toISOString()
                   }, ...prev];
                 });
@@ -268,17 +286,6 @@ export const AppProvider = ({ children }) => {
       console.warn("⚠️ [Firestore] Could not connect to Cloud Database. Using local fallback.", error?.message);
       setReportsList(prev => prev.length === 0 ? INITIAL_REPORTS : prev);
     });
-
-    // Listen to Reputations
-    const unsubReputations = onSnapshot(collection(db, "reputations"), (snapshot) => {
-      const reps = snapshot.docs.map(doc => doc.data());
-      if (reps.length === 0) {
-        INITIAL_REPUTATIONS.forEach(r => setDoc(doc(db, "reputations", r.profileId), r).catch(e => console.warn(e)));
-        setReputationProfiles(INITIAL_REPUTATIONS);
-      } else {
-        setReputationProfiles(reps);
-      }
-    }, (error) => console.warn("⚠️ [Firestore Reputations Listener]", error?.message));
 
     // Listen to Blacklist
     const unsubBlacklist = onSnapshot(doc(db, "system", "blacklist"), (docSnap) => {
@@ -299,58 +306,59 @@ export const AppProvider = ({ children }) => {
 
     return () => {
       unsubReports();
-      unsubReputations();
+
       unsubBlacklist();
       unsubAlert();
     };
   }, []);
 
   const addReport = useCallback(async (newReport) => {
-    const reportData = { ...newReport, id: Date.now(), reporterId: currentUser?.id || 'guest' };
+    let nextNum = 1;
+    try {
+      const counterRef = doc(db, "system", "reportCounter");
+      const counterSnap = await getDoc(counterRef);
+      if (counterSnap.exists()) {
+        nextNum = (counterSnap.data().count || 0) + 1;
+      }
+      await setDoc(counterRef, { count: nextNum }, { merge: true });
+    } catch (e) {
+      nextNum = Date.now() % 10000;
+    }
+    
+    const reportCode = `#${String(nextNum).padStart(6, '0')}`;
+    const reportData = { ...newReport, id: Date.now(), reportCode, reporterId: currentUser?.id || 'guest' };
+    
     setReportsList(prev => [reportData, ...prev]);
     try {
       await addDoc(collection(db, "reports"), reportData);
     } catch (e) {
       console.warn("⚠️ [Firestore] Failed to write report to cloud:", e?.message);
     }
+    return reportCode;
   }, [currentUser]);
 
   const updateReportStatus = useCallback(async (id, newStatus, rationale) => {
-    setReportsList(prev => prev.map(r => r.id === id ? { ...r, status: newStatus, rationale } : r));
+    let rationaleEn = rationale;
+    let rationaleMs = rationale;
+    
+    if (rationale) {
+      try {
+        rationaleMs = await translateText(rationale, 'en', 'ms');
+        rationaleEn = await translateText(rationale, 'ms', 'en');
+      } catch (e) {}
+    }
+
+    setReportsList(prev => prev.map(r => r.id === id ? { ...r, status: newStatus, rationale, rationaleEn, rationaleMs } : r));
     addAuditLog(`Case Status Updated to ${newStatus}`, id, rationale);
     try {
       const report = reportsList.find(r => r.id === id);
       if (report && report.firebaseId) {
-        await updateDoc(doc(db, "reports", report.firebaseId), { status: newStatus, rationale });
+        await updateDoc(doc(db, "reports", report.firebaseId), { status: newStatus, rationale, rationaleEn, rationaleMs });
       }
     } catch (e) {
       console.warn("⚠️ [Firestore] Failed to update status in cloud:", e?.message);
     }
   }, [reportsList, addAuditLog]);
-
-  const updateReputation = useCallback(async (profileId, wasCorrect) => {
-    setReputationProfiles(prev => prev.map(p => {
-      if (p.profileId === profileId) {
-        const newVerified = wasCorrect ? p.verifiedReports + 1 : p.verifiedReports;
-        const newRate = Math.min(100, Math.round((newVerified / (newVerified + (wasCorrect ? 0 : 1))) * 100));
-        return { ...p, verifiedReports: newVerified, agreementRate: isNaN(newRate) ? p.agreementRate : newRate };
-      }
-      return p;
-    }));
-    try {
-      const profile = reputationProfiles.find(p => p.profileId === profileId);
-      if (profile) {
-        const newVerified = wasCorrect ? profile.verifiedReports + 1 : profile.verifiedReports;
-        const newRate = Math.min(100, Math.round((newVerified / (newVerified + (wasCorrect ? 0 : 1))) * 100));
-        await updateDoc(doc(db, "reputations", profileId), { 
-          verifiedReports: newVerified, 
-          agreementRate: isNaN(newRate) ? profile.agreementRate : newRate 
-        });
-      }
-    } catch (e) {
-      console.warn("⚠️ [Firestore] Failed to update reputation in cloud:", e?.message);
-    }
-  }, [reputationProfiles]);
 
   const addAlert = useCallback(async (alert) => {
     setActiveAlert(alert);
@@ -413,10 +421,8 @@ export const AppProvider = ({ children }) => {
     }
   }, [blacklist, addAuditLog]);
 
-
   const contextValue = useMemo(() => ({
     reportsList, addReport,    updateReportStatus, addAlert, activeAlert,
-    reputationProfiles, updateReputation,
     blacklist, addBlacklistItem, removeBlacklistItem, updateBlacklistItem,
     adminProfile, setAdminProfile,
     currentUser, setCurrentUser,
@@ -425,7 +431,6 @@ export const AppProvider = ({ children }) => {
   }), [
     reportsList, addReport, activeAlert, auditLogs, userNotifications, dismissNotification,
     updateReportStatus, addAlert,
-    reputationProfiles, updateReputation,
     blacklist, addBlacklistItem, removeBlacklistItem, updateBlacklistItem,
     adminProfile, currentUser, registerUser, loginUser, registerAdmin, loginAdmin, updateGuardian, updateCurrentUser
   ]);

@@ -12,6 +12,16 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
   const [isReportsExpanded, setIsReportsExpanded] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [isNotificationsExpanded, setIsNotificationsExpanded] = useState(false);
+  const [expandedSnippets, setExpandedSnippets] = useState(new Set());
+  
+  const toggleSnippet = (id) => {
+    setExpandedSnippets(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) newSet.delete(id);
+      else newSet.add(id);
+      return newSet;
+    });
+  };
   
   // SessionStorage states for read and deleted notifications
   const [readIds, setReadIds] = useState(() => {
@@ -289,7 +299,7 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.25rem', flexWrap: 'wrap' }}>
                           <strong style={{ color: '#fff', fontSize: '0.95rem' }}>
-                            {t('profile.update_notice')}
+                            {t('profile.update_notice')} {item.reportCode ? ` (${item.reportCode})` : ''}
                           </strong>
                           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                             {new Date(item.timestamp).toLocaleDateString()}
@@ -316,6 +326,16 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
                             </>
                           )}
                         </div>
+                        {item.rationale && (
+                          <details style={{ marginTop: '0.5rem' }}>
+                            <summary style={{ cursor: 'pointer', fontSize: isElderlyMode ? '1.1rem' : '0.8rem', color: 'var(--primary)', fontWeight: 500 }}>
+                              {lang === 'ms' ? 'Lihat Catatan Admin' : 'View Admin Remark'}
+                            </summary>
+                            <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '0.25rem', marginBottom: 0, fontStyle: 'italic', background: 'rgba(255,255,255,0.03)', padding: '0.4rem 0.65rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                              💬 {lang === 'ms' ? (item.rationaleMs || item.rationale) : (item.rationaleEn || item.rationale)}
+                            </p>
+                          </details>
+                        )}
                       </div>
                     </div>
 
@@ -409,34 +429,69 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
         <table className="profile-report-table" style={{ color: 'var(--text-secondary)' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
-              <th style={{ padding: '1rem', color: '#fff' }}>{t('profile.table_date')}</th>
-              <th style={{ padding: '1rem', color: '#fff' }}>{t('profile.table_category')}</th>
+              <th style={{ padding: '1rem', color: '#fff', whiteSpace: 'nowrap' }}>{lang === 'ms' ? 'ID Laporan' : 'Report ID'}</th>
+              <th style={{ padding: '1rem', color: '#fff', whiteSpace: 'nowrap' }}>{t('profile.table_date')}</th>
+              <th style={{ padding: '1rem', color: '#fff', whiteSpace: 'nowrap' }}>{t('profile.table_category')}</th>
               <th style={{ padding: '1rem', color: '#fff' }}>{t('profile.table_content')}</th>
-              <th style={{ padding: '1rem', color: '#fff' }}>{t('profile.status')}</th>
+              <th style={{ padding: '1rem', color: '#fff', whiteSpace: 'nowrap' }}>{t('profile.status')}</th>
             </tr>
           </thead>
           <tbody>
             {myReports.length === 0 ? (
               <tr>
-                <td className="profile-empty-cell" colSpan="4" style={{ textAlign: 'center', padding: '2rem' }}>{t('profile.no_reports')}</td>
+                <td className="profile-empty-cell" colSpan="5" style={{ textAlign: 'center', padding: '2rem' }}>{t('profile.no_reports')}</td>
               </tr>
             ) : (
               (isReportsExpanded ? myReports : myReports.slice(0, 3)).map(report => (
                 <tr key={report.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                  <td data-label={t('profile.table_date')} style={{ padding: '1rem', fontSize: '0.85rem' }}>
+                  <td data-label="Report ID" style={{ padding: '1rem', fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary)', whiteSpace: 'nowrap' }}>
+                    {report.reportCode || `#${report.id.toString().slice(-6)}`}
+                  </td>
+                  <td data-label={t('profile.table_date')} style={{ padding: '1rem', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
                     {new Date(report.timestamp).toLocaleDateString()}
                   </td>
-                  <td data-label={t('profile.table_category')} style={{ padding: '1rem', fontSize: '0.85rem', textTransform: 'capitalize' }}>
+                  <td data-label={t('profile.table_category')} style={{ padding: '1rem', fontSize: '0.85rem', textTransform: 'capitalize', whiteSpace: 'nowrap' }}>
                     {report.category}
                   </td>
-                  <td data-label={t('profile.table_content')} style={{ padding: '1rem', fontSize: '0.85rem', maxWidth: '300px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    "{report.text}"
+                  <td data-label={t('profile.table_content')} style={{ padding: '1rem', fontSize: '0.85rem', maxWidth: '300px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+                      <div style={{
+                        whiteSpace: expandedSnippets.has(report.id) ? 'normal' : 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        maxWidth: '100%'
+                      }}>
+                        "{report.text}"
+                      </div>
+                      {report.text.length > 40 && (
+                        <button 
+                          onClick={() => toggleSnippet(report.id)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'var(--primary)',
+                            fontSize: '0.75rem',
+                            cursor: 'pointer',
+                            padding: '0.35rem 0 0 0',
+                            marginTop: '0.2rem',
+                            fontWeight: 500,
+                            whiteSpace: 'nowrap',
+                            alignSelf: 'center'
+                          }}
+                        >
+                          {expandedSnippets.has(report.id) 
+                            ? (lang === 'ms' ? 'Tutup' : 'Collapse') 
+                            : (lang === 'ms' ? 'Papar penuh' : 'Show full')}
+                        </button>
+                      )}
+                    </div>
                   </td>
-                  <td data-label={t('profile.status')} style={{ padding: '1rem' }}>
-
-                    {report.status === 'confirmed' && <span style={{ color: 'var(--color-low)', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem' }}><CheckCircle size={14} /> {t('profile.confirmed')}</span>}
-                    {report.status === 'rejected' && <span style={{ color: 'var(--color-high)', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem' }}><XCircle size={14} /> {t('profile.rejected')}</span>}
-                    {(report.status === 'unverified' || report.status === 'under_review') && <span style={{ color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem' }}><Clock size={14} /> {t('profile.pending')}</span>}
+                  <td data-label={t('profile.status')} style={{ padding: '1rem', whiteSpace: 'nowrap' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                      {report.status === 'confirmed' && <span style={{ color: 'var(--color-low)', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem' }}><CheckCircle size={14} /> {t('profile.confirmed')}</span>}
+                      {report.status === 'rejected' && <span style={{ color: 'var(--color-high)', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem' }}><XCircle size={14} /> {t('profile.rejected')}</span>}
+                      {(report.status === 'unverified' || report.status === 'under_review') && <span style={{ color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem' }}><Clock size={14} /> {t('profile.pending')}</span>}
+                    </div>
                   </td>
                 </tr>
               ))

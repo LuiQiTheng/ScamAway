@@ -16,6 +16,7 @@ export default function ReportModal({
   const [consent, setConsent] = useState(false);
   const [showRaw, setShowRaw] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [assignedCode, setAssignedCode] = useState(null);
   const [messageError, setMessageError] = useState('');
   const modalRef = useRef(null);
   const messageRef = useRef(null);
@@ -80,7 +81,7 @@ export default function ReportModal({
 
   if (!isOpen) return null;
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
 
     if (!message.trim()) {
@@ -91,7 +92,7 @@ export default function ReportModal({
 
     if (!consent) return;
 
-    onSubmitReport?.({
+    const code = await onSubmitReport?.({
       category,
       text: redactedText,
       originalText: message,
@@ -100,6 +101,10 @@ export default function ReportModal({
       timestamp: new Date().toISOString(),
       status: 'unverified',
     });
+    
+    if (code) {
+      setAssignedCode(code);
+    }
 
     setSubmitted(true);
     closeTimerRef.current = window.setTimeout(onClose, 1800);
@@ -109,6 +114,8 @@ export default function ReportModal({
     if (closeTimerRef.current) {
       window.clearTimeout(closeTimerRef.current);
     }
+    setSubmitted(false);
+    setAssignedCode(null);
     onClose();
   };
 
@@ -139,6 +146,9 @@ export default function ReportModal({
           <div className="report-success" role="status" aria-live="polite">
             <CheckCircle size={58} aria-hidden="true" />
             <h2 id="report-modal-title">{t('report.submitted')}</h2>
+            {assignedCode && (
+              <p style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--primary)', margin: '0.25rem 0' }}>{assignedCode}</p>
+            )}
             <p>{t('report.thank_you')}</p>
           </div>
         ) : (
