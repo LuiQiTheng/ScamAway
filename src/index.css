@@ -519,38 +519,23 @@ select option,
   }
 
   .emergency-float-btn {
-    position: static !important;
-    top: auto !important;
-    right: auto !important;
+    position: absolute !important;
+    top: 0.01rem !important;
+    right: 0.015rem !important;
     bottom: auto !important;
-    width: 96px;
-    height: 84px;
-    min-height: 84px;
-    padding: 0.55rem 0.5rem !important;
-    border-radius: 16px !important;
-    flex-direction: column;
-    justify-content: center;
-    gap: 0.15rem !important;
+    padding: 0.5rem 0.8rem !important;
+    font-size: 0.90rem !important;
+    gap: 0.35rem !important;
+  }
+
+  .emergency-float-btn svg {
+    width: 18px !important;
+    height: 18px !important;
   }
 
   .emergency-float-btn span {
-    display: block;
-    max-width: 72px;
-    font-size: 0.72rem !important;
-    line-height: 1.1 !important;
-    text-align: center;
-    white-space: normal;
-  }
-
-  .elderly-mode .emergency-float-btn {
-    width: 96px;
-    height: 92px;
-    min-height: 92px;
-    padding: 0.55rem 0.5rem !important;
-  }
-
-  .elderly-mode .emergency-float-btn span {
-    font-size: 0.8rem !important;
+    white-space: nowrap !important;
+    font-size: 0.90rem !important;
   }
 
   .elderly-mode {
