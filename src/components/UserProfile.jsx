@@ -46,6 +46,13 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
   const [guardianMode, setGuardianMode] = useState("edit");
 
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const guardian = currentUser?.guardian || {
       name: "",
@@ -442,7 +449,7 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
                 <td className="profile-empty-cell" colSpan="5" style={{ textAlign: 'center', padding: '2rem' }}>{t('profile.no_reports')}</td>
               </tr>
             ) : (
-              (isReportsExpanded ? myReports : myReports.slice(0, 3)).map(report => (
+              (isReportsExpanded ? myReports : myReports.slice(0, isMobile ? 1 : 3)).map(report => (
                 <tr key={report.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                   <td data-label="Report ID" style={{ padding: '1rem', fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary)', whiteSpace: 'nowrap' }}>
                     {report.reportCode || `#${report.id.toString().slice(-6)}`}
@@ -501,7 +508,7 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
         </div>
 
         {/* Expand / Collapse Button for Reports */}
-        {myReports.length > 3 && (
+        {myReports.length > (isMobile ? 1 : 3) && (
           <div style={{ textAlign: 'center', marginTop: '1.25rem' }}>
             <button
               onClick={() => setIsReportsExpanded(prev => !prev)}
@@ -523,8 +530,8 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
                 {isReportsExpanded
                   ? (lang === 'ms' ? 'Tunjukkan Kurang' : 'Show Less')
                   : (lang === 'ms'
-                      ? `Tunjukkan Lebih Banyak (${myReports.length - 3} lagi)`
-                      : `Show More (${myReports.length - 3} more)`)}
+                      ? `Tunjukkan Lebih Banyak (${myReports.length - (isMobile ? 1 : 3)} lagi)`
+                      : `Show More (${myReports.length - (isMobile ? 1 : 3)} more)`)}
               </span>
               {isReportsExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
             </button>

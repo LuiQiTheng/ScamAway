@@ -682,7 +682,11 @@ export default function ModeratorDashboard() {
                       className="btn-secondary"
                       style={{ padding: '0.5rem 1.5rem', fontSize: '0.85rem' }}
                     >
-                      {isQueueExpanded ? (lang === 'ms' ? 'Tunjuk Kurang' : 'Show Less') : (lang === 'ms' ? 'Tunjuk Lebih' : 'Show More')}
+                      {isQueueExpanded 
+                        ? (lang === 'ms' ? 'Tunjuk Kurang' : 'Show Less') 
+                        : (lang === 'ms' 
+                            ? `Tunjuk Lebih (${filteredReports.length - 3} lagi)` 
+                            : `Show More (${filteredReports.length - 3} more)`)}
                     </button>
                   </div>
                 )}
@@ -767,7 +771,11 @@ export default function ModeratorDashboard() {
                         className="btn-secondary"
                         style={{ alignSelf: 'center', marginTop: '0.5rem', fontSize: '0.85rem', padding: '0.4rem 1rem' }}
                       >
-                        {isAuditExpanded ? (lang === 'ms' ? 'Papar Sedikit' : 'Show Less') : (lang === 'ms' ? 'Papar Lebih' : 'Show More')}
+                        {isAuditExpanded 
+                          ? (lang === 'ms' ? 'Papar Sedikit' : 'Show Less') 
+                          : (lang === 'ms' 
+                              ? `Papar Lebih (${auditLogs.length - 3} lagi)` 
+                              : `Show More (${auditLogs.length - 3} more)`)}
                       </button>
                     )}
                   </>
