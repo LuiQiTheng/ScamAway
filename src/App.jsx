@@ -187,6 +187,10 @@ export default function App() {
             {lang === 'en' ? 'Log Out' : 'Log Keluar'}
           </button>
         </div>
+
+        {/* Mobile: shown in the header's top-right grid area. Desktop: the
+            component keeps its floating bottom-right presentation. */}
+        {userRole !== 'admin' && <EmergencyHelp />}
       </header>
 
       <main className="app-main">
@@ -244,8 +248,6 @@ export default function App() {
         <p>{t('app.footer_desc')}</p>
       </footer>
 
-      {/* GLOBAL FLOATING EMERGENCY HELP ASSISTANT */}
-      {userRole !== 'admin' && <EmergencyHelp />}
     </div>
   );
 }
