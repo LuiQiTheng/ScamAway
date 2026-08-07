@@ -466,8 +466,10 @@ const translations = {
     "emergency.btn_label": "Emergency Help",
     "emergency.modal_title": "🆘 Emergency Help",
     "emergency.modal_subtitle": "What happened? Select the situation that best matches your problem.",
-    "emergency.back": "← Back to Options",
+    "emergency.back": "Back to Options",
     "emergency.close": "Close",
+    "emergency.need_help": "Need Immediate Assistance?",
+    "emergency.need_help_desc": "Contact your bank or the relevant authorities for urgent support.",
 
     // Options
     "emergency.opt_money": "💸 I Sent Money to a Scammer",
@@ -478,6 +480,7 @@ const translations = {
     "emergency.opt_msg": "💬 I Received a Suspicious Message",
     "emergency.opt_banks": "🏦 Contact My Bank",
     "emergency.opt_contacts": "☎️ Emergency Contacts",
+    "emergency.action_bank": "Contact My Bank",
 
     // Checklist Header
     "emergency.prep_title": "📋 Prepare Before Contacting Authorities",
@@ -523,6 +526,7 @@ const translations = {
     "emergency.guide_apk_step3": "3. Uninstall the suspicious application from device settings if safe to do so.",
     "emergency.guide_apk_step4": "4. Change important passwords from another trusted, secure device.",
     "emergency.guide_apk_step5": "5. Contact your bank immediately if you entered banking credentials or suspect account compromise.",
+    "emergency.mycert_portal": "MyCERT Cybersecurity Portal",
 
     "emergency.guide_call_title": "📱 Received a Scam Call",
     "emergency.guide_call_desc": "Scammers impersonate bank officers, police, or courier agents over phone calls.",
@@ -540,12 +544,12 @@ const translations = {
     "emergency.bank_title": "🏦 Contact My Bank",
     "emergency.bank_subtitle": "Visit your bank's official emergency or fraud support page to obtain the latest hotline numbers and reporting procedures.",
     "emergency.bank_card_desc": "Fraud & Customer Support",
-    "emergency.bank_visit_btn": "Visit Official Support Page ↗",
+    "emergency.bank_visit_btn": "Visit Official Support Page",
     "emergency.bank_notice": "Always contact your bank immediately if you suspect your banking credentials or account has been compromised. Use the official hotline or official support page below for the latest assistance.",
 
     // Buttons & Notices
     "emergency.action_call": "Call Hotline",
-    "emergency.action_visit": "Visit Official Website ↗",
+    "emergency.action_visit": "Visit Official Website",
     "emergency.disclaimer_title": "Emergency Guidance",
     "emergency.disclaimer_text": "These recommendations are provided to help users respond quickly to potential scam incidents. Always follow the instructions provided by your bank and the relevant Malaysian authorities.",
 
@@ -1031,8 +1035,10 @@ const translations = {
     "emergency.btn_label": "Bantuan Kecemasan",
     "emergency.modal_title": "🆘 Bantuan Kecemasan",
     "emergency.modal_subtitle": "Apa yang berlaku? Pilih situasi yang paling bertepatan dengan masalah anda.",
-    "emergency.back": "← Kembali ke Pilihan",
+    "emergency.back": "Kembali ke Pilihan",
     "emergency.close": "Tutup",
+    "emergency.need_help": "Perlukan Bantuan Segera?",
+    "emergency.need_help_desc": "Hubungi bank anda atau pihak berkuasa berkaitan untuk mendapatkan bantuan segera.",
 
     // Options
     "emergency.opt_money": "💸 Saya Telah Memindahkan Wang kepada Penipu",
@@ -1043,6 +1049,7 @@ const translations = {
     "emergency.opt_msg": "💬 Saya Telah Menerima Mesej Mencurigakan",
     "emergency.opt_banks": "🏦 Hubungi Bank Saya",
     "emergency.opt_contacts": "☎️ Talian Kecemasan",
+    "emergency.action_bank": "Hubungi Bank Saya",
 
     // Checklist Header
     "emergency.prep_title": "📋 Sediakan Sebelum Menghubungi Pihak Berkuasa",
@@ -1088,6 +1095,7 @@ const translations = {
     "emergency.guide_apk_step3": "3. Nyahpasang aplikasi mencurigakan daripada tetapan peranti jika selamat untuk berbuat demikian.",
     "emergency.guide_apk_step4": "4. Tukar kata laluan penting daripada peranti lain yang selamat dan dipercayai.",
     "emergency.guide_apk_step5": "5. Hubungi bank anda serta-merta jika anda telah memasukkan maklumat perbankan atau mengesyaki akaun anda terjejas.",
+    "emergency.mycert_portal": "Portal Keselamatan Siber MyCERT",
 
     "emergency.guide_call_title": "📱 Menerima Panggilan Scam",
     "emergency.guide_call_desc": "Penipu menyamar sebagai pegawai bank, polis, atau ejen kurier melalui panggilan telefon.",
@@ -1105,12 +1113,12 @@ const translations = {
     "emergency.bank_title": "🏦 Hubungi Bank Saya",
     "emergency.bank_subtitle": "Lawati halaman sokongan kecemasan atau penipuan rasmi bank anda untuk mendapatkan nombor hotline dan tatacara pelaporan terkini.",
     "emergency.bank_card_desc": "Sokongan Penipuan & Khidmat Pelanggan",
-    "emergency.bank_visit_btn": "Lawati Halaman Sokongan Rasmi ↗",
+    "emergency.bank_visit_btn": "Lawati Halaman Sokongan Rasmi",
     "emergency.bank_notice": "Hubungi bank anda dengan segera jika anda mengesyaki maklumat perbankan atau akaun anda telah terjejas. Gunakan talian rasmi atau laman sokongan rasmi di bawah untuk mendapatkan bantuan terkini.",
 
     // Buttons & Notices
     "emergency.action_call": "Panggil Hotline",
-    "emergency.action_visit": "Lawati Laman Web Rasmi ↗",
+    "emergency.action_visit": "Lawati Laman Web Rasmi",
     "emergency.disclaimer_title": "Panduan Kecemasan",
     "emergency.disclaimer_text": "Saranan ini disediakan untuk membantu pengguna bertindak pantas menangani insiden penipuan. Sentiasa ikuti arahan yang diberikan oleh bank anda dan pihak berkuasa Malaysia yang berkaitan.",
 

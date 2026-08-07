@@ -198,9 +198,25 @@ export default function EmergencyHelp() {
                     <div style={{ height: '1px', background: 'var(--border-color)', margin: '0.25rem 0' }} />
 
                     <div style={{ marginTop: '0.10rem', marginBottom: '0.25rem' }}>
-                      <p style={{ fontSize: '0.95rem', color: '#cbd5e1', margin: 0, fontWeight: 500, lineHeight: 1.4 }}>
-                        📞 <strong>Need Immediate Assistance?</strong><br />
-                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Contact your bank or the relevant authorities for urgent support.</span>
+                      <p
+                        style={{
+                          fontSize: "0.95rem",
+                          color: "#cbd5e1",
+                          margin: 0,
+                          fontWeight: 500,
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        📞 <strong>{t("emergency.need_help")}</strong>
+                        <br />
+                        <span
+                          style={{
+                            fontSize: "0.85rem",
+                            color: "var(--text-secondary)",
+                          }}
+                        >
+                          {t("emergency.need_help_desc")}
+                        </span>
                       </p>
                     </div>
 
@@ -277,7 +293,7 @@ export default function EmergencyHelp() {
                       style={{ flex: 1, minWidth: '160px', padding: '0.75rem 1rem', background: 'rgba(6, 182, 212, 0.2)', border: '1px solid var(--primary)', color: '#e0f2fe', borderRadius: '10px', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
                     >
                       <Building2 size={16} />
-                      {t('emergency.opt_banks')}
+                        {t('emergency.action_bank')}
                     </button>
                     {activeView === 'guide_apk' && (
                       <a 
@@ -287,7 +303,7 @@ export default function EmergencyHelp() {
                         style={{ width: '100%', padding: '0.65rem 1rem', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-color)', color: 'var(--primary)', borderRadius: '10px', textDecoration: 'none', fontWeight: 600, fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
                       >
                         <ExternalLink size={16} />
-                        MyCERT Cybersecurity Portal ↗
+                        {t("emergency.mycert_portal")}
                       </a>
                     )}
                   </div>
@@ -405,6 +421,7 @@ export default function EmergencyHelp() {
                             transition: 'all 0.2s ease'
                           }}
                         >
+                          <ExternalLink size={16} />
                           {t('emergency.bank_visit_btn')}
                         </a>
                       </div>
@@ -414,7 +431,7 @@ export default function EmergencyHelp() {
                   {/* INFORMATIONAL NOTICE */}
                   <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '1rem' }}>
                     <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
-                      ℹ️ {t('emergency.bank_notice')}
+                      ⚠️ {t('emergency.bank_notice')}
                     </p>
                   </div>
 
@@ -482,7 +499,7 @@ export default function EmergencyHelp() {
                   {/* INFORMATIONAL NOTICE BELOW CONTACT CARDS */}
                   <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '1rem' }}>
                     <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
-                      ℹ️ {t('emergency.agency_notice')}
+                      ⚠️ {t('emergency.agency_notice')}
                     </p>
                   </div>
 

@@ -560,7 +560,9 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                 style={{ width: '100%' }}
               >
                 {isScanning ? <RefreshCw className="spinning" size={18} /> : <Link size={18} />}
-                &nbsp;{isScanning ? t('scanner.searching') : "Scan & Analyze"}
+                &nbsp;{isScanning
+                    ? t('scanner.searching')
+                    : (lang === 'ms' ? 'Imbas & Analisis' : 'Scan & Analyze')}
               </button>
             </div>
           )}

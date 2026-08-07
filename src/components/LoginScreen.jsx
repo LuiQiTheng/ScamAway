@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ShieldAlert, User, ShieldAlert as AdminIcon, ArrowRight, X, Loader } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppContext } from '../context/AppContext';
+import { Eye, EyeOff } from "lucide-react";
 
 export default function LoginScreen({ onLogin }) {
   const { t, lang, toggleLanguage } = useLanguage();
@@ -19,6 +20,7 @@ export default function LoginScreen({ onLogin }) {
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
   const [phone, setPhone] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   
   const [officerId, setOfficerId] = useState('');
   const [adminEmail, setAdminEmail] = useState('');
@@ -32,6 +34,7 @@ export default function LoginScreen({ onLogin }) {
     setOfficerId('');
     setAdminEmail('');
     setErrorMsg('');
+    setShowPassword(false);
   };
 
   const handleUserSignup = async (e) => {
@@ -296,8 +299,40 @@ export default function LoginScreen({ onLogin }) {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{lang === 'ms' ? 'Kata Laluan' : 'Password'}</label>
-                <input type="password" className="input-field" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="••••••••" />
+                <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                  {lang === 'ms' ? 'Kata Laluan' : 'Password'}
+                </label>
+
+                <div style={{ position: "relative" }}>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    className="input-field"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    placeholder="••••••••"
+                    style={{ paddingRight: "45px" }}
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{
+                      position: "absolute",
+                      right: "12px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      border: "none",
+                      background: "transparent",
+                      cursor: "pointer",
+                      color: "var(--text-secondary)",
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
               
               <button type="submit" disabled={isLoading} className="btn-primary" style={{ marginTop: '0.5rem', opacity: isLoading ? 0.7 : 1 }}>
@@ -327,8 +362,40 @@ export default function LoginScreen({ onLogin }) {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{lang === 'ms' ? 'Kata Laluan' : 'Password'}</label>
-                <input type="password" className="input-field" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="••••••••" />
+                <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                  {lang === 'ms' ? 'Kata Laluan' : 'Password'}
+                </label>
+
+                <div style={{ position: "relative" }}>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    className="input-field"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    placeholder="••••••••"
+                    style={{ paddingRight: "45px" }}
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{
+                      position: "absolute",
+                      right: "12px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      border: "none",
+                      background: "transparent",
+                      cursor: "pointer",
+                      color: "var(--text-secondary)",
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
               
               <button type="submit" disabled={isLoading} className="btn-primary" style={{ marginTop: '0.5rem', opacity: isLoading ? 0.7 : 1 }}>
@@ -368,8 +435,40 @@ export default function LoginScreen({ onLogin }) {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{lang === 'ms' ? 'Kata Laluan' : 'Password'}</label>
-                <input type="password" className="input-field" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="••••••••" />
+                <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                  {lang === 'ms' ? 'Kata Laluan' : 'Password'}
+                </label>
+
+                <div style={{ position: "relative" }}>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    className="input-field"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    placeholder="••••••••"
+                    style={{ paddingRight: "45px" }}
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{
+                      position: "absolute",
+                      right: "12px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      border: "none",
+                      background: "transparent",
+                      cursor: "pointer",
+                      color: "var(--text-secondary)",
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
               
               <button type="submit" disabled={isLoading} className="btn-primary" style={{ marginTop: '0.5rem', background: 'linear-gradient(135deg, #ef4444, #b91c1c)', opacity: isLoading ? 0.7 : 1 }}>
@@ -399,8 +498,40 @@ export default function LoginScreen({ onLogin }) {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{lang === 'ms' ? 'Kata Laluan' : 'Password'}</label>
-                <input type="password" className="input-field" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="••••••••" />
+                <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                  {lang === 'ms' ? 'Kata Laluan' : 'Password'}
+                </label>
+
+                <div style={{ position: "relative" }}>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    className="input-field"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    placeholder="••••••••"
+                    style={{ paddingRight: "45px" }}
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{
+                      position: "absolute",
+                      right: "12px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      border: "none",
+                      background: "transparent",
+                      cursor: "pointer",
+                      color: "var(--text-secondary)",
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
               
               <button type="submit" disabled={isLoading} className="btn-primary" style={{ marginTop: '0.5rem', background: 'linear-gradient(135deg, #ef4444, #b91c1c)', opacity: isLoading ? 0.7 : 1 }}>
