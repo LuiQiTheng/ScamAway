@@ -4,6 +4,7 @@ import { useLanguage } from '../context/LanguageContext';
 import GuardianSetupModal from "../components/Guardian/GuardianSetupModal";
 import EditProfileModal from "../components/EditProfileModal";
 import { Bell, BellOff, CheckCircle, XCircle, Clock, Trash2, Check, MailOpen, ChevronDown, ChevronUp, RotateCcw, User, Edit2 } from 'lucide-react';
+import { getCategoryLabel } from '../config/categories';
 
 export default function UserProfile({ userMode = 'normal', isElderlyMode = false, isKidMode = false }) {
   const { reportsList, currentUser, updateGuardian, updateCurrentUser } = useAppContext();
@@ -318,7 +319,7 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
                           )}
                         </div>
                         <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '0.4rem' }}>
-                          {t('profile.update_desc').replace('{category}', item.category)}
+                          {t('profile.update_desc').replace('{category}', getCategoryLabel(item.category, t))}
                         </p>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(0,0,0,0.25)', padding: '0.2rem 0.6rem', borderRadius: '14px', fontSize: '0.75rem' }}>
                           {item.status === 'confirmed' ? (
@@ -457,8 +458,8 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
                   <td data-label={t('profile.table_date')} style={{ padding: '1rem', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
                     {new Date(report.timestamp).toLocaleDateString()}
                   </td>
-                  <td data-label={t('profile.table_category')} style={{ padding: '1rem', fontSize: '0.85rem', textTransform: 'capitalize', whiteSpace: 'nowrap' }}>
-                    {report.category}
+                  <td data-label={t('profile.table_category')} style={{ padding: '1rem', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
+                    {getCategoryLabel(report.category, t)}
                   </td>
                   <td data-label={t('profile.table_content')} style={{ padding: '1rem', fontSize: '0.85rem', maxWidth: '300px' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>

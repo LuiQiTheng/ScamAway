@@ -6,6 +6,7 @@ import {
 import { useAppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { getTodayScamLesson } from '../data/dailyScamLessons';
+import { getCategoryLabel } from '../config/categories';
 import { 
   ResponsiveContainer, BarChart, Bar, LineChart, Line, 
   XAxis, YAxis, Tooltip, CartesianGrid 
@@ -139,15 +140,7 @@ export default function TrendsDashboard() {
     };
 
     return Object.keys(counts).map(key => ({
-      category: `${getIconPrefix(key)}${
-        key === "phishing"
-          ? t("report.cat_phishing")
-          : key === "parcel"
-          ? t("report.cat_parcel")
-          : key === "job"
-          ? t("report.cat_job")
-          : key.charAt(0).toUpperCase() + key.slice(1)
-      }`,
+      category: `${getIconPrefix(key)}${getCategoryLabel(key, t)}`,
       count: counts[key]
     }));
   }, [reportsList, t]);

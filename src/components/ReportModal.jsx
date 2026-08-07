@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle, Eye, EyeOff, Shield, X } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { redactSensitiveInformation } from '../utils/redaction';
+import { SCAM_CATEGORIES } from '../config/categories';
 
 export default function ReportModal({
   isOpen,
@@ -194,12 +195,11 @@ export default function ReportModal({
                 onChange={(event) => setCategory(event.target.value)}
                 className="input-field"
               >
-                <option value="phishing">{t('report.cat_phishing')}</option>
-                <option value="parcel">{t('report.cat_parcel')}</option>
-                <option value="job">{t('report.cat_job')}</option>
-                <option value="emergency">{t('report.cat_emergency')}</option>
-                <option value="marketplace">{t('report.cat_marketplace')}</option>
-                <option value="finance">{t('report.cat_finance')}</option>
+                {SCAM_CATEGORIES.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {t(cat.labelKey)}
+                  </option>
+                ))}
               </select>
             </label>
 

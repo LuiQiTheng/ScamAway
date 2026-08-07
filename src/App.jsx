@@ -11,10 +11,13 @@ import LoginScreen from './components/LoginScreen';
 import EmergencyHelp from './components/EmergencyHelp';
 import GuardianSetupModal from './components/Guardian/GuardianSetupModal';
 import AdminProfile from './components/AdminProfile';
+import { useScrollToTop } from './utils/useScrollToTop';
 
 export default function App() {
   const { userNotifications, dismissNotification, adminProfile, setAdminProfile, currentUser, setCurrentUser, updateGuardian } = useAppContext();
   const [activeTab, setActiveTab] = useState(() => localStorage.getItem('scam_shield_active_tab') || 'check');
+  
+  useScrollToTop(activeTab);
   
   const { lang, toggleLanguage, t } = useLanguage();
 

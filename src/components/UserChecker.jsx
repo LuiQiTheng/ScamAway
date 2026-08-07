@@ -16,12 +16,14 @@ import ReportModal from './ReportModal';
 import GuardianAlertModal from "../components/Guardian/GuardianAlertModal";
 import { useAppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useScrollToTop } from '../utils/useScrollToTop';
 
 export default function UserChecker({ userMode = 'normal', isElderlyMode = false, isKidMode = false, onSetUserMode }) {
   const { reportsList, activeAlert, addReport, blacklist, currentUser } = useAppContext();
   const { t, lang } = useLanguage();
   const lastScanRef = useRef(null);
   const [activeTab, setActiveTab] = useState('text'); // text, url
+  useScrollToTop(activeTab);
   const [inputText, setInputText] = useState('');
   const [urlInput, setUrlInput] = useState('');
   const [urlError, setUrlError] = useState('');

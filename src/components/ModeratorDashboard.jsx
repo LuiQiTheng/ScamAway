@@ -10,10 +10,11 @@ import {
   normalizePhone,
 } from '../utils/rulesEngine';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { SCAM_CATEGORIES, getCategoryLabel } from '../config/categories';
 
 export default function ModeratorDashboard() {
-  const { 
-    reportsList, updateReportStatus, addAlert, 
+  const {
+    reportsList, updateReportStatus, addAlert,
     addBlacklistItem, blacklist,
     removeBlacklistItem, updateBlacklistItem, auditLogs
   } = useAppContext();
@@ -116,22 +117,19 @@ export default function ModeratorDashboard() {
   // Find duplicates of the selected report based on matching text substrings (e.g. pos-laju or job terms)
   const getDuplicateReportsCount = (report) => {
     if (!report) return 0;
-    return reportsList.filter(r => 
-      r.id !== report.id && 
-      (r.category === report.category || 
-       r.text.substring(0, 20) === report.text.substring(0, 20))
+    return reportsList.filter(r =>
+      r.id !== report.id &&
+      (r.category === report.category ||
+        r.text.substring(0, 20) === report.text.substring(0, 20))
     ).length;
   };
 
   const availableCategories = Array.from(
-    new Set(reportsList.map(r => (r.category || r.type || '').toLowerCase()).filter(Boolean))
+    new Set([
+      ...SCAM_CATEGORIES.map(c => c.id),
+      ...reportsList.map(r => (r.category || r.type || '').toLowerCase()).filter(Boolean)
+    ])
   );
-
-  const categoryLabels = {
-    phishing: lang === "ms" ? "Pancingan Data" : "Phishing",
-    parcel: lang === "ms" ? "Bungkusan" : "Parcel",
-    job: lang === "ms" ? "Pekerjaan" : "Job",
-  };
 
   // Ensure duplicate case IDs injected by hot-reloading loops are visually cleaned up
   const deduplicatedReports = Array.from(new Map(reportsList.map(r => [r.id, r])).values());
@@ -174,19 +172,19 @@ export default function ModeratorDashboard() {
 
   const renderBlacklistItem = (type, value) => {
     const isEditing = editingItem?.type === type && editingItem?.oldValue === value;
-    
+
     if (isEditing) {
       return (
         <li key={value} style={{ display: 'flex', gap: '0.5rem', background: 'rgba(255,255,255,0.05)', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--primary)' }}>
-          <input 
-            type="text" 
-            className="input-field" 
-            value={editValue} 
+          <input
+            type="text"
+            className="input-field"
+            value={editValue}
             onChange={e => setEditValue(e.target.value)}
             style={{ flex: 1, padding: '0.25rem', fontSize: '0.85rem' }}
           />
           <button onClick={() => {
-            if(editValue.trim() && editValue !== value) {
+            if (editValue.trim() && editValue !== value) {
               updateBlacklistItem(type, value, editValue.trim());
             }
             setEditingItem(null);
@@ -209,7 +207,7 @@ export default function ModeratorDashboard() {
 
   return (
     <div className="page-shell moderator-page">
-      
+
       {/* Overview stats header */}
       <div className="admin-stats-grid">
         <div className="glass-panel" style={{ padding: '1.5rem', borderLeft: '4px solid var(--primary)' }}>
@@ -227,20 +225,20 @@ export default function ModeratorDashboard() {
       </div>
 
       <div className="broadcast-container" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '-0.75rem' }}>
-        
+
         {/* Top: Community Alert Publisher */}
         <div className="glass-panel" style={{ padding: '1.5rem' }}>
           <h3 style={{ fontSize: '1.4rem', color: '#fff', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <ShieldAlert size={24} color="var(--color-high)" />
             {t('admin.broadcast_title')}
           </h3>
-          
+
           <form onSubmit={handlePublishAlert} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div>
               <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.25rem', display: 'block' }}>
                 {lang === 'ms' ? 'Kategori Scam' : 'Scam Category'}
               </label>
-              <div 
+              <div
                 className="input-field custom-select-container"
                 style={{ position: 'relative', padding: 0, cursor: 'pointer', outline: 'none' }}
                 tabIndex={0}
@@ -250,29 +248,29 @@ export default function ModeratorDashboard() {
                   }
                 }}
               >
-                <div 
+                <div
                   onClick={() => setIsCategoryOpen(!isCategoryOpen)}
                   style={{ padding: '0.85rem 1.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.9rem' }}
                 >
                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: alertCategory ? '#fff' : 'var(--text-secondary)' }}>
-                    {alertCategory 
-                      ? (lang === 'ms' 
-                          ? {
-                              'Banking & Phishing Scam': 'Scam Perbankan & Phishing',
-                              'E-Commerce & Online Shopping Scam': 'Scam E-Dagang & Membeli-belah Dalam Talian',
-                              'Job & Employment Scam': 'Scam Pekerjaan',
-                              'Investment Scam': 'Scam Pelaburan',
-                              'Parcel & Delivery Scam': 'Scam Bungkusan & Penghantaran',
-                              'Emergency & Impersonation Scam': 'Scam Kecemasan & Penyamaran',
-                              'Malware & Technical Support Scam': 'Scam Hasad & Sokongan Teknikal',
-                              'General Scam Alert': 'Amaran Scam Umum'
-                            }[alertCategory] || alertCategory
-                          : alertCategory)
+                    {alertCategory
+                      ? (lang === 'ms'
+                        ? {
+                          'Banking & Phishing Scam': 'Scam Perbankan & Phishing',
+                          'E-Commerce & Online Shopping Scam': 'Scam E-Dagang & Membeli-belah Dalam Talian',
+                          'Job & Employment Scam': 'Scam Pekerjaan',
+                          'Investment Scam': 'Scam Pelaburan',
+                          'Parcel & Delivery Scam': 'Scam Bungkusan & Penghantaran',
+                          'Emergency & Impersonation Scam': 'Scam Kecemasan & Penyamaran',
+                          'Malware & Technical Support Scam': 'Scam Hasad & Sokongan Teknikal',
+                          'General Scam Alert': 'Amaran Scam Umum'
+                        }[alertCategory] || alertCategory
+                        : alertCategory)
                       : (lang === 'ms' ? 'Pilih kategori scam...' : 'Select a scam category...')}
                   </span>
                   <span style={{ transform: isCategoryOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', fontSize: '0.7rem' }}>▼</span>
                 </div>
-                
+
                 {isCategoryOpen && (
                   <div style={{
                     position: 'absolute',
@@ -298,7 +296,7 @@ export default function ModeratorDashboard() {
                       { val: 'Malware & Technical Support Scam', ms: 'Scam Hasad & Sokongan Teknikal' },
                       { val: 'General Scam Alert', ms: 'Amaran Scam Umum' }
                     ].map(opt => (
-                      <div 
+                      <div
                         key={opt.val}
                         onClick={() => {
                           setAlertCategory(opt.val);
@@ -324,15 +322,15 @@ export default function ModeratorDashboard() {
                   </div>
                 )}
                 {/* Hidden input to satisfy required field on form submit */}
-                <input type="text" value={alertCategory} required onChange={() => {}} style={{ opacity: 0, height: 0, width: 0, position: 'absolute' }} />
+                <input type="text" value={alertCategory} required onChange={() => { }} style={{ opacity: 0, height: 0, width: 0, position: 'absolute' }} />
               </div>
             </div>
-            
+
             <div>
               <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.25rem', display: 'block' }}>
                 {lang === 'ms' ? 'Butiran / Maklumat Tambahan' : 'Details / Extra Info'}
               </label>
-              <textarea 
+              <textarea
                 className="input-field"
                 rows={2}
                 value={alertDetails}
@@ -347,7 +345,7 @@ export default function ModeratorDashboard() {
               <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.25rem', display: 'block' }}>
                 {lang === 'ms' ? 'Penyelesaian Utama' : 'Key Solution'}
               </label>
-              <input 
+              <input
                 type="text"
                 className="input-field"
                 value={alertSolution}
@@ -387,32 +385,32 @@ export default function ModeratorDashboard() {
 
         {/* Middle: Incident List and Review details */}
         <div className="admin-column" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          
+
           <div className="glass-panel admin-workspace" style={{ padding: '2rem' }}>
             <div className="admin-workspace-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', flexWrap: 'wrap' }}>
               <div className="admin-tabs">
-                <button 
+                <button
                   onClick={() => setActiveSubTab('queue')}
                   className={`nav-link ${activeSubTab === 'queue' ? 'active' : ''}`}
                   aria-pressed={activeSubTab === 'queue'}
                 >
                   <Shield size={18} /> {t('admin.queue')}
                 </button>
-                <button 
+                <button
                   onClick={() => setActiveSubTab('blacklist')}
                   className={`nav-link ${activeSubTab === 'blacklist' ? 'active' : ''}`}
                   aria-pressed={activeSubTab === 'blacklist'}
                 >
                   <Filter size={18} /> {t('admin.blacklists')}
                 </button>
-                <button 
+                <button
                   onClick={() => setActiveSubTab('audit')}
                   className={`nav-link ${activeSubTab === 'audit' ? 'active' : ''}`}
                   aria-pressed={activeSubTab === 'audit'}
                 >
                   <FileText size={18} /> {t('admin.audit')}
                 </button>
-                <button 
+                <button
                   onClick={() => setActiveSubTab('analytics')}
                   className={`nav-link ${activeSubTab === 'analytics' ? 'active' : ''}`}
                   aria-pressed={activeSubTab === 'analytics'}
@@ -443,7 +441,7 @@ export default function ModeratorDashboard() {
                     <option value="all">{t('admin.all_categories')}</option>
                     {availableCategories.map(cat => (
                       <option key={cat} value={cat}>
-                        {categoryLabels[cat] || (cat.charAt(0).toUpperCase() + cat.slice(1))}
+                        {getCategoryLabel(cat, t)}
                       </option>
                     ))}
                   </select>
@@ -458,11 +456,11 @@ export default function ModeratorDashboard() {
                     <option value="confirmed">{t('admin.filter_confirmed')}</option>
                     <option value="rejected">{t('admin.filter_rejected')}</option>
                   </select>
-                  
+
                   {selectedForBulk.size > 0 && (
-                    <button 
-                      onClick={handleBulkClear} 
-                      className="btn-primary" 
+                    <button
+                      onClick={handleBulkClear}
+                      className="btn-primary"
                       style={{ background: 'linear-gradient(135deg, var(--color-high), #7f1d1d)', border: 'none', padding: '0.6rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', whiteSpace: 'nowrap' }}
                     >
                       <X size={16} /> Clear {selectedForBulk.size} {selectedForBulk.size === 1 ? 'Case' : 'Cases'}
@@ -480,213 +478,212 @@ export default function ModeratorDashboard() {
                   </div>
                 ) : (
                   (isQueueExpanded ? filteredReports : filteredReports.slice(0, 3)).map(report => (
-                  <div key={report.id} className="admin-report-card-container" style={{ display: 'flex', flexDirection: 'column' }}>
-                    <div 
-                      onClick={() => setSelectedReport(selectedReport?.id === report.id ? null : report)}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          event.preventDefault();
-                          setSelectedReport(selectedReport?.id === report.id ? null : report);
-                        }
-                      }}
-                      role="button"
-                      tabIndex="0"
-                      aria-pressed={selectedReport?.id === report.id}
-                      className="admin-report-card"
-                      style={{
-                        padding: '1.25rem',
-                        background: selectedReport?.id === report.id ? 'rgba(6, 182, 212, 0.08)' : 'rgba(255, 255, 255, 0.02)',
-                        border: `1px solid ${selectedReport?.id === report.id ? 'var(--primary)' : 'var(--border-color)'}`,
-                        borderRadius: selectedReport?.id === report.id ? '12px 12px 0 0' : '12px',
-                        cursor: 'pointer',
-                        transition: 'all var(--transition-fast)',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        flexWrap: 'wrap',
-                        gap: '1rem'
-                      }}
-                    >
-                      {/* Bulk Selection Checkbox */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <input 
-                          type="checkbox"
-                          checked={selectedForBulk.has(report.id)}
-                          onChange={(e) => {
-                            e.stopPropagation();
-                            const newSet = new Set(selectedForBulk);
-                            if (e.target.checked) newSet.add(report.id);
-                            else newSet.delete(report.id);
-                            setSelectedForBulk(newSet);
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                          style={{ cursor: 'pointer', width: '1.2rem', height: '1.2rem', accentColor: 'var(--primary)' }}
-                          aria-label={`Select report ${report.id}`}
-                        />
-                      </div>
-
-                      <div className="admin-report-copy" style={{ flex: 1, minWidth: '200px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                          <span className="badge badge-caution" style={{ fontSize: '0.7rem' }}>{categoryLabels[(report.category || '').toLowerCase()] || report.category}</span>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>ID: {report.reportCode ? report.reportCode : `#${report.id.toString().slice(-6)}`}</span>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>• {new Date(report.timestamp).toLocaleTimeString()}</span>
-                        </div>
-                        <p style={{ 
-                          fontSize: '0.9rem', 
-                          color: '#fff', 
-                          marginTop: '0.5rem',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          display: '-webkit-box',
-                          WebkitLineClamp: 1,
-                          WebkitBoxOrient: 'vertical'
-                        }}>
-                          {report.text}
-                        </p>
-                      </div>
-
-                      <div className="admin-report-status" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <div>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', textAlign: 'right' }}>{t('admin.ai_score')}</span>
-                          <strong style={{ 
-                            color: report.score >= 80 ? 'var(--color-high)' : report.score >= 30 ? 'var(--color-caution)' : 'var(--color-low)', 
-                            fontSize: '1rem', 
-                            display: 'block', 
-                            textAlign: 'right' 
-                          }}>
-                            {report.score}/100
-                          </strong>
-                        </div>
-                        <span className={`badge ${
-                          report.status === 'confirmed' ? 'badge-low' : 
-                          report.status === 'rejected' ? 'badge-high' : 'badge-caution'
-                        }`} style={{ textTransform: 'capitalize' }}>
-                          {t(`status.${report.status}`) || report.status.replace('_', ' ')}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    {/* Inline Expanded Review UI */}
-                    {selectedReport?.id === report.id && (
-                      <div className="admin-report-details fade-in" style={{ padding: '1.5rem', background: 'rgba(6, 182, 212, 0.04)', border: '1px solid var(--primary)', borderTop: 'none', borderRadius: '0 0 12px 12px', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                        
-                        {/* Header and Close Button */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.75rem', marginBottom: '0.25rem' }}>
-                          <h4 style={{ fontSize: '1.05rem', color: '#fff', margin: 0, fontWeight: 600 }}>{t('admin.reviewing', 'Incident Report Details')}</h4>
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); setSelectedReport(null); }}
-                            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', cursor: 'pointer', padding: '0.35rem', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                            aria-label={t('common.close', 'Close')}
-                          >
-                            <X size={16} />
-                          </button>
-                        </div>
-
-                        <div>
-                          <strong style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.5rem' }}>
-                            {t('admin.text_evidence')}
-                          </strong>
-                          <div style={{ background: '#090d16', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.9rem', fontFamily: 'monospace', color: '#f8fafc', whiteSpace: 'pre-wrap' }}>
-                            {report.text}
-                          </div>
-                        </div>
-
-                        {(() => {
-                          const indicators = extractIndicators(report.text);
-                          const hasIndicators = indicators.urls.length > 0 || indicators.phones.length > 0 || indicators.hasPaymentKeywords;
-                          if (!hasIndicators) return null;
-
-                          return (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                              <strong style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                                Extracted Threat Indicators
-                              </strong>
-                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
-                                {indicators.urls.map(url => (
-                                  <span key={url} className="badge badge-caution" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', padding: '0.35rem 0.75rem' }}>
-                                    🌐 {url}
-                                  </span>
-                                ))}
-                                {indicators.phones.map(phone => (
-                                  <span key={phone} className="badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', padding: '0.35rem 0.75rem', background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', border: '1px solid rgba(168, 85, 247, 0.3)' }}>
-                                    📞 {phone}
-                                  </span>
-                                ))}
-                                {indicators.hasPaymentKeywords && (
-                                  <span className="badge badge-high" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', padding: '0.35rem 0.75rem' }}>
-                                    💵 {indicators.extractedPayment ? `${indicators.extractedPayment} Requested` : 'Payment Request Detected'}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })()}
-
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
-                          <div style={{ background: 'rgba(255,255,255,0.01)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{t('admin.ai_eval')}</span>
-                            <h4 style={{ fontSize: '1.2rem', color: '#fff', marginTop: '0.25rem' }}>{report.score}/100 ({report.riskBand})</h4>
-                          </div>
-                          <div style={{ background: 'rgba(255,255,255,0.01)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{t('admin.dup_incidents')}</span>
-                            <h4 style={{ fontSize: '1.2rem', color: 'var(--primary)', marginTop: '0.25rem' }}>
-                              {getDuplicateReportsCount(report)} {t('admin.matching_cases')}
-                            </h4>
-                          </div>
-                        </div>
-
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                          <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>{t('admin.mod_note')}</label>
-                          <input 
-                            type="text" 
-                            value={rationale}
-                            onChange={(e) => setRationale(e.target.value)}
-                            placeholder={t('admin.mod_note_placeholder')}
-                            className="input-field"
+                    <div key={report.id} className="admin-report-card-container" style={{ display: 'flex', flexDirection: 'column' }}>
+                      <div
+                        onClick={() => setSelectedReport(selectedReport?.id === report.id ? null : report)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            setSelectedReport(selectedReport?.id === report.id ? null : report);
+                          }
+                        }}
+                        role="button"
+                        tabIndex="0"
+                        aria-pressed={selectedReport?.id === report.id}
+                        className="admin-report-card"
+                        style={{
+                          padding: '1.25rem',
+                          background: selectedReport?.id === report.id ? 'rgba(6, 182, 212, 0.08)' : 'rgba(255, 255, 255, 0.02)',
+                          border: `1px solid ${selectedReport?.id === report.id ? 'var(--primary)' : 'var(--border-color)'}`,
+                          borderRadius: selectedReport?.id === report.id ? '12px 12px 0 0' : '12px',
+                          cursor: 'pointer',
+                          transition: 'all var(--transition-fast)',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                          gap: '1rem'
+                        }}
+                      >
+                        {/* Bulk Selection Checkbox */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <input
+                            type="checkbox"
+                            checked={selectedForBulk.has(report.id)}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              const newSet = new Set(selectedForBulk);
+                              if (e.target.checked) newSet.add(report.id);
+                              else newSet.delete(report.id);
+                              setSelectedForBulk(newSet);
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{ cursor: 'pointer', width: '1.2rem', height: '1.2rem', accentColor: 'var(--primary)' }}
+                            aria-label={`Select report ${report.id}`}
                           />
                         </div>
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                          <button 
-                            onClick={() => { handleAction(report.id, 'confirmed'); setSelectedReport(null); }}
-                            className="btn-primary"
-                            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', background: 'linear-gradient(135deg, var(--color-low), #065f46)', color: '#fff', border: 'none', boxShadow: 'none' }}
-                          >
-                            <Check size={18} /> {t('admin.confirm_btn')}
-                          </button>
-                          <button 
-                            onClick={() => { handleAction(report.id, 'rejected'); setSelectedReport(null); }}
-                            className="btn-primary"
-                            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', background: 'linear-gradient(135deg, var(--color-high), #7f1d1d)', color: '#fff', border: 'none', boxShadow: 'none' }}
-                          >
-                            <X size={18} /> {t('admin.reject_btn')}
-                          </button>
-                          <button 
-                            onClick={() => { handleAction(report.id, 'under_review'); setSelectedReport(null); }}
-                            className="btn-secondary"
-                            style={{ width: '100%' }}
-                          >
-                            {t('admin.flag_btn')}
-                          </button>
+                        <div className="admin-report-copy" style={{ flex: 1, minWidth: '200px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                            <span className="badge badge-caution" style={{ fontSize: '0.7rem' }}>{getCategoryLabel(report.category || report.type, t)}</span>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>ID: {report.reportCode ? report.reportCode : `#${report.id.toString().slice(-6)}`}</span>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>• {new Date(report.timestamp).toLocaleTimeString()}</span>
+                          </div>
+                          <p style={{
+                            fontSize: '0.9rem',
+                            color: '#fff',
+                            marginTop: '0.5rem',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 1,
+                            WebkitBoxOrient: 'vertical'
+                          }}>
+                            {report.text}
+                          </p>
+                        </div>
+
+                        <div className="admin-report-status" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                          <div>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', textAlign: 'right' }}>{t('admin.ai_score')}</span>
+                            <strong style={{
+                              color: report.score >= 80 ? 'var(--color-high)' : report.score >= 30 ? 'var(--color-caution)' : 'var(--color-low)',
+                              fontSize: '1rem',
+                              display: 'block',
+                              textAlign: 'right'
+                            }}>
+                              {report.score}/100
+                            </strong>
+                          </div>
+                          <span className={`badge ${report.status === 'confirmed' ? 'badge-low' :
+                              report.status === 'rejected' ? 'badge-high' : 'badge-caution'
+                            }`} style={{ textTransform: 'capitalize' }}>
+                            {t(`status.${report.status}`) || report.status.replace('_', ' ')}
+                          </span>
                         </div>
                       </div>
-                    )}
-                  </div>
+
+                      {/* Inline Expanded Review UI */}
+                      {selectedReport?.id === report.id && (
+                        <div className="admin-report-details fade-in" style={{ padding: '1.5rem', background: 'rgba(6, 182, 212, 0.04)', border: '1px solid var(--primary)', borderTop: 'none', borderRadius: '0 0 12px 12px', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+
+                          {/* Header and Close Button */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.75rem', marginBottom: '0.25rem' }}>
+                            <h4 style={{ fontSize: '1.05rem', color: '#fff', margin: 0, fontWeight: 600 }}>{t('admin.reviewing', 'Incident Report Details')}</h4>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setSelectedReport(null); }}
+                              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', cursor: 'pointer', padding: '0.35rem', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                              aria-label={t('common.close', 'Close')}
+                            >
+                              <X size={16} />
+                            </button>
+                          </div>
+
+                          <div>
+                            <strong style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.5rem' }}>
+                              {t('admin.text_evidence')}
+                            </strong>
+                            <div style={{ background: '#090d16', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.9rem', fontFamily: 'monospace', color: '#f8fafc', whiteSpace: 'pre-wrap' }}>
+                              {report.text}
+                            </div>
+                          </div>
+
+                          {(() => {
+                            const indicators = extractIndicators(report.text);
+                            const hasIndicators = indicators.urls.length > 0 || indicators.phones.length > 0 || indicators.hasPaymentKeywords;
+                            if (!hasIndicators) return null;
+
+                            return (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                <strong style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                  Extracted Threat Indicators
+                                </strong>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
+                                  {indicators.urls.map(url => (
+                                    <span key={url} className="badge badge-caution" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', padding: '0.35rem 0.75rem' }}>
+                                      🌐 {url}
+                                    </span>
+                                  ))}
+                                  {indicators.phones.map(phone => (
+                                    <span key={phone} className="badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', padding: '0.35rem 0.75rem', background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', border: '1px solid rgba(168, 85, 247, 0.3)' }}>
+                                      📞 {phone}
+                                    </span>
+                                  ))}
+                                  {indicators.hasPaymentKeywords && (
+                                    <span className="badge badge-high" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', padding: '0.35rem 0.75rem' }}>
+                                      💵 {indicators.extractedPayment ? `${indicators.extractedPayment} Requested` : 'Payment Request Detected'}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })()}
+
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+                            <div style={{ background: 'rgba(255,255,255,0.01)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{t('admin.ai_eval')}</span>
+                              <h4 style={{ fontSize: '1.2rem', color: '#fff', marginTop: '0.25rem' }}>{report.score}/100 ({report.riskBand})</h4>
+                            </div>
+                            <div style={{ background: 'rgba(255,255,255,0.01)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{t('admin.dup_incidents')}</span>
+                              <h4 style={{ fontSize: '1.2rem', color: 'var(--primary)', marginTop: '0.25rem' }}>
+                                {getDuplicateReportsCount(report)} {t('admin.matching_cases')}
+                              </h4>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>{t('admin.mod_note')}</label>
+                            <input
+                              type="text"
+                              value={rationale}
+                              onChange={(e) => setRationale(e.target.value)}
+                              placeholder={t('admin.mod_note_placeholder')}
+                              className="input-field"
+                            />
+                          </div>
+
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            <button
+                              onClick={() => { handleAction(report.id, 'confirmed'); setSelectedReport(null); }}
+                              className="btn-primary"
+                              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', background: 'linear-gradient(135deg, var(--color-low), #065f46)', color: '#fff', border: 'none', boxShadow: 'none' }}
+                            >
+                              <Check size={18} /> {t('admin.confirm_btn')}
+                            </button>
+                            <button
+                              onClick={() => { handleAction(report.id, 'rejected'); setSelectedReport(null); }}
+                              className="btn-primary"
+                              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', background: 'linear-gradient(135deg, var(--color-high), #7f1d1d)', color: '#fff', border: 'none', boxShadow: 'none' }}
+                            >
+                              <X size={18} /> {t('admin.reject_btn')}
+                            </button>
+                            <button
+                              onClick={() => { handleAction(report.id, 'under_review'); setSelectedReport(null); }}
+                              className="btn-secondary"
+                              style={{ width: '100%' }}
+                            >
+                              {t('admin.flag_btn')}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   ))
                 )}
-                
+
                 {filteredReports.length > 3 && (
                   <div style={{ textAlign: 'center', marginTop: '0.5rem', marginBottom: '0.5rem' }}>
-                    <button 
+                    <button
                       onClick={() => setIsQueueExpanded(!isQueueExpanded)}
                       className="btn-secondary"
                       style={{ padding: '0.5rem 1.5rem', fontSize: '0.85rem' }}
                     >
-                      {isQueueExpanded 
-                        ? (lang === 'ms' ? 'Tunjuk Kurang' : 'Show Less') 
-                        : (lang === 'ms' 
-                            ? `Tunjuk Lebih (${filteredReports.length - 3} lagi)` 
-                            : `Show More (${filteredReports.length - 3} more)`)}
+                      {isQueueExpanded
+                        ? (lang === 'ms' ? 'Tunjuk Kurang' : 'Show Less')
+                        : (lang === 'ms'
+                          ? `Tunjuk Lebih (${filteredReports.length - 3} lagi)`
+                          : `Show More (${filteredReports.length - 3} more)`)}
                     </button>
                   </div>
                 )}
@@ -698,17 +695,17 @@ export default function ModeratorDashboard() {
                 <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
                   <h3 style={{ fontSize: '1.1rem', color: '#fff', marginBottom: '1rem' }}>{t('admin.add_blacklist')}</h3>
                   <form onSubmit={handleAddManualBlacklist} style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                    <select 
-                      value={newBlacklistType} 
+                    <select
+                      value={newBlacklistType}
                       onChange={(e) => setNewBlacklistType(e.target.value)}
-                      className="input-field" 
+                      className="input-field"
                       style={{ flex: 1, minWidth: '150px' }}
                     >
                       <option value="urls">{t('admin.domain_url')}</option>
                       <option value="phoneNumbers">{t('admin.phone_number')}</option>
                       <option value="bankAccounts">{t('admin.bank_account')}</option>
                     </select>
-                    <input 
+                    <input
                       type="text"
                       value={newBlacklistItem}
                       onChange={(e) => setNewBlacklistItem(e.target.value)}
@@ -755,7 +752,7 @@ export default function ModeratorDashboard() {
                       <div key={log.id} style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
                           <span style={{ fontSize: '0.85rem', color: '#fff' }}>
-                            {t('admin.action')} <strong style={{ color: 'var(--primary)', textTransform: 'capitalize' }}>{log.action}</strong> 
+                            {t('admin.action')} <strong style={{ color: 'var(--primary)', textTransform: 'capitalize' }}>{log.action}</strong>
                             {lang === 'ms' ? 'Laporan' : 'Report'} {log.reportCode ? `${log.reportCode}` : `#${log.reportId?.toString().slice(-6)}`}
                             {log.performedBy && <span style={{ color: 'var(--text-muted)', marginLeft: '0.5rem' }}>by {log.performedBy}</span>}
                           </span>
@@ -764,18 +761,18 @@ export default function ModeratorDashboard() {
                         <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{t('admin.note')} {log.rationale || 'N/A'}</span>
                       </div>
                     ))}
-                    
+
                     {auditLogs.length > 3 && (
-                      <button 
+                      <button
                         onClick={() => setIsAuditExpanded(!isAuditExpanded)}
                         className="btn-secondary"
                         style={{ alignSelf: 'center', marginTop: '0.5rem', fontSize: '0.85rem', padding: '0.4rem 1rem' }}
                       >
-                        {isAuditExpanded 
-                          ? (lang === 'ms' ? 'Papar Sedikit' : 'Show Less') 
-                          : (lang === 'ms' 
-                              ? `Papar Lebih (${auditLogs.length - 3} lagi)` 
-                              : `Show More (${auditLogs.length - 3} more)`)}
+                        {isAuditExpanded
+                          ? (lang === 'ms' ? 'Papar Sedikit' : 'Show Less')
+                          : (lang === 'ms'
+                            ? `Papar Lebih (${auditLogs.length - 3} lagi)`
+                            : `Show More (${auditLogs.length - 3} more)`)}
                       </button>
                     )}
                   </>

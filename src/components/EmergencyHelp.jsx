@@ -1,15 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   AlertTriangle, Phone, ExternalLink, ArrowLeft, X, 
   ShieldAlert, Building2, FileText, CheckCircle2, ChevronRight, PhoneCall
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { emergencyAgencies, officialBankEmergencyPages } from '../data/emergencyContacts';
+import { useScrollToTop } from '../utils/useScrollToTop';
 
 export default function EmergencyHelp() {
   const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [activeView, setActiveView] = useState('options'); // 'options' | 'guide_money' | 'guide_otp' | 'guide_link' | 'guide_apk' | 'guide_call' | 'guide_msg' | 'banks' | 'contacts'
+  const modalContentRef = useRef(null);
+  useScrollToTop(activeView, modalContentRef);
 
   const handleOpen = () => {
     setIsOpen(true);
@@ -106,7 +109,7 @@ export default function EmergencyHelp() {
             </div>
 
             {/* MODAL BODY CONTENT */}
-            <div style={{ padding: '1.00rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <div ref={modalContentRef} style={{ padding: '1.00rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               
               {/* BACK BUTTON (IF IN DETAILED VIEW) */}
               {activeView !== 'options' && (
