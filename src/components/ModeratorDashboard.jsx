@@ -45,10 +45,18 @@ export default function ModeratorDashboard() {
 
   // Dynamic placeholder for blacklist input
   const getBlacklistPlaceholder = () => {
-    if (newBlacklistType === 'urls') return "e.g. scam-site.com";
-    if (newBlacklistType === 'phoneNumbers') return "e.g. 012-3456789";
-    if (newBlacklistType === 'bankAccounts') return "e.g. 15874269019";
-    return "e.g. scam-site.com";
+    const example = lang === 'ms' ? 'cth.' : 'e.g.';
+
+    if (newBlacklistType === 'urls')
+      return `${example} scam-site.com`;
+
+    if (newBlacklistType === 'phoneNumbers')
+      return `${example} 012-3456789`;
+
+    if (newBlacklistType === 'bankAccounts')
+      return `${example} 15874269019`;
+
+    return `${example} scam-site.com`;
   };
 
   const handleAction = (id, decision) => {
@@ -92,7 +100,7 @@ export default function ModeratorDashboard() {
       solMs = await translateText(alertSolution, 'en', 'ms');
     }
 
-    const timestamp = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    const timestamp = new Date().toISOString();
 
     addAlert({
       id: Date.now(),
@@ -556,7 +564,7 @@ export default function ModeratorDashboard() {
                             </strong>
                           </div>
                           <span className={`badge ${report.status === 'confirmed' ? 'badge-low' :
-                              report.status === 'rejected' ? 'badge-high' : 'badge-caution'
+                            report.status === 'rejected' ? 'badge-high' : 'badge-caution'
                             }`} style={{ textTransform: 'capitalize' }}>
                             {t(`status.${report.status}`) || report.status.replace('_', ' ')}
                           </span>
@@ -787,9 +795,21 @@ export default function ModeratorDashboard() {
                 return acc;
               }, {});
               const pieData = [
-                { name: 'Confirmed', value: statusCounts['confirmed'] || 0, color: '#10b981' },
-                { name: 'Rejected', value: statusCounts['rejected'] || 0, color: '#ef4444' },
-                { name: 'Pending', value: (statusCounts['unverified'] || 0) + (statusCounts['under_review'] || 0), color: '#f59e0b' },
+                {
+                  name: lang === 'ms' ? 'Disahkan' : 'Confirmed',
+                  value: statusCounts['confirmed'] || 0,
+                  color: '#10b981'
+                },
+                {
+                  name: lang === 'ms' ? 'Ditolak' : 'Rejected',
+                  value: statusCounts['rejected'] || 0,
+                  color: '#ef4444'
+                },
+                {
+                  name: lang === 'ms' ? 'Menunggu' : 'Pending',
+                  value: (statusCounts['unverified'] || 0) + (statusCounts['under_review'] || 0),
+                  color: '#f59e0b'
+                }
               ].filter(d => d.value > 0);
 
               // Prepare data for Bar Chart (Category Distribution)
@@ -797,8 +817,20 @@ export default function ModeratorDashboard() {
                 acc[report.category] = (acc[report.category] || 0) + 1;
                 return acc;
               }, {});
+              const getChartCategoryLabel = (key) => {
+                const labels = {
+                  emergency: lang === "ms" ? "Kecemasan" : "Emergency",
+                  finance: lang === "ms" ? "Kewangan" : "Finance",
+                  parcel: lang === "ms" ? "Bungkusan" : "Parcel",
+                  job: lang === "ms" ? "Pekerjaan" : "Job",
+                  phishing: "Phishing",
+                };
+
+                return labels[key.toLowerCase()] || key;
+              };
+
               const barData = Object.keys(categoryCounts).map(key => ({
-                name: key.charAt(0).toUpperCase() + key.slice(1),
+                name: getChartCategoryLabel(key),
                 count: categoryCounts[key]
               }));
 
@@ -810,7 +842,11 @@ export default function ModeratorDashboard() {
                       <BarChart data={barData} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
                         <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={12} />
                         <YAxis stroke="var(--text-muted)" fontSize={12} allowDecimals={false} />
-                        <Tooltip contentStyle={{ background: '#0f172a', border: '1px solid var(--border-color)', borderRadius: '8px' }} />
+                        <Tooltip contentStyle={{ background: '#0f172a', border: '1px solid var(--border-color)', borderRadius: '8px' }}
+                          formatter={(value) => [
+                            value,
+                            lang === 'ms' ? 'Bilangan' : 'Count'
+                          ]} />
                         <Bar dataKey="count" fill="var(--primary)" radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>

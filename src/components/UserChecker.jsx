@@ -65,26 +65,26 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
   }, [scanResult]);
 
   useEffect(() => {
-  if (!scanResult || !lastScanRef.current) return;
+    if (!scanResult || !lastScanRef.current) return;
 
-  const rerun = async () => {
-    const res = await analyzeScamRisk(
-      lastScanRef.current.text,
-      {
-        ...lastScanRef.current.metadata,
-        verifiedReportsCount: reportsList.filter(
-          r => r.status === "confirmed"
-        ).length,
-        blacklist,
-        lang
-      }
-    );
+    const rerun = async () => {
+      const res = await analyzeScamRisk(
+        lastScanRef.current.text,
+        {
+          ...lastScanRef.current.metadata,
+          verifiedReportsCount: reportsList.filter(
+            r => r.status === "confirmed"
+          ).length,
+          blacklist,
+          lang
+        }
+      );
 
-    setScanResult(res);
-  };
+      setScanResult(res);
+    };
 
-  rerun();
-}, [lang, blacklist, reportsList]);
+    rerun();
+  }, [lang, blacklist, reportsList]);
 
   // Clean speech synthesis and scanner on unmount
   useEffect(() => {
@@ -147,7 +147,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
         try {
           const vtRes = await checkUrlWithVirusTotal(urlToScan);
           setVtResult(vtRes);
-          
+
           if (vtRes.isMalicious) {
             res.score = 95;
             res.riskBand = t('result.high_risk') || "Critical";
@@ -173,7 +173,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
       setScanResult(res);
 
       if (
-        (res.bandColor === "high" || res.bandColor === "critical") && 
+        (res.bandColor === "high" || res.bandColor === "critical") &&
         (isKidMode || isElderlyMode)
       ) {
         setShowGuardianAlert(true);
@@ -200,70 +200,70 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
     const rawPhone = phoneInput.trim();
 
     if (!rawUrl && !rawPhone) {
-        setUrlError(t("scanner.empty_url_error"));
-        setIsUrlInvalid(true);
-        setScanResult(null);
-        return;
+      setUrlError(t("scanner.empty_url_error"));
+      setIsUrlInvalid(true);
+      setScanResult(null);
+      return;
     }
 
     if (!rawUrl && rawPhone) {
-        triggerScanAnimation(`Phone check request: ${rawPhone}`);
-        return;
+      triggerScanAnimation(`Phone check request: ${rawPhone}`);
+      return;
     }
 
     let formatted = rawUrl;
 
     if (!/^https?:\/\//i.test(formatted)) {
-        formatted = "https://" + formatted;
+      formatted = "https://" + formatted;
     }
 
     let isValid = false;
     let host = "";
 
     try {
-        const parsed = new URL(formatted);
-        host = parsed.hostname;
+      const parsed = new URL(formatted);
+      host = parsed.hostname;
 
-        const domainRegex = /^([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$/i;
+      const domainRegex = /^([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$/i;
 
-        isValid = domainRegex.test(host);
+      isValid = domainRegex.test(host);
     } catch {
-        isValid = false;
+      isValid = false;
     }
 
     if (!isValid) {
-        setUrlError(t("scanner.invalid_url_format") || t("scanner.invalid_url_detailed_error"));
-        setIsUrlInvalid(true);
-        setScanResult(null);
-        return;
+      setUrlError(t("scanner.invalid_url_format") || t("scanner.invalid_url_detailed_error"));
+      setIsUrlInvalid(true);
+      setScanResult(null);
+      return;
     }
 
     // New DNS verification check
     setIsScanning(true);
     setScanSteps([t('scanner.step_db') || "Validating domain..."]);
-    
+
     // Promise.all ensures the animation plays for at least 800ms for better UX
     const [dnsResult] = await Promise.all([
-        checkDomainExists(formatted),
-        new Promise(resolve => setTimeout(resolve, 800))
+      checkDomainExists(formatted),
+      new Promise(resolve => setTimeout(resolve, 800))
     ]);
-    
+
     // BYPASS for local offline demo blacklisted URLs (since they don't actually exist on the internet)
     const isBlacklisted = blacklist?.urls?.some(u => host.includes(u));
 
     if (!dnsResult.exists && !isBlacklisted) {
-        if (dnsResult.error === 'network_blocked') {
-            setUrlError("Your browser or adblocker is blocking the DNS security check. Please disable it to scan URLs.");
-        } else if (dnsResult.error === 'api_failed') {
-            setUrlError("DNS service is temporarily unavailable. Please try again.");
-        } else {
-            setUrlError(t("scanner.non_existent_url"));
-        }
-        setIsUrlInvalid(true);
-        setScanResult(null);
-        setIsScanning(false);
-        setScanSteps([]);
-        return;
+      if (dnsResult.error === 'network_blocked') {
+        setUrlError("Your browser or adblocker is blocking the DNS security check. Please disable it to scan URLs.");
+      } else if (dnsResult.error === 'api_failed') {
+        setUrlError("DNS service is temporarily unavailable. Please try again.");
+      } else {
+        setUrlError(t("scanner.non_existent_url"));
+      }
+      setIsUrlInvalid(true);
+      setScanResult(null);
+      setIsScanning(false);
+      setScanSteps([]);
+      return;
     }
 
     setUrlInput(formatted);
@@ -365,7 +365,15 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
 
                 {activeAlert.timestamp && (
                   <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.05)', padding: '0.35rem 0.75rem', borderRadius: '20px', border: '1px solid var(--border-color)' }}>
-                    {t('trends.last_updated')} {activeAlert.timestamp}
+                    {t('trends.last_updated')}{" "}
+                    {new Date(activeAlert.timestamp).toLocaleDateString(
+                      lang === "ms" ? "ms-MY" : "en-US",
+                      {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      }
+                    )}
                   </span>
                 )}
               </div>
@@ -506,41 +514,41 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                   type="text"
                   value={urlInput}
                   onChange={(e) => {
-                      setUrlInput(e.target.value);
-                      if (urlError || isUrlInvalid) {
-                          setUrlError("");
-                          setIsUrlInvalid(false);
-                      }
+                    setUrlInput(e.target.value);
+                    if (urlError || isUrlInvalid) {
+                      setUrlError("");
+                      setIsUrlInvalid(false);
+                    }
                   }}
                   className="input-field"
                   style={
-                      isUrlInvalid
-                          ? { borderColor: "#ff4d4d", boxShadow: "0 0 0 2px rgba(255,77,77,.25)" }
-                          : {}
+                    isUrlInvalid
+                      ? { borderColor: "#ff4d4d", boxShadow: "0 0 0 2px rgba(255,77,77,.25)" }
+                      : {}
                   }
                   placeholder={t("scanner.url_placeholder")}
                 />
 
                 {urlError && (
-                    <div
-                      role="alert"
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "0.5rem",
-                        color: "#ff4d4d",
-                        fontSize: "0.85rem",
-                        background: "rgba(255,77,77,0.1)",
-                        padding: "0.65rem 0.85rem",
-                        borderRadius: "8px",
-                        border: "1px solid rgba(255,77,77,0.3)",
-                        marginTop: "0.5rem"
-                      }}
-                    >
-                      <AlertCircle size={16} />
-                      <span>{urlError}</span>
-                    </div>
-                  )}
+                  <div
+                    role="alert"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      color: "#ff4d4d",
+                      fontSize: "0.85rem",
+                      background: "rgba(255,77,77,0.1)",
+                      padding: "0.65rem 0.85rem",
+                      borderRadius: "8px",
+                      border: "1px solid rgba(255,77,77,0.3)",
+                      marginTop: "0.5rem"
+                    }}
+                  >
+                    <AlertCircle size={16} />
+                    <span>{urlError}</span>
+                  </div>
+                )}
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -563,8 +571,8 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
               >
                 {isScanning ? <RefreshCw className="spinning" size={18} /> : <Link size={18} />}
                 &nbsp;{isScanning
-                    ? t('scanner.searching')
-                    : (lang === 'ms' ? 'Imbas & Analisis' : 'Scan & Analyze')}
+                  ? t('scanner.searching')
+                  : (lang === 'ms' ? 'Imbas & Analisis' : 'Scan & Analyze')}
               </button>
             </div>
           )}
@@ -813,7 +821,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                 {t('result.report_scam_btn')}
               </button>
               <button
-                onClick={() => { setScanResult(null); setInputText(''); setUrlInput(''); setPhoneInput(''); setQrInput(''); setShowGuardianAlert(false); setVtResult(null); setVtLoading(false);}}
+                onClick={() => { setScanResult(null); setInputText(''); setUrlInput(''); setPhoneInput(''); setQrInput(''); setShowGuardianAlert(false); setVtResult(null); setVtLoading(false); }}
                 className="btn-secondary"
                 style={{ flex: 1 }}
               >
