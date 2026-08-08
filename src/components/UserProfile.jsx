@@ -125,7 +125,7 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
 
       {/* User Info Card */}
       {currentUser && (
-        <div className="glass-panel" style={{ padding: '1.5rem 1.75rem', marginBottom: '1.5rem' }}>
+        <div className="glass-panel" style={{ padding: '1.5rem 1.75rem', marginBottom: '0.75rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
             <h2 style={{ fontSize: isElderlyMode ? '1.4rem' : '1.25rem', fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               <User size={isElderlyMode ? 28 : 24} color="#60a5fa" style={{ flexShrink: 0 }} />

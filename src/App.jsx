@@ -98,56 +98,9 @@ export default function App() {
 
       {/* Navigation Header */}
       <header className="app-header">
-        <div className="header-main-section">
-          {/* Left Column: Logo on top, Controls (EN/BM & Logout) on bottom */}
-          <div className="header-left-col">
-            <div className="app-logo">
-              <ShieldAlert size={28} color="var(--primary)" />
-              <span>SCAM AWAY</span>
-            </div>
-
-            <div className="app-control-group">
-              {/* Language Toggle */}
-              <button
-                onClick={toggleLanguage}
-                aria-label={lang === 'en' ? 'Switch language to Bahasa Malaysia' : 'Tukar bahasa kepada English'}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '0.25rem',
-                  background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-color)',
-                  padding: '0.35rem 0.75rem', borderRadius: '20px', color: '#fff', cursor: 'pointer',
-                  fontSize: '0.75rem', fontWeight: 600
-                }}
-              >
-                <Globe size={14} />
-                {lang === 'en' ? 'EN / BM' : 'BM / EN'}
-              </button>
-
-              {/* Logout Button */}
-              <button
-                onClick={handleLogout}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '0.35rem',
-                  background: 'transparent', border: '1px solid rgba(239, 68, 68, 0.4)',
-                  padding: '0.35rem 0.75rem', borderRadius: '20px', color: '#f87171', cursor: 'pointer',
-                  fontSize: '0.75rem', fontWeight: 600, transition: 'all 0.2s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent';
-                }}
-              >
-                <LogOut size={14} />
-                {lang === 'en' ? 'Log Out' : 'Log Keluar'}
-              </button>
-            </div>
-          </div>
-
-          {/* Right Column: Emergency Help Button */}
-          <div className="header-right-col">
-            {userRole !== 'admin' && <EmergencyHelp />}
-          </div>
+        <div className="app-logo">
+          <ShieldAlert size={28} color="var(--primary)" />
+          <span>SCAM AWAY</span>
         </div>
 
         <nav className="nav-links">
@@ -171,11 +124,19 @@ export default function App() {
               </button>
               <button
                 onClick={() => setActiveTab('profile')}
-                className={`nav-link ${activeTab === 'profile' ? 'active' : ''}`}
+                className={`nav-link nav-link-profile ${activeTab === 'profile' ? 'active' : ''}`}
                 aria-current={activeTab === 'profile' ? 'page' : undefined}
                 style={{ fontSize: isElderlyMode ? '1.25rem' : '0.9rem' }}
               >
-                👤 {t('nav.profile')}
+                {isElderlyMode ? (
+                  <span className="elderly-profile-col">
+                    <span className="profile-icon">👤</span>
+                    <span className="profile-word">{t('nav.profile').split(' ')[0]}</span>
+                    <span className="profile-word">{t('nav.profile').split(' ')[1] || ''}</span>
+                  </span>
+                ) : (
+                  <>👤 {t('nav.profile')}</>
+                )}
               </button>
             </>
           ) : (
@@ -199,6 +160,43 @@ export default function App() {
             </>
           )}
         </nav>
+
+        <div className="app-control-group">
+          {/* Language Toggle */}
+          <button
+            onClick={toggleLanguage}
+            aria-label={lang === 'en' ? 'Switch language to Bahasa Malaysia' : 'Tukar bahasa kepada English'}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '0.25rem',
+              background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-color)',
+              padding: '0.35rem 0.75rem', borderRadius: '20px', color: '#fff', cursor: 'pointer',
+              fontSize: '0.75rem', fontWeight: 600
+            }}
+          >
+            <Globe size={14} />
+            {lang === 'en' ? 'EN / BM' : 'BM / EN'}
+          </button>
+
+          {/* Logout Button */}
+          <button
+            onClick={handleLogout}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '0.35rem',
+              background: 'transparent', border: '1px solid rgba(239, 68, 68, 0.4)',
+              padding: '0.35rem 0.75rem', borderRadius: '20px', color: '#f87171', cursor: 'pointer',
+              fontSize: '0.75rem', fontWeight: 600, transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+            }}
+          >
+            <LogOut size={14} />
+            {lang === 'en' ? 'Log Out' : 'Log Keluar'}
+          </button>
+        </div>
       </header>
 
       <main className="app-main">
@@ -255,6 +253,9 @@ export default function App() {
         </div>
         <p>{t('app.footer_desc')}</p>
       </footer>
+
+      {/* Standalone Emergency Help Floating Overlay Component */}
+      {userRole !== 'admin' && <EmergencyHelp />}
 
     </div>
   );
