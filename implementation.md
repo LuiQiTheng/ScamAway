@@ -69,6 +69,7 @@ The extraction module receives raw user text, OCR transcriptions, or decoded QR 
 - **Phone Extractor**: Matches Malaysian and international phone formats (`+601x`, `01x`, `03x`).
 - **Payment Extractor**: Captures currency symbols (`RM`, `Ringgit`), numbers, and payment trigger phrases.
 - **Account Extractor**: Scans for 10-15 digit sequences matching flagged mule bank account registers.
+- **External API Validators**: Asynchronously validates extracted numbers via the **Numverify Phone Carrier API** and cross-references bank accounts against a **Mock CCID JSON Database**.
 
 ### 3.2 Scoring Math & Risk Band Classification
 Risk scores range between `0` and `100`:
@@ -95,6 +96,7 @@ When multiple high-risk indicators co-occur (e.g. `Payment Request` + `Urgency P
 ### 4.1 User Checker & Elderly Mode (`src/components/UserChecker.jsx`)
 - **Regular Mode**: Sleek dark-mode interface with neon accents, tabbed input selectors (Text, Screenshot OCR, QR camera simulator, URL checker), and quick demo presets (Pos Laju scam, Shopee task scam, Family emergency scam, TNB legitimate notification).
 - **Elderly-Friendly Mode**: Enlarges typography to `1.25rem`+, expands touch target padding to `18px`+, and activates **Web Speech API Audio Narration** to read out risk bands and action checklists aloud.
+- **External Database Results UI**: Displays real-time validation badges (e.g., Numverify carrier info, CCID mock database matches) directly in the analysis output.
 - **Verification Checklist**: Interactive step-by-step checklist instructing users to pause, verify official phone numbers, and avoid transferring funds.
 
 ### 4.2 Consent-Driven Redaction Modal (`src/components/ReportModal.jsx`)
@@ -149,8 +151,17 @@ When multiple high-risk indicators co-occur (e.g. `Payment Request` + `Urgency P
     "redactedText": "string",
     "status": "unverified | under_review | confirmed | rejected",
     "reporterId": "string"
+  },
+  "blacklist": {
+    "id": "string",
+    "type": "phone | url | account",
+    "value": "string",
+    "timestamp": "timestamp",
+    "addedBy": "string (admin ID)"
   }
 }
+*Note: Real-time synchronization is powered by Firebase Firestore, ensuring instantaneous global updates across all users for Blacklists, Audit Logs, and Alerts.*
+
 ```
 
 ---
