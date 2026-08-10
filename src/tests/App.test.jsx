@@ -19,16 +19,17 @@ describe('App Component', () => {
       </LanguageProvider>
     );
 
-    // Initial role should be user checker
+    // Initial screen should show the login selection
     expect(screen.getAllByText(/SCAM AWAY/i)[0]).toBeInTheDocument();
 
-    // Switch role to moderator
+    // Switch to admin login
     const modButton = screen.queryByText(/Admin/i) || screen.queryByText(/Moderator/i);
     if (modButton) {
       act(() => {
         modButton.click();
       });
-      expect(screen.getByText(/Broadcast Community Alert/i) || screen.getByText(/admin.broadcast_title/i)).toBeInTheDocument();
+      // Should show the Officer ID input for admin login
+      expect(screen.getByText(/Officer ID/i)).toBeInTheDocument();
     }
   });
 });

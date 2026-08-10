@@ -29,7 +29,10 @@ export async function analyzeTextWithGemini(text, contextLang = 'en') {
           temperature: 0
         }
       });
-      const result = await model.generateContent(prompt);
+      const result = await Promise.race([
+        model.generateContent(prompt),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 15000))
+      ]);
       const response = await result.response;
       let textResponse = response.text();
       

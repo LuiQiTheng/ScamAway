@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { collection, onSnapshot, addDoc, updateDoc, doc, setDoc, getDocs, getDoc, query, where } from "firebase/firestore";
+import { collection, onSnapshot, addDoc, updateDoc, doc, setDoc, getDocs, getDoc, query, where, deleteDoc } from "firebase/firestore";
 import { db } from '../config/firebase';
 import { translateText } from '../utils/translateText';
 
@@ -175,6 +175,38 @@ export const AppProvider = ({ children }) => {
     await updateDoc(doc(db, "users", currentUser.id), userData);
   };
 
+  const deleteCurrentUser = async (password) => {
+    const activeUser = currentUser || adminProfile;
+    if (!activeUser?.id) throw new Error("No user logged in");
+    if (activeUser.password !== password) {
+      throw new Error("Incorrect password");
+    }
+
+    try {
+      if (adminProfile && activeUser.officerId) {
+        // Admin
+        await deleteDoc(doc(db, "admins", activeUser.id));
+        setAdminProfile(null);
+      } else {
+        // User
+        await deleteDoc(doc(db, "users", activeUser.id));
+        
+        // Update reports
+        const q = query(collection(db, "reports"), where("reporterId", "==", activeUser.id));
+        const snapshot = await getDocs(q);
+        const updatePromises = snapshot.docs.map(reportDoc => 
+          updateDoc(doc(db, "reports", reportDoc.id), { reporterId: 'deleted-user' })
+        );
+        await Promise.all(updatePromises);
+        
+        setCurrentUser(null);
+      }
+      localStorage.removeItem('scam_shield_user_session');
+      localStorage.removeItem('scam_shield_admin_session');
+    } catch (e) {
+      throw new Error("Failed to delete account: " + e.message);
+    }
+  };
 
   
   // Persistent Audit Logs State
@@ -426,7 +458,7 @@ export const AppProvider = ({ children }) => {
     blacklist, addBlacklistItem, removeBlacklistItem, updateBlacklistItem,
     adminProfile, setAdminProfile,
     currentUser, setCurrentUser,
-    registerUser, loginUser, registerAdmin, loginAdmin, updateAdminProfile, updateGuardian, updateCurrentUser,
+    registerUser, loginUser, registerAdmin, loginAdmin, updateAdminProfile, updateGuardian, updateCurrentUser, deleteCurrentUser,
     auditLogs, addAuditLog
   }), [
     reportsList, addReport, activeAlert, auditLogs, userNotifications, dismissNotification,

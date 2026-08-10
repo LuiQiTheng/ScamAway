@@ -3,7 +3,8 @@ import { validateAiAnalysis } from './aiValidation';
 import { getRiskBand } from './riskScale';
 import { LESSON_CARDS } from './lessonCards';
 import { QUIZ_POOL } from './quizDatabase';
-import { QUICK_TEST_PRESETS } from '../content/member2Content';
+import { QUICK_TEST_PRESETS } from '../content/educationalContent';
+import { fetchCCIDDatabase, lookupPhone, lookupBankAccount, validatePhoneNumverify } from './ccidLookup';
 
 const STOP_WORDS = new Set([
   'and', 'is', 'the', 'me', 'i', 'said', 'to', 'for', 'of', 'a', 'in', 'that', 'on', 'with', 'as', 'at', 'by', 'an', 'be', 'this', 'which', 'or', 'but', 'not', 'are', 'was', 'were', 'it', 'they', 'them',
@@ -167,45 +168,6 @@ function hasAny(text, patterns) {
   return patterns.some((pattern) => pattern.test(text));
 }
 
-// Demo mock screenshots database for OCR simulation
-export const DEMO_SCREENSHOTS = {
-  pos_laju_scam: {
-    name: "Urgent Parcel Screenshot (Pos Laju theme)",
-    extractedText: "Your parcel is being held. Pay RM2.50 within 30 minutes using the QR code below or the parcel will be returned.",
-    detectedQr: "https://pos-laju.info/pay-fee/2.50",
-    detectedUrls: ["https://pos-laju.info/pay-fee/2.50"],
-    detectedPhones: [],
-    paymentRequested: "RM2.50",
-    theme: "Pos Laju / Courier Impersonation"
-  },
-  shopee_job_scam: {
-    name: "Shopee Job Offer Screenshot",
-    extractedText: "CONGRATULATIONS! You have been selected for a part-time online marketing role. Earn RM300-800 daily. Just pay RM50 registration deposit to start processing your first task.",
-    detectedQr: null,
-    detectedUrls: [],
-    detectedPhones: ["+6011-8762512"],
-    paymentRequested: "RM50",
-    theme: "Part-time Job Offer / Task Scam"
-  },
-  family_emergency: {
-    name: "Family Emergency Chat Screenshot",
-    extractedText: "Mum, I lost my phone. This is my new number. I need you to transfer RM1,000 urgently to my friend's account 164228910239 for my medical bill. Please keep it a secret, don't call me now as my speaker is broken.",
-    detectedQr: null,
-    detectedUrls: [],
-    detectedPhones: ["+6017-9921102"],
-    paymentRequested: "RM1,000",
-    theme: "Impersonation / Family Emergency"
-  },
-  legitimate_tnb: {
-    name: "Official TNB Advisory Screenshot",
-    extractedText: "Tenaga Nasional Berhad: Please be informed that maintenance work will be carried out on 28th July 2026. No payments or login credentials are required. For queries, call 15454.",
-    detectedQr: null,
-    detectedUrls: [],
-    detectedPhones: ["15454"],
-    paymentRequested: null,
-    theme: "TNB Maintenance Notification"
-  }
-};
 
 /**
  * Parses input text to extract key indicators: URLs, Phone numbers, and Payment details
@@ -236,8 +198,6 @@ function collectComparableIndicators(text, metadata = {}) {
   const domains = extracted.urls
     .map(normalizeHostname)
     .filter((domain) => domain && !NON_UNIQUE_COMMUNITY_DOMAINS.has(domain));
-  const qrHost = normalizeHostname(metadata.qrCode || '');
-  if (qrHost && !NON_UNIQUE_COMMUNITY_DOMAINS.has(qrHost)) domains.push(qrHost);
 
   return {
     domains: [...new Set(domains)],
@@ -255,9 +215,7 @@ export function findMatchingVerifiedReports(text, reports = [], metadata = {}) {
     .filter((report) => report?.status === 'confirmed')
     .map((report) => {
       const reportText = report.originalText || report.text || '';
-      const known = collectComparableIndicators(reportText, {
-        qrCode: report.qrCode || report.qrDestination,
-      });
+      const known = collectComparableIndicators(reportText);
       const matchedIndicators = [
         ...submitted.domains.filter((value) => known.domains.includes(value)),
         ...submitted.phones.filter((value) => known.phones.includes(value)),
@@ -361,7 +319,6 @@ export async function analyzeScamRisk(text, metadata = {}) {
   let explanations = [];
   const indicatorsMatched = [];
   const analysis = extractIndicators(text);
-  const qrDestination = metadata.qrCode || null;
 
   // Track if we hit a critical blacklist match that forces base high-risk
   let matchedBlacklistIndicator = false;
@@ -437,27 +394,80 @@ export async function analyzeScamRisk(text, metadata = {}) {
     }
   }
 
-  // QR destination check
-  if (qrDestination) {
-    const qrHost = normalizeHostname(qrDestination);
-    const matchedQrDomain = blacklist.urls.find((listed) => domainMatches(qrHost, listed));
-    if (matchedQrDomain) {
-      matchedBlacklistIndicator = true;
+  // Base score setting if matched a blacklisted element
+  // --- Phase 5: CCID and Numverify Integration ---
+  const ccidData = await fetchCCIDDatabase();
+  const ccidMatches = { phones: [], bankAccounts: [] };
+  let numverifyResults = null;
+
+  // 1. CCID Phone Check
+  for (const phone of analysis.normalizedPhones) {
+    const match = lookupPhone(ccidData, phone);
+    if (match) {
+      ccidMatches.phones.push(match);
+      score += 40;
       explanations.push({
-        category: "technical",
-        label: lang === 'ms' ? "Penunjuk Domain QR Tersenarai" : "Listed QR Domain Indicator",
+        category: "reputation",
+        label: lang === 'ms' ? "Rekod CCID Ditemui (Telefon)" : "CCID Record Found (Phone)",
         text: lang === 'ms'
-          ? `Kod QR menghala ke domain (${qrHost}) yang sepadan dengan senarai Scam Away semasa. Semak sumber rekod sebelum membuat keputusan.`
-          : `The QR code points to a domain (${qrHost}) that matches Scam Away's current list. Check the record source before acting.`,
-        weight: 35
+          ? `Nombor telefon ini mempunyai ${match.reportCount} laporan dalam pangkalan data SemakMule untuk kes ${match.category}.`
+          : `This phone number has ${match.reportCount} reports in the SemakMule database for ${match.category} cases.`,
+        weight: 40
       });
-      indicatorsMatched.push(qrHost);
+      indicatorsMatched.push(phone);
     }
   }
 
+  // 2. CCID Bank Account Check
+  for (const account of bankAccountCandidates) {
+    const match = lookupBankAccount(ccidData, account);
+    if (match) {
+      ccidMatches.bankAccounts.push(match);
+      score += 40;
+      explanations.push({
+        category: "payment",
+        label: lang === 'ms' ? "Rekod CCID Ditemui (Akaun Bank)" : "CCID Record Found (Bank Account)",
+        text: lang === 'ms'
+          ? `Akaun bank ini mempunyai ${match.reportCount} laporan dalam pangkalan data SemakMule untuk kes ${match.category}.`
+          : `This bank account has ${match.reportCount} reports in the SemakMule database for ${match.category} cases.`,
+        weight: 40
+      });
+      indicatorsMatched.push(account);
+    }
+  }
+
+  // 3. Numverify Validation (Check first phone number only)
+  if (analysis.normalizedPhones.length > 0) {
+    const phoneToCheck = analysis.normalizedPhones[0];
+    numverifyResults = await validatePhoneNumverify(phoneToCheck);
+    
+    if (numverifyResults.valid === false) {
+      score += 15;
+      explanations.push({
+        category: "technical",
+        label: lang === 'ms' ? "Nombor Telefon Tidak Sah" : "Invalid Phone Number",
+        text: lang === 'ms'
+          ? "Nombor telefon gagal pengesahan API Numverify. Penipu sering menggunakan format nombor palsu."
+          : "Phone number failed Numverify API validation. Scammers often use spoofed number formats.",
+        weight: 15
+      });
+    } else if (numverifyResults.lineType && numverifyResults.lineType.toLowerCase() === 'voip') {
+      score += 10;
+      explanations.push({
+        category: "technical",
+        label: lang === 'ms' ? "Talian VoIP Dikesan" : "VoIP Line Detected",
+        text: lang === 'ms'
+          ? "Nombor ini dikesan sebagai VoIP. Scammer sering menggunakan talian maya untuk menyembunyikan identiti."
+          : "This number is detected as VoIP. Scammers often use virtual lines to hide their identity.",
+        weight: 10
+      });
+    }
+  }
+  // ------------------------------------------------
+
   // Base score setting if matched a blacklisted element
   if (matchedBlacklistIndicator) {
-    score = 85; 
+    score = Math.max(score, 85); 
   }
 
   // 2. CONTEXT-AWARE RULE LAYER
@@ -619,7 +629,7 @@ export async function analyzeScamRisk(text, metadata = {}) {
 
   const isCourierScam = isCourierContext &&
     (hasParcelProblemClaim || hasPaymentRequest) &&
-    (hasPaymentRequest || hasNonWhatsAppWebSource || hasDirectPressure || Boolean(qrDestination));
+    (hasPaymentRequest || hasNonWhatsAppWebSource || hasDirectPressure);
 
   const isInvestmentScam = isInvestmentContext &&
     (hasImpossibleReturn || hasHighDailyIncomeClaim || hasPaymentRequest);
@@ -1003,8 +1013,7 @@ export async function analyzeScamRisk(text, metadata = {}) {
   // available. It is not the probability that the message is a scam.
   const evidenceSources = new Set();
   if (analysis.urls.length > 0) evidenceSources.add('url');
-  if (analysis.phones.length > 0) evidenceSources.add('phone');
-  if (qrDestination) evidenceSources.add('qr');
+  if (analysis.normalizedPhones.length > 0) evidenceSources.add('phone');
   if (verifiedReports > 0) evidenceSources.add('community');
   if (matchedBlacklistIndicator) evidenceSources.add('reputation');
   if (ruleContribution > 0) evidenceSources.add('rules');
@@ -1034,6 +1043,8 @@ export async function analyzeScamRisk(text, metadata = {}) {
       verificationStatus: isJobPost && !hasStrongJobRisk ? 'unverified' : 'risk_assessed',
       hasWhatsAppLink
     },
-    recommendedActions
+    recommendedActions,
+    ccidMatches,
+    numverifyResults
   };
 }

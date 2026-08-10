@@ -5,6 +5,13 @@ import ReportModal from '../components/ReportModal';
 import { LanguageProvider } from '../context/LanguageContext';
 import { redactSensitiveInformation } from '../utils/redaction';
 
+vi.mock('../context/AppContext', () => ({
+  useAppContext: () => ({
+    reportsList: [],
+    currentUser: { id: 'test-user' }
+  })
+}));
+
 const renderModal = (props = {}) => {
   const onClose = vi.fn();
   const onSubmitReport = vi.fn();

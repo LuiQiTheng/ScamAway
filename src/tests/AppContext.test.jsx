@@ -1,7 +1,25 @@
 import React from 'react';
-import { render, screen, act } from '@testing-library/react';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { render, screen, act, waitFor } from '@testing-library/react';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { AppProvider, useAppContext } from '../context/AppContext';
+
+vi.mock('firebase/firestore', () => ({
+  collection: vi.fn(),
+  onSnapshot: vi.fn((ref, callback) => {
+    // Return a dummy unsubscribe function and don't trigger the callback so no data is loaded
+    return () => {};
+  }),
+  addDoc: vi.fn().mockResolvedValue({ id: 'test-doc-id' }),
+  updateDoc: vi.fn().mockResolvedValue(),
+  doc: vi.fn(),
+  setDoc: vi.fn().mockResolvedValue(),
+  getDocs: vi.fn().mockResolvedValue({ empty: true, docs: [] }),
+  getDoc: vi.fn().mockResolvedValue({ exists: () => false }),
+  query: vi.fn(),
+  where: vi.fn(),
+  deleteDoc: vi.fn(),
+  getFirestore: vi.fn(() => ({}))
+}));
 
 const TestComponent = () => {
   const { reportsList, addReport, updateReportStatus } = useAppContext();
@@ -11,13 +29,13 @@ const TestComponent = () => {
       <div data-testid="report-count">{reportsList.length}</div>
       <button 
         data-testid="add-report" 
-        onClick={() => addReport({ id: 999, text: 'Test report', category: 'spam' }, 50, 'Caution', ['verify'])}
+        onClick={() => addReport({ text: 'Test report', category: 'spam' })}
       >
         Add
       </button>
       <button 
         data-testid="update-report" 
-        onClick={() => updateReportStatus(1001, 'confirmed', 'Test rationale')}
+        onClick={() => updateReportStatus(reportsList[0]?.id, 'confirmed', 'Test rationale')}
       >
         Update
       </button>
@@ -30,42 +48,50 @@ describe('AppContext', () => {
     localStorage.clear();
   });
 
-  it('provides default reports list and updates it', () => {
+  it('provides default reports list and updates it', async () => {
     render(
       <AppProvider>
         <TestComponent />
       </AppProvider>
     );
 
-    // Initial default reports count is 4
-    expect(screen.getByTestId('report-count').textContent).toBe('4');
+    // Initial default reports count is 0
+    expect(screen.getByTestId('report-count').textContent).toBe('0');
 
-    act(() => {
+    await act(async () => {
       screen.getByTestId('add-report').click();
     });
 
-    expect(screen.getByTestId('report-count').textContent).toBe('5');
+    await waitFor(() => {
+      expect(screen.getByTestId('report-count').textContent).toBe('1');
+    });
   });
 
-  it('updates report status correctly', () => {
+  it('updates report status correctly', async () => {
     render(
       <AppProvider>
         <TestComponent />
       </AppProvider>
     );
 
-    act(() => {
+    await act(async () => {
       screen.getByTestId('add-report').click();
     });
     
-    act(() => {
+    await waitFor(() => {
+      expect(screen.getByTestId('report-count').textContent).toBe('1');
+    });
+    
+    await act(async () => {
       screen.getByTestId('update-report').click();
     });
 
-    // Since we updated report 1001
-    const stored = JSON.parse(localStorage.getItem('scam_away_reports'));
-    const updatedReport = stored.find(r => r.id === 1001 && r.status === 'confirmed' && r.rationale === 'Test rationale');
-    expect(updatedReport).toBeDefined();
-    expect(updatedReport.status).toBe('confirmed');
+    // Check localStorage
+    await waitFor(() => {
+      const stored = JSON.parse(localStorage.getItem('scam_away_reports'));
+      expect(stored).toBeDefined();
+      expect(stored[0]).toBeDefined();
+      expect(stored[0].status).toBe('confirmed');
+    });
   });
 });

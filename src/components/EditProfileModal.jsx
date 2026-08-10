@@ -24,6 +24,8 @@ export default function EditProfileModal({
 
   const [errorMsg, setErrorMsg] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [passwordChanged, setPasswordChanged] = useState(false);
 
   useEffect(() => {
     if (initialData && isOpen) {
@@ -37,6 +39,8 @@ export default function EditProfileModal({
         email: initialData.email || "",
       });
       setErrorMsg("");
+      setCurrentPassword("");
+      setPasswordChanged(false);
     }
   }, [initialData, isOpen]);
 
@@ -44,12 +48,19 @@ export default function EditProfileModal({
 
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    if (e.target.name === 'password') {
+      setPasswordChanged(e.target.value !== initialData.password);
+    }
   };
 
   const handleSave = async () => {
     try {
       setErrorMsg("");
       
+      if (passwordChanged && currentPassword !== initialData.password) {
+        throw new Error(lang === 'ms' ? 'Kata laluan semasa tidak tepat' : 'Current password is incorrect');
+      }
+
       if (isAdmin) {
         if (!formData.name || !formData.officerId || !formData.password || !formData.email) {
           throw new Error(lang === 'ms' ? 'Sila isikan semua ruang' : 'Please fill all fields');
@@ -194,6 +205,18 @@ export default function EditProfileModal({
             />
           </div>
         </div>
+        
+        {passwordChanged && (
+          <div>
+            <label className="form-label">{lang === 'ms' ? 'Kata Laluan Semasa' : 'Current Password'}</label>
+            <input
+              type="password"
+              className="input-field"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+            />
+          </div>
+        )}
         
         {isAdmin && (
           <div>

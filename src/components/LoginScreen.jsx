@@ -218,7 +218,7 @@ export default function LoginScreen({ onLogin }) {
           {formType === 'selection' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <button
-                onClick={() => { setFormType('user-signup'); resetForm(); }}
+                onClick={() => { setFormType('user-login'); resetForm(); }}
                 className="login-role-button"
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem 1.5rem',
@@ -243,7 +243,7 @@ export default function LoginScreen({ onLogin }) {
               </button>
 
               <button
-                onClick={() => { setFormType('admin-signup'); resetForm(); }}
+                onClick={() => { setFormType('admin-login'); resetForm(); }}
                 className="login-role-button"
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem 1.5rem',

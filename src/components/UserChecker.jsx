@@ -1,17 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   ShieldAlert, ShieldCheck, Shield, Clipboard,
-  Upload, QrCode, Link, AlertTriangle,
+  Link, AlertTriangle,
   Volume2, VolumeX, Phone, CheckSquare,
   Square, RefreshCw, Send, AlertCircle, Sparkles
 } from 'lucide-react';
 import {
   analyzeScamRisk,
-  DEMO_SCREENSHOTS,
   findMatchingVerifiedReports,
 } from '../utils/rulesEngine';
 import { checkUrlWithVirusTotal, checkDomainExists } from '../utils/virusTotal';
-import { QUICK_TEST_PRESETS } from '../content/member2Content';
+import { QUICK_TEST_PRESETS } from '../content/educationalContent';
 import ReportModal from './ReportModal';
 import GuardianAlertModal from "../components/Guardian/GuardianAlertModal";
 import { useAppContext } from '../context/AppContext';
@@ -29,8 +28,6 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
   const [urlError, setUrlError] = useState('');
   const [isUrlInvalid, setIsUrlInvalid] = useState(false);
   const [phoneInput, setPhoneInput] = useState('');
-  const [qrInput, setQrInput] = useState('');
-  const [qrScannerEnabled, setQrScannerEnabled] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [scanSteps, setScanSteps] = useState([]);
   const [scanResult, setScanResult] = useState(null);
@@ -104,7 +101,9 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
     setScanSteps([]);
 
     const steps = [
-      t('scanner.step_ocr'),
+      t('scanner.step_extract'),
+      t('scanner.step_ccid'),
+      t('scanner.step_numverify'),
       t('scanner.step_parse'),
       t('scanner.step_match'),
       t('scanner.step_db'),
@@ -486,13 +485,24 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                 onChange={(e) => setInputText(e.target.value)}
                 placeholder={t('scanner.placeholder')}
                 aria-describedby="scam-message-hint"
+                maxLength={10000}
                 style={{ resize: 'vertical' }}
               />
-              <span id="scam-message-hint" className="form-hint">
-                {lang === 'ms'
-                  ? 'Jangan masukkan kata laluan, OTP, atau maklumat bank sebenar.'
-                  : 'Do not enter real passwords, OTPs, or banking details.'}
-              </span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span id="scam-message-hint" className="form-hint" style={{ flex: 1 }}>
+                  {lang === 'ms'
+                    ? 'Jangan masukkan kata laluan, OTP, atau maklumat bank sebenar.'
+                    : 'Do not enter real passwords, OTPs, or banking details.'}
+                </span>
+                <span style={{ 
+                  fontSize: '0.75rem', 
+                  color: inputText.length >= 9500 ? '#ef4444' : (inputText.length >= 8000 ? '#f59e0b' : 'var(--text-muted)'),
+                  textAlign: 'right',
+                  marginTop: '0.25rem' 
+                }}>
+                  {inputText.length.toLocaleString()}/10,000
+                </span>
+              </div>
               <button
                 onClick={handleScanText}
                 className="btn-primary scan-primary-action"
@@ -691,6 +701,88 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
               </div>
             </div>
 
+            {/* CCID Results Display */}
+            {scanResult.ccidMatches && (scanResult.ccidMatches.phones.length > 0 || scanResult.ccidMatches.bankAccounts.length > 0) && (
+              <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem', marginBottom: '2rem' }}>
+                <h4 style={{ fontSize: isElderlyMode ? '1.3rem' : '1.05rem', color: '#fff', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  🚨 {t('scanner.ccid_title')}
+                </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {scanResult.ccidMatches.phones.map((match, idx) => (
+                    <div key={`ccid-phone-${idx}`} style={{
+                      background: 'rgba(239, 68, 68, 0.1)',
+                      border: '1px solid rgba(239, 68, 68, 0.4)',
+                      padding: '1rem',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.25rem'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <strong style={{ color: '#ef4444', fontSize: '0.9rem' }}>{t('scanner.ccid_phone_match')}: {match.number}</strong>
+                      </div>
+                      <p style={{ fontSize: '0.85rem', color: '#fca5a5' }}>
+                        {t('scanner.ccid_report_count')}: {match.reportCount} | {t('scanner.ccid_category')}: {match.category}
+                      </p>
+                    </div>
+                  ))}
+                  {scanResult.ccidMatches.bankAccounts.map((match, idx) => (
+                    <div key={`ccid-bank-${idx}`} style={{
+                      background: 'rgba(239, 68, 68, 0.1)',
+                      border: '1px solid rgba(239, 68, 68, 0.4)',
+                      padding: '1rem',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.25rem'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <strong style={{ color: '#ef4444', fontSize: '0.9rem' }}>{t('scanner.ccid_bank_match')}: {match.account}</strong>
+                      </div>
+                      <p style={{ fontSize: '0.85rem', color: '#fca5a5' }}>
+                        {t('scanner.ccid_bank')}: {match.bank} | {t('scanner.ccid_report_count')}: {match.reportCount}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Numverify Results Display */}
+            {scanResult.numverifyResults && (
+              <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem', marginBottom: '2rem' }}>
+                <h4 style={{ fontSize: isElderlyMode ? '1.3rem' : '1.05rem', color: '#fff', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  📞 {t('scanner.numverify_title')}
+                </h4>
+                <div style={{
+                  background: 'rgba(255,255,255,0.02)',
+                  border: '1px solid var(--border-color)',
+                  padding: '1rem',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.5rem'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{t('scanner.numverify_line_type')}:</span>
+                    <strong style={{ fontSize: '0.85rem', color: scanResult.numverifyResults.lineType?.toLowerCase() === 'voip' ? '#fbbf24' : '#fff' }}>
+                      {scanResult.numverifyResults.lineType || 'Unknown'}
+                    </strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{t('scanner.numverify_carrier')}:</span>
+                    <strong style={{ color: '#fff', fontSize: '0.85rem' }}>{scanResult.numverifyResults.carrier || 'Unknown'}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{t('scanner.numverify_valid')}:</span>
+                    <strong style={{ color: scanResult.numverifyResults.valid ? '#22c55e' : '#ef4444', fontSize: '0.85rem' }}>
+                      {scanResult.numverifyResults.valid ? t('scanner.numverify_yes') : t('scanner.numverify_no')}
+                    </strong>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* VirusTotal External Scan Results */}
             {(vtLoading || vtResult) && (
               <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem', marginBottom: '2rem' }}>
@@ -821,7 +913,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                 {t('result.report_scam_btn')}
               </button>
               <button
-                onClick={() => { setScanResult(null); setInputText(''); setUrlInput(''); setPhoneInput(''); setQrInput(''); setShowGuardianAlert(false); setVtResult(null); setVtLoading(false); }}
+                onClick={() => { setScanResult(null); setInputText(''); setUrlInput(''); setPhoneInput(''); setShowGuardianAlert(false); setVtResult(null); setVtLoading(false); }}
                 className="btn-secondary"
                 style={{ flex: 1 }}
               >

@@ -137,6 +137,18 @@ export async function checkUrlWithVirusTotal(url) {
     throw new Error(`VirusTotal returned status ${getResponse.status}`);
 
   } catch (error) {
+    if (error.message === 'Request timed out') {
+      return {
+        status: 'timeout',
+        reason: 'Request timed out',
+        url,
+        isMalicious: false,
+        detections: 0,
+        total: 0,
+        details: null
+      };
+    }
+    
     // Gracefully handle CORS, network, and other errors
     const isCorsError = error.message?.includes('Failed to fetch') || 
                         error.message?.includes('NetworkError') ||
@@ -267,15 +279,22 @@ function parseAnalysisResponse(data, url) {
 }
 
 /**
- * Fetch with a configurable timeout to prevent hanging requests.
+ * Fetch with a configurable timeout using AbortController.
  */
-function fetchWithTimeout(url, options, timeoutMs) {
-  return Promise.race([
-    fetch(url, options),
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Request timed out')), timeoutMs)
-    )
-  ]);
+async function fetchWithTimeout(url, options, timeoutMs) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(id);
+    return response;
+  } catch (err) {
+    clearTimeout(id);
+    if (err.name === 'AbortError') {
+      throw new Error('Request timed out');
+    }
+    throw err;
+  }
 }
 
 function sleep(ms) {

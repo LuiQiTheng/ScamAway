@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle, Eye, EyeOff, Shield, X } from 'lucide-react';
+import { CheckCircle, Eye, EyeOff, Shield, X, AlertTriangle } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { useAppContext } from '../context/AppContext';
 import { redactSensitiveInformation } from '../utils/redaction';
 import { SCAM_CATEGORIES } from '../config/categories';
 
@@ -11,7 +12,8 @@ export default function ReportModal({
   originalText = '',
   onSubmitReport,
 }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
+  const { reportsList, currentUser } = useAppContext();
   const [category, setCategory] = useState('phishing');
   const [message, setMessage] = useState(originalText);
   const [consent, setConsent] = useState(false);
@@ -19,6 +21,8 @@ export default function ReportModal({
   const [submitted, setSubmitted] = useState(false);
   const [assignedCode, setAssignedCode] = useState(null);
   const [messageError, setMessageError] = useState('');
+  const [submitError, setSubmitError] = useState('');
+  const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
   const modalRef = useRef(null);
   const messageRef = useRef(null);
   const closeTimerRef = useRef(null);
@@ -37,6 +41,8 @@ export default function ReportModal({
     setShowRaw(false);
     setSubmitted(false);
     setMessageError('');
+    setSubmitError('');
+    setShowDuplicateWarning(false);
 
     const focusTimer = window.setTimeout(() => messageRef.current?.focus(), 0);
     return () => window.clearTimeout(focusTimer);
@@ -82,8 +88,9 @@ export default function ReportModal({
 
   if (!isOpen) return null;
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
+  const handleSubmit = async (event, bypassDuplicateCheck = false) => {
+    if (event) event.preventDefault();
+    setSubmitError('');
 
     if (!message.trim()) {
       setMessageError(t('report.message_required'));
@@ -93,22 +100,38 @@ export default function ReportModal({
 
     if (!consent) return;
 
-    const code = await onSubmitReport?.({
-      category,
-      text: redactedText,
-      originalText: message,
-      score: scanResult?.score || 0,
-      riskBand: scanResult?.riskBand || 'Low evidence',
-      timestamp: new Date().toISOString(),
-      status: 'unverified',
-    });
-    
-    if (code) {
-      setAssignedCode(code);
+    if (!bypassDuplicateCheck) {
+      const isDuplicate = reportsList.some(r => 
+        r.reporterId === currentUser?.id &&
+        (r.originalText?.substring(0, 50) === message.substring(0, 50) || 
+         r.text?.substring(0, 50) === message.substring(0, 50))
+      );
+      if (isDuplicate) {
+        setShowDuplicateWarning(true);
+        return;
+      }
     }
 
-    setSubmitted(true);
-    closeTimerRef.current = window.setTimeout(onClose, 1800);
+    try {
+      const code = await onSubmitReport?.({
+        category,
+        text: redactedText,
+        originalText: message,
+        score: scanResult?.score || 0,
+        riskBand: scanResult?.riskBand || 'Low evidence',
+        timestamp: new Date().toISOString(),
+        status: 'unverified',
+      });
+      
+      if (code) {
+        setAssignedCode(code);
+      }
+
+      setSubmitted(true);
+      closeTimerRef.current = window.setTimeout(onClose, 1800);
+    } catch (e) {
+      setSubmitError(lang === 'ms' ? 'Gagal menghantar laporan. Sila cuba lagi.' : 'Failed to submit report. Please try again.');
+    }
   };
 
   const closeModal = () => {
@@ -164,6 +187,24 @@ export default function ReportModal({
 
             <p className="report-description">{t('report.desc')}</p>
 
+            {submitError && (
+              <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', padding: '0.75rem', borderRadius: '8px', color: '#fca5a5', fontSize: '0.85rem', marginBottom: '0.5rem', textAlign: 'center' }}>
+                {submitError}
+              </div>
+            )}
+            
+            {showDuplicateWarning && (
+              <div style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', padding: '0.75rem', borderRadius: '8px', color: '#fbbf24', fontSize: '0.85rem', marginBottom: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', textAlign: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                  <AlertTriangle size={16} />
+                  <strong>{lang === 'ms' ? '⚠️ Anda telah menghantar laporan serupa. Hantar juga?' : '⚠️ You have already submitted a similar report. Submit anyway?'}</strong>
+                </div>
+                <button type="button" onClick={(e) => handleSubmit(e, true)} className="btn-secondary" style={{ borderColor: 'rgba(245, 158, 11, 0.5)', color: '#fbbf24', alignSelf: 'center', fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}>
+                  {lang === 'ms' ? 'Hantar Juga' : 'Submit Anyway'}
+                </button>
+              </div>
+            )}
+
             <label className="report-field">
               <span>{t('report.message_label')}</span>
               <textarea
@@ -174,6 +215,8 @@ export default function ReportModal({
                 onChange={(event) => {
                   setMessage(event.target.value);
                   if (event.target.value.trim()) setMessageError('');
+                  setShowDuplicateWarning(false);
+                  setSubmitError('');
                 }}
                 placeholder={t('report.message_placeholder')}
                 aria-describedby={messageError ? 'report-message-error' : 'report-message-help'}

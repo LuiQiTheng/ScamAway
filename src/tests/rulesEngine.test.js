@@ -10,6 +10,10 @@ vi.mock('../utils/aiEngine', () => ({
   analyzeTextWithGemini: vi.fn(),
 }));
 
+vi.mock('../content/educationalContent', () => ({
+  QUICK_TEST_PRESETS: [],
+}));
+
 const urgentHiringPost = `Urgent Hiring (Full-time / Part-time)
 Penang, Melaka, Negeri Sembilan, KL, Selangor & Johor
 WFH / Hybrid / Office

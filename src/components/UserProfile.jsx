@@ -7,7 +7,7 @@ import { Bell, BellOff, CheckCircle, XCircle, Clock, Trash2, Check, MailOpen, Ch
 import { getCategoryLabel } from '../config/categories';
 
 export default function UserProfile({ userMode = 'normal', isElderlyMode = false, isKidMode = false }) {
-  const { reportsList, currentUser, updateGuardian, updateCurrentUser } = useAppContext();
+  const { reportsList, currentUser, updateGuardian, updateCurrentUser, deleteCurrentUser } = useAppContext();
   const { t, lang } = useLanguage();
   const [myReports, setMyReports] = useState([]);
   const [isReportsExpanded, setIsReportsExpanded] = useState(false);
@@ -48,6 +48,19 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
 
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteError, setDeleteError] = useState('');
+
+  const handleDeleteAccount = async () => {
+    setDeleteError('');
+    try {
+      await deleteCurrentUser(deletePassword);
+    } catch (err) {
+      setDeleteError(err.message);
+    }
+  };
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
@@ -164,6 +177,60 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
                 />
               </div>
             )}
+
+            {/* Account Deletion Section */}
+            <div style={{ marginTop: '0.75rem', borderTop: '1px solid rgba(239, 68, 68, 0.2)', paddingTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {!showDeleteConfirm ? (
+                <button 
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="btn-secondary"
+                  style={{ color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.5)', alignSelf: 'flex-start', padding: '0.35rem 0.8rem', fontSize: '0.9rem' }}
+                >
+                  {lang === 'ms' ? 'Padam Akaun' : 'Delete Account'}
+                </button>
+              ) : (
+                <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                  <h4 style={{ color: '#ef4444', marginTop: 0, marginBottom: '0.5rem' }}>{lang === 'ms' ? 'Adakah anda pasti?' : 'Are you sure?'}</h4>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '1rem' }}>
+                    {lang === 'ms' ? 'Tindakan ini tidak dapat dipulihkan. Semua data anda akan dipadamkan secara kekal.' : 'This action cannot be undone. All your data will be permanently deleted.'}
+                  </p>
+                  
+                  {deleteError && (
+                    <div style={{ color: '#ef4444', fontSize: '0.85rem', marginBottom: '1rem' }}>{deleteError}</div>
+                  )}
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+                    <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{lang === 'ms' ? 'Sahkan Kata Laluan' : 'Verify Password'}</label>
+                    <input 
+                      type="password" 
+                      className="input-field" 
+                      value={deletePassword} 
+                      onChange={e => setDeletePassword(e.target.value)}
+                      placeholder={lang === 'ms' ? 'Kata laluan anda' : 'Your password'}
+                    />
+                  </div>
+                  
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button 
+                      onClick={handleDeleteAccount}
+                      className="btn-primary"
+                      style={{ background: '#ef4444', padding: '0.35rem 0.8rem', fontSize: '0.9rem' }}
+                      disabled={!deletePassword}
+                    >
+                      {lang === 'ms' ? 'Padam Akaun' : 'Delete Account'}
+                    </button>
+                    <button 
+                      onClick={() => { setShowDeleteConfirm(false); setDeletePassword(''); setDeleteError(''); }}
+                      className="btn-secondary"
+                      style={{ padding: '0.35rem 0.8rem', fontSize: '0.9rem' }}
+                    >
+                      {lang === 'ms' ? 'Batal' : 'Cancel'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
           </div>
         )}
 
@@ -439,8 +506,8 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
             <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
               <th style={{ padding: '1rem', color: '#fff', whiteSpace: 'nowrap' }}>{lang === 'ms' ? 'ID Laporan' : 'Report ID'}</th>
               <th style={{ padding: '1rem', color: '#fff', whiteSpace: 'nowrap' }}>{t('profile.table_date')}</th>
-              <th style={{ padding: '1rem', color: '#fff', whiteSpace: 'nowrap' }}>{t('profile.table_category')}</th>
-              <th style={{ padding: '1rem', color: '#fff' }}>{t('profile.table_content')}</th>
+              <th style={{ padding: '1rem', color: '#fff', whiteSpace: 'normal', maxWidth: '150px' }}>{t('profile.table_category')}</th>
+              <th style={{ padding: '1rem', color: '#fff', maxWidth: '240px' }}>{t('profile.table_content')}</th>
               <th style={{ padding: '1rem', color: '#fff', whiteSpace: 'nowrap' }}>{t('profile.status')}</th>
             </tr>
           </thead>
@@ -458,10 +525,10 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
                   <td data-label={t('profile.table_date')} style={{ padding: '1rem', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
                     {new Date(report.timestamp).toLocaleDateString()}
                   </td>
-                  <td data-label={t('profile.table_category')} style={{ padding: '1rem', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
+                  <td data-label={t('profile.table_category')} style={{ padding: '1rem', fontSize: '0.85rem', whiteSpace: 'normal', maxWidth: '150px' }}>
                     {getCategoryLabel(report.category, t)}
                   </td>
-                  <td data-label={t('profile.table_content')} style={{ padding: '1rem', fontSize: '0.85rem', maxWidth: '300px' }}>
+                  <td data-label={t('profile.table_content')} style={{ padding: '1rem', fontSize: '0.85rem', maxWidth: '240px' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
                       <div style={{
                         whiteSpace: expandedSnippets.has(report.id) ? 'normal' : 'nowrap',

@@ -1,0 +1,25 @@
+{
+  "_meta": {
+    "description": "Mock CCID / SemakMule database for Scam Away demo",
+    "lastUpdated": "2026-08-10",
+    "disclaimer": "This is simulated data for competition demonstration only. All entries are fictional."
+  },
+  "reportedPhones": [
+    { "number": "+60111234567", "reportCount": 12, "category": "parcel", "lastReported": "2026-07-15" },
+    { "number": "+60139876543", "reportCount": 8, "category": "job_scam", "lastReported": "2026-06-20" },
+    { "number": "+60162345678", "reportCount": 23, "category": "investment", "lastReported": "2026-08-01" },
+    { "number": "+60173456789", "reportCount": 5, "category": "love_scam", "lastReported": "2026-05-10" },
+    { "number": "+60184567890", "reportCount": 15, "category": "macau_scam", "lastReported": "2026-07-28" },
+    { "number": "+60191122334", "reportCount": 6, "category": "phishing", "lastReported": "2026-08-05" },
+    { "number": "+60123338888", "reportCount": 31, "category": "investment", "lastReported": "2026-08-08" },
+    { "number": "+60145556677", "reportCount": 9, "category": "government_impersonation", "lastReported": "2026-07-22" }
+  ],
+  "reportedBankAccounts": [
+    { "account": "1234567890", "bank": "Maybank", "reportCount": 18, "category": "parcel" },
+    { "account": "9876543210", "bank": "CIMB", "reportCount": 7, "category": "marketplace" },
+    { "account": "5551234567", "bank": "Public Bank", "reportCount": 11, "category": "investment" },
+    { "account": "7778889990", "bank": "RHB", "reportCount": 3, "category": "job_scam" },
+    { "account": "3216549870", "bank": "Hong Leong", "reportCount": 14, "category": "love_scam" },
+    { "account": "8005551234", "bank": "AmBank", "reportCount": 20, "category": "macau_scam" }
+  ]
+}

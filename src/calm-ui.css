@@ -1,4 +1,4 @@
-:root {
+.elderly-mode {
   --bg-dark: #07111c;
   --bg-card: #101c2c;
   --bg-card-hover: #162437;
@@ -13,7 +13,7 @@
   --glass-bg: #101c2c;
   --glass-border: #334155;
   --glass-shadow: 0 16px 38px rgba(0, 0, 0, 0.24);
-  --content-max: 850px;
+  --content-max: 950px;
   --control-height: 44px;
   --control-height-primary: 52px;
 }
@@ -113,7 +113,7 @@ button:active:not(:disabled) {
 .app-main {
   flex: 1;
   width: 100%;
-  max-width: var(--content-max);
+  max-width: var(--content-max, 950px);
   min-width: 0;
   margin-inline: auto;
   padding: clamp(1rem, 3vw, 2rem);
@@ -697,15 +697,15 @@ button:active:not(:disabled) {
   }
 
   .knowledge-modal-backdrop {
-    align-items: flex-end !important;
-    padding: 0 !important;
+    align-items: center !important;
+    padding: 1rem !important;
   }
 
   .knowledge-modal {
     width: 100% !important;
-    max-height: 92dvh !important;
+    max-height: 85dvh !important;
     padding: 1.25rem !important;
-    border-radius: 20px 20px 0 0 !important;
+    border-radius: 16px !important;
   }
 }
 

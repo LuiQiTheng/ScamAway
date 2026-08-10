@@ -3,7 +3,7 @@ import {
   CHEAT_SHEETS,
   QUICK_TEST_PRESETS,
   QUIZ_SCENARIOS,
-} from '../content/member2Content';
+} from '../content/educationalContent';
 
 describe('Member 2 learning content', () => {
   it('provides the three requested Malaysian cheat sheets', () => {

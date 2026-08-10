@@ -5,9 +5,21 @@ import { User, Edit2 } from 'lucide-react';
 import EditProfileModal from './EditProfileModal';
 
 const AdminProfile = () => {
-  const { adminProfile, updateAdminProfile } = useAppContext();
+  const { adminProfile, updateAdminProfile, deleteCurrentUser } = useAppContext();
   const { lang } = useLanguage();
   const [isEditMode, setIsEditMode] = React.useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
+  const [deletePassword, setDeletePassword] = React.useState('');
+  const [deleteError, setDeleteError] = React.useState('');
+
+  const handleDeleteAccount = async () => {
+    setDeleteError('');
+    try {
+      await deleteCurrentUser(deletePassword);
+    } catch (err) {
+      setDeleteError(err.message);
+    }
+  };
 
   if (!adminProfile) return null;
 
@@ -56,6 +68,58 @@ const AdminProfile = () => {
             />
           </div>
         )}
+
+        {/* Account Deletion Section */}
+        <div style={{ marginTop: '1.5rem', borderTop: '1px solid rgba(239, 68, 68, 0.2)', paddingTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {!showDeleteConfirm ? (
+            <button 
+              onClick={() => setShowDeleteConfirm(true)}
+              className="btn-secondary"
+              style={{ color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.5)', alignSelf: 'flex-start' }}
+            >
+              {lang === 'ms' ? 'Padam Akaun' : 'Delete Account'}
+            </button>
+          ) : (
+            <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+              <h4 style={{ color: '#ef4444', marginTop: 0, marginBottom: '0.5rem' }}>{lang === 'ms' ? 'Adakah anda pasti?' : 'Are you sure?'}</h4>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '1rem' }}>
+                {lang === 'ms' ? 'Tindakan ini tidak dapat dipulihkan. Semua data anda akan dipadamkan secara kekal.' : 'This action cannot be undone. All your data will be permanently deleted.'}
+              </p>
+              
+              {deleteError && (
+                <div style={{ color: '#ef4444', fontSize: '0.85rem', marginBottom: '1rem' }}>{deleteError}</div>
+              )}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+                <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{lang === 'ms' ? 'Sahkan Kata Laluan' : 'Verify Password'}</label>
+                <input 
+                  type="password" 
+                  className="input-field" 
+                  value={deletePassword} 
+                  onChange={e => setDeletePassword(e.target.value)}
+                  placeholder={lang === 'ms' ? 'Kata laluan anda' : 'Your password'}
+                />
+              </div>
+              
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button 
+                  onClick={handleDeleteAccount}
+                  className="btn-primary"
+                  style={{ background: '#ef4444' }}
+                  disabled={!deletePassword}
+                >
+                  {lang === 'ms' ? 'Padam Akaun' : 'Delete Account'}
+                </button>
+                <button 
+                  onClick={() => { setShowDeleteConfirm(false); setDeletePassword(''); setDeleteError(''); }}
+                  className="btn-secondary"
+                >
+                  {lang === 'ms' ? 'Batal' : 'Cancel'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { CheckCircle, RotateCcw, ShieldQuestion, XCircle } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
-import { QUIZ_SCENARIOS } from '../content/member2Content';
+import { QUIZ_SCENARIOS } from '../content/educationalContent';
 
 export default function SpotTheScamQuiz({ scenarios = QUIZ_SCENARIOS }) {
   const { lang } = useLanguage();

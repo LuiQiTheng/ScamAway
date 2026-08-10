@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const LanguageContext = createContext();
 
@@ -204,8 +204,6 @@ const translations = {
     "scanner.title": "Scan Suspicious Context",
     "scanner.placeholder": "Paste suspicious text message, email, or context here...",
     "scanner.button": "Analyze Risk",
-    "scanner.upload_btn": "Upload Screenshot (OCR)",
-    "scanner.qr_btn": "Scan QR Code",
     "scanner.url_btn": "URL & Phone Check",
     "scanner.ai_explanation": "AI Analysis",
     "scanner.assistant": "Scam Away Assistant",
@@ -403,26 +401,32 @@ const translations = {
     "report.submit_btn": "Submit Report",
 
     // Scanner Extras
-    "scanner.step_ocr": "Extracting text & character recognition (OCR)...",
-    "scanner.step_parse": "Parsing URLs & checking QR code destinations...",
+    "scanner.step_extract": "Extracting text & indicators...",
+    "scanner.step_ccid": "Cross-referencing police database (CCID)...",
+    "scanner.step_numverify": "Validating phone number via Numverify...",
+    "scanner.ccid_title": "Police Database Match (Mock)",
+    "scanner.ccid_phone_match": "Reported Phone Number",
+    "scanner.ccid_bank_match": "Reported Bank Account",
+    "scanner.ccid_report_count": "Report Count",
+    "scanner.ccid_category": "Category",
+    "scanner.ccid_bank": "Bank",
+    "scanner.numverify_title": "Phone Validation",
+    "scanner.numverify_line_type": "Line Type",
+    "scanner.numverify_carrier": "Carrier",
+    "scanner.numverify_valid": "Valid Number",
+    "scanner.numverify_yes": "Yes",
+    "scanner.numverify_no": "No",
+    "scanner.step_parse": "Parsing URLs & checking indicators...",
     "scanner.step_match": "Matching phone numbers and bank account indicators...",
     "scanner.step_db": "Checking community reputation database...",
     "scanner.step_score": "Calculating hybrid risk score...",
     "scanner.alert_badge": "Community Alert",
     "scanner.alert_title": "Active Threat Advisory",
-    "scanner.demo_select": "Select a Demo Case (Simulates Photo Upload & OCR):",
+    "scanner.demo_select": "Select a Demo Case:",
     "scanner.demo_courier": "📦 Courier/Parcel Scam",
     "scanner.demo_job": "💼 Shopee Part-time Job",
     "scanner.demo_emergency": "🚨 Urgent Family Emergency",
     "scanner.demo_legit": "✅ Legitimate TNB Advisory",
-    "scanner.upload_title": "Upload a Screenshot / Image",
-    "scanner.upload_desc": "PNG, JPG or WebP. Text will be extracted instantly using client OCR simulation.",
-    "scanner.loaded": "Loaded:",
-    "scanner.clear": "Clear",
-    "scanner.open_camera": "Open Camera Scanner",
-    "scanner.paste_qr": "Or Paste QR Raw Target URL",
-    "scanner.qr_placeholder": "e.g., https://pos-laju.info/pay-fee/2.50",
-    "scanner.verify_qr": "Verify URL Code",
     "scanner.url_label": "URL / Web Address",
     "scanner.phone_label": "Sender Phone Number (Optional)",
     "scanner.searching": "Searching database...",
@@ -434,7 +438,6 @@ const translations = {
     "scanner.read_aloud": "Read Aloud",
     "scanner.url_placeholder": "e.g. maybank-secure-login.xyz or pos-laju.info",
     "scanner.phone_placeholder": "e.g. +6011-8762512",
-    "scanner.ocr_failed": "Error extracting text. Please type manually.",
 
     // App Footer & Roles
     "app.role_user": "👤 User",
@@ -758,8 +761,6 @@ const translations = {
     "scanner.title": "Imbas Konteks Mencurigakan",
     "scanner.placeholder": "Tampal mesej teks, e-mel, atau konteks mencurigakan di sini...",
     "scanner.button": "Analisis Risiko",
-    "scanner.upload_btn": "Muat Naik Tangkapan Skrin (OCR)",
-    "scanner.qr_btn": "Imbas Kod QR",
     "scanner.url_btn": "Semak URL & Telefon",
     "scanner.ai_explanation": "Analisis AI",
     "scanner.assistant": "Pembantu Scam Away",
@@ -972,26 +973,32 @@ const translations = {
     "report.submit_btn": "Hantar Laporan",
 
     // Scanner Extras
-    "scanner.step_ocr": "Mengekstrak teks & pengecaman aksara (OCR)...",
-    "scanner.step_parse": "Menghurai URL & menyemak destinasi kod QR...",
+    "scanner.step_extract": "Mengekstrak teks & penunjuk...",
+    "scanner.step_ccid": "Menyemak silang pangkalan data polis (CCID)...",
+    "scanner.step_numverify": "Mengesahkan nombor telefon melalui Numverify...",
+    "scanner.ccid_title": "Padanan Pangkalan Data Polis (Simulasi)",
+    "scanner.ccid_phone_match": "Nombor Telefon Dilaporkan",
+    "scanner.ccid_bank_match": "Akaun Bank Dilaporkan",
+    "scanner.ccid_report_count": "Jumlah Laporan",
+    "scanner.ccid_category": "Kategori",
+    "scanner.ccid_bank": "Bank",
+    "scanner.numverify_title": "Pengesahan Telefon",
+    "scanner.numverify_line_type": "Jenis Talian",
+    "scanner.numverify_carrier": "Pengendali",
+    "scanner.numverify_valid": "Nombor Sah",
+    "scanner.numverify_yes": "Ya",
+    "scanner.numverify_no": "Tidak",
+    "scanner.step_parse": "Menghurai URL & menyemak penunjuk...",
     "scanner.step_match": "Memadankan nombor telefon dan penunjuk akaun bank...",
     "scanner.step_db": "Menyemak pangkalan data reputasi komuniti...",
     "scanner.step_score": "Mengira skor risiko hibrid...",
     "scanner.alert_badge": "Amaran Komuniti",
     "scanner.alert_title": "Nasihat Ancaman Aktif",
-    "scanner.demo_select": "Pilih Kes Demo (Mensimulasikan Muat Naik Foto & OCR):",
+    "scanner.demo_select": "Pilih Kes Demo:",
     "scanner.demo_courier": "📦 Scam Kurier/Bungkusan",
     "scanner.demo_job": "💼 Kerja Sambilan Shopee",
     "scanner.demo_emergency": "🚨 Kecemasan Keluarga Segera",
     "scanner.demo_legit": "✅ Nasihat TNB Sah",
-    "scanner.upload_title": "Muat Naik Tangkapan Skrin / Imej",
-    "scanner.upload_desc": "PNG, JPG atau WebP. Teks akan diekstrak serta-merta menggunakan simulasi OCR klien.",
-    "scanner.loaded": "Dimuatkan:",
-    "scanner.clear": "Kosongkan",
-    "scanner.open_camera": "Buka Pengimbas Kamera",
-    "scanner.paste_qr": "Atau Tampal URL Sasaran Mentah QR",
-    "scanner.qr_placeholder": "cth., https://pos-laju.info/pay-fee/2.50",
-    "scanner.verify_qr": "Sahkan Kod URL",
     "scanner.url_label": "URL / Alamat Web",
     "scanner.phone_label": "Nombor Telefon Penghantar",
     "scanner.searching": "Mencari pangkalan data...",
@@ -1003,7 +1010,6 @@ const translations = {
     "scanner.read_aloud": "Baca Kuat",
     "scanner.url_placeholder": "cth. maybank-secure-login.xyz atau pos-laju.info",
     "scanner.phone_placeholder": "cth. +6011-8762512",
-    "scanner.ocr_failed": "Gagal mengekstrak teks. Sila taip secara manual.",
     
     // App Footer & Roles
     "app.role_user": "👤 Pengguna",
@@ -1130,8 +1136,12 @@ const translations = {
   }
 };
 
-export const LanguageProvider = ({ children }) => {
-  const [lang, setLang] = useState('en');
+export function LanguageProvider({ children }) {
+  const [lang, setLang] = useState(() => localStorage.getItem('scam_away_lang') || 'en');
+
+  useEffect(() => {
+    localStorage.setItem('scam_away_lang', lang);
+  }, [lang]);
 
   const t = (key) => {
     return translations[lang][key] || key;
