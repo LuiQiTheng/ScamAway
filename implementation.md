@@ -25,7 +25,7 @@
 ```
                      ┌──────────────────────────────────────────────┐
                      │            User Input Interfaces             │
-                     │  (Text, Screenshot OCR, QR Scan, URL/Phone)  │
+                     │             (Text, URL/Phone)                │
                      └──────────────────────┬───────────────────────┘
                                             │
                                             ▼
@@ -64,7 +64,7 @@
 ## 3. Detailed Component Implementation
 
 ### 3.1 Indicator Extraction Module (`src/utils/rulesEngine.js`)
-The extraction module receives raw user text, OCR transcriptions, or decoded QR destinations and parses key indicators:
+The extraction module receives raw user text, URLs, or phone numbers and parses key indicators:
 - **URL Extractor**: Matches http/https and domain structures (`([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}`).
 - **Phone Extractor**: Matches Malaysian and international phone formats (`+601x`, `01x`, `03x`).
 - **Payment Extractor**: Captures currency symbols (`RM`, `Ringgit`), numbers, and payment trigger phrases.
@@ -94,7 +94,7 @@ When multiple high-risk indicators co-occur (e.g. `Payment Request` + `Urgency P
 ## 4. Primary User Screens & Functional Workflows
 
 ### 4.1 User Checker & Elderly Mode (`src/components/UserChecker.jsx`)
-- **Regular Mode**: Sleek dark-mode interface with neon accents, tabbed input selectors (Text, Screenshot OCR, QR camera simulator, URL checker), and quick demo presets (Pos Laju scam, Shopee task scam, Family emergency scam, TNB legitimate notification).
+- **Regular Mode**: Sleek dark-mode interface with neon accents, tabbed input selectors (Text, URL checker, Phone checker), and quick demo presets (Pos Laju scam, Shopee task scam, Family emergency scam, TNB legitimate notification).
 - **Elderly-Friendly Mode**: Enlarges typography to `1.25rem`+, expands touch target padding to `18px`+, and activates **Web Speech API Audio Narration** to read out risk bands and action checklists aloud.
 - **External Database Results UI**: Displays real-time validation badges (e.g., Numverify carrier info, CCID mock database matches) directly in the analysis output.
 - **Verification Checklist**: Interactive step-by-step checklist instructing users to pause, verify official phone numbers, and avoid transferring funds.
@@ -134,7 +134,7 @@ When multiple high-risk indicators co-occur (e.g. `Payment Request` + `Urgency P
   },
   "submissions": {
     "submissionId": "string",
-    "inputType": "text | screenshot | qr | url",
+    "inputType": "text | url | phone",
     "rawText": "string",
     "createdAt": "timestamp"
   },

@@ -338,6 +338,54 @@ export default function ModeratorDashboard() {
               <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.25rem', display: 'block' }}>
                 {lang === 'ms' ? 'Butiran / Maklumat Tambahan' : 'Details / Extra Info'}
               </label>
+
+              {/* Quick Broadcast Templates */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.5rem' }}>
+                {[
+                  {
+                    label: { en: "Pos Laju COD", ms: "COD Pos Laju" },
+                    cat: "Parcel & Delivery Scam",
+                    det: { en: "A wave of parcel cash-on-delivery (COD) SMS scams impersonating Pos Laju (pos-laju.info) has targeted the Selangor and Klang Valley regions.", ms: "Gelombang penipuan SMS bayaran semasa terima (COD) yang menyamar sebagai Pos Laju (pos-laju.info) sedang aktif di kawasan Selangor dan Lembah Klang." },
+                    sol: { en: "Do not pay or open the link. Verify tracking numbers on the official Pos Laju website.", ms: "Jangan bayar atau buka pautan. Sahkan nombor penjejakan di laman web rasmi Pos Laju." }
+                  },
+                  {
+                    label: { en: "LHDN Tax", ms: "Cukai LHDN" },
+                    cat: "Banking & Phishing Scam",
+                    det: { en: "Scammers are sending fake LHDN tax refund links via WhatsApp, asking victims to log into fake banking portals.", ms: "Scammer menghantar pautan pemulangan cukai LHDN palsu melalui WhatsApp dan meminta mangsa log masuk ke portal bank palsu." },
+                    sol: { en: "LHDN will never send refund links via WhatsApp. Log in only via mytax.hasil.gov.my.", ms: "LHDN tidak akan menghantar pautan pemulangan melalui WhatsApp. Log masuk hanya melalui mytax.hasil.gov.my." }
+                  },
+                  {
+                    label: { en: "Job Scam", ms: "Scam Kerja" },
+                    cat: "Job & Employment Scam",
+                    det: { en: "Fake HR agents are offering easy part-time jobs (e.g. liking YouTube videos) but require a deposit to unlock tasks.", ms: "Ejen HR palsu menawarkan kerja sambilan mudah (cth: like video YouTube) tetapi meminta deposit untuk memulakan tugasan." },
+                    sol: { en: "Legitimate employers never ask you to pay a deposit or fee to start working.", ms: "Majikan yang sah tidak akan meminta deposit atau yuran untuk memulakan kerja." }
+                  }
+                ].map((tmpl, idx) => (
+                  <button
+                    key={idx}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setAlertCategory(tmpl.cat);
+                      setAlertDetails(lang === 'ms' ? tmpl.det.ms : tmpl.det.en);
+                      setAlertSolution(lang === 'ms' ? tmpl.sol.ms : tmpl.sol.en);
+                    }}
+                    style={{
+                      background: 'rgba(6, 182, 212, 0.1)',
+                      border: '1px solid rgba(6, 182, 212, 0.3)',
+                      color: 'var(--primary)',
+                      padding: '0.2rem 0.5rem',
+                      borderRadius: '4px',
+                      fontSize: '0.75rem',
+                      cursor: 'pointer'
+                    }}
+                    onMouseEnter={(e) => { e.target.style.background = 'rgba(6, 182, 212, 0.2)'; }}
+                    onMouseLeave={(e) => { e.target.style.background = 'rgba(6, 182, 212, 0.1)'; }}
+                  >
+                    ⚡ {lang === 'ms' ? tmpl.label.ms : tmpl.label.en}
+                  </button>
+                ))}
+              </div>
+
               <textarea
                 className="input-field"
                 rows={2}
@@ -642,6 +690,37 @@ export default function ModeratorDashboard() {
 
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                             <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>{t('admin.mod_note')}</label>
+                            
+                            {/* Quick Moderation Notes */}
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.2rem' }}>
+                              {[
+                                { ms: "Scam disahkan. Tambah ke senarai hitam.", en: "Verified scam. Added to blacklist." },
+                                { ms: "Sepadan dengan rekod polis (CCID).", en: "Matches CCID police records." },
+                                { ms: "Bukti tidak mencukupi.", en: "Insufficient evidence provided." },
+                                { ms: "Laporan berganda.", en: "Duplicate report." },
+                                { ms: "Mesej sah/selamat.", en: "Legitimate/safe message." },
+                                { ms: "Perlu semakan manual sekunder.", en: "Requires secondary manual review." }
+                              ].map((note, idx) => (
+                                <button
+                                  key={idx}
+                                  onClick={(e) => { e.preventDefault(); setRationale(lang === 'ms' ? note.ms : note.en); }}
+                                  style={{
+                                    background: 'rgba(255,255,255,0.05)',
+                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    color: '#cbd5e1',
+                                    padding: '0.2rem 0.5rem',
+                                    borderRadius: '4px',
+                                    fontSize: '0.75rem',
+                                    cursor: 'pointer'
+                                  }}
+                                  onMouseEnter={(e) => { e.target.style.background = 'rgba(255,255,255,0.1)'; }}
+                                  onMouseLeave={(e) => { e.target.style.background = 'rgba(255,255,255,0.05)'; }}
+                                >
+                                  {lang === 'ms' ? note.ms : note.en}
+                                </button>
+                              ))}
+                            </div>
+
                             <input
                               type="text"
                               value={rationale}

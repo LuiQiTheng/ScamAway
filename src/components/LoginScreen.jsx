@@ -17,6 +17,8 @@ export default function LoginScreen({ onLogin }) {
   // Form State
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
   const [phone, setPhone] = useState('');
@@ -35,6 +37,8 @@ export default function LoginScreen({ onLogin }) {
     setAdminEmail('');
     setErrorMsg('');
     setShowPassword(false);
+    setConfirmPassword('');
+    setShowConfirmPassword(false);
   };
 
   const handleUserSignup = async (e) => {
@@ -42,8 +46,11 @@ export default function LoginScreen({ onLogin }) {
     setErrorMsg('');
     setIsLoading(true);
     try {
-      if (!username || !password || !name || !age || !phone) {
+      if (!username || !password || !confirmPassword || !name || !age || !phone) {
         throw new Error(lang === 'ms' ? 'Sila isikan semua ruang' : 'Please fill all fields');
+      }
+      if (password !== confirmPassword) {
+        throw new Error(lang === 'ms' ? 'Kata laluan tidak sepadan' : 'Passwords do not match');
       }
       
       const phoneDigits = phone.replace(/[-\s]/g, '');
@@ -83,8 +90,11 @@ export default function LoginScreen({ onLogin }) {
     setErrorMsg('');
     setIsLoading(true);
     try {
-      if (!officerId || !password || !name || !adminEmail) {
+      if (!officerId || !password || !confirmPassword || !name || !adminEmail) {
         throw new Error(lang === 'ms' ? 'Sila isikan semua ruang' : 'Please fill all fields');
+      }
+      if (password !== confirmPassword) {
+        throw new Error(lang === 'ms' ? 'Kata laluan tidak sepadan' : 'Passwords do not match');
       }
       await registerAdmin({ officerId, password, name, email: adminEmail });
       onLogin('admin');
@@ -334,6 +344,43 @@ export default function LoginScreen({ onLogin }) {
                   </button>
                 </div>
               </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                  {lang === 'ms' ? 'Sahkan Kata Laluan' : 'Confirm Password'}
+                </label>
+
+                <div style={{ position: "relative" }}>
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    className="input-field"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    placeholder="••••••••"
+                    style={{ paddingRight: "45px" }}
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    style={{
+                      position: "absolute",
+                      right: "12px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      border: "none",
+                      background: "transparent",
+                      cursor: "pointer",
+                      color: "var(--text-secondary)",
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                  >
+                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
               
               <button type="submit" disabled={isLoading} className="btn-primary" style={{ marginTop: '0.5rem', opacity: isLoading ? 0.7 : 1 }}>
                 {isLoading ? <Loader size={18} className="spin" /> : (lang === 'ms' ? 'Daftar' : 'Sign Up')}
@@ -467,6 +514,43 @@ export default function LoginScreen({ onLogin }) {
                     }}
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                  {lang === 'ms' ? 'Sahkan Kata Laluan' : 'Confirm Password'}
+                </label>
+
+                <div style={{ position: "relative" }}>
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    className="input-field"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    placeholder="••••••••"
+                    style={{ paddingRight: "45px" }}
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    style={{
+                      position: "absolute",
+                      right: "12px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      border: "none",
+                      background: "transparent",
+                      cursor: "pointer",
+                      color: "var(--text-secondary)",
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                  >
+                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
               </div>

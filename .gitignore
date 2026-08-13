@@ -31,3 +31,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Exclude large competition files and audit reports
+ScamAway.pdf
+scam_away_audit_prompt.md
+scam_away_audit_report.md

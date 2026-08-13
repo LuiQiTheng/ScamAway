@@ -405,6 +405,7 @@ export async function analyzeScamRisk(text, metadata = {}) {
     const match = lookupPhone(ccidData, phone);
     if (match) {
       ccidMatches.phones.push(match);
+      matchedBlacklistIndicator = true;
       score += 40;
       explanations.push({
         category: "reputation",
@@ -423,6 +424,7 @@ export async function analyzeScamRisk(text, metadata = {}) {
     const match = lookupBankAccount(ccidData, account);
     if (match) {
       ccidMatches.bankAccounts.push(match);
+      matchedBlacklistIndicator = true;
       score += 40;
       explanations.push({
         category: "payment",
