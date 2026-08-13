@@ -310,7 +310,24 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel(); // Cancel any existing speech
       const utterance = new SpeechSynthesisUtterance(textToSpeak);
-      utterance.lang = lang === 'ms' ? 'ms-MY' : 'en-US';
+      
+      const voices = window.speechSynthesis.getVoices();
+      let selectedVoice = null;
+      if (lang === 'ms') {
+        // Try to find Malay, then fallback to Indonesian which sounds similar, otherwise just set lang
+        selectedVoice = voices.find(v => v.lang === 'ms-MY') || 
+                        voices.find(v => v.lang.startsWith('ms')) || 
+                        voices.find(v => v.lang.startsWith('id'));
+        utterance.lang = selectedVoice ? selectedVoice.lang : 'ms-MY';
+      } else {
+        selectedVoice = voices.find(v => v.lang === 'en-US') || voices.find(v => v.lang.startsWith('en'));
+        utterance.lang = selectedVoice ? selectedVoice.lang : 'en-US';
+      }
+      
+      if (selectedVoice) {
+        utterance.voice = selectedVoice;
+      }
+      
       utterance.rate = isElderlyMode ? 0.85 : 1.0; // Slower for elderly
       utterance.onend = () => setIsPlayingAudio(false);
       utterance.onerror = () => setIsPlayingAudio(false);

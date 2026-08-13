@@ -501,14 +501,14 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
         </h2>
         
         <div className="profile-report-table-wrap" role="region" aria-label={t('profile.title')} tabIndex="0">
-        <table className="profile-report-table" style={{ color: 'var(--text-secondary)' }}>
+        <table className="profile-report-table" style={{ color: 'var(--text-secondary)', tableLayout: 'fixed', width: '96%', margin: '0 auto' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
-              <th style={{ padding: '1rem', color: '#fff', whiteSpace: 'nowrap' }}>{lang === 'ms' ? 'ID Laporan' : 'Report ID'}</th>
-              <th style={{ padding: '1rem', color: '#fff', whiteSpace: 'nowrap' }}>{t('profile.table_date')}</th>
-              <th style={{ padding: '1rem', color: '#fff', whiteSpace: 'normal', maxWidth: '150px' }}>{t('profile.table_category')}</th>
-              <th style={{ padding: '1rem', color: '#fff', maxWidth: '240px' }}>{t('profile.table_content')}</th>
-              <th style={{ padding: '1rem', color: '#fff', whiteSpace: 'nowrap' }}>{t('profile.status')}</th>
+              <th style={{ padding: '1rem', color: '#fff', whiteSpace: 'normal', width: '15%', fontSize: isElderlyMode ? '0.8rem' : '1rem' }}>{lang === 'ms' ? 'ID Laporan' : 'Report ID'}</th>
+              <th style={{ padding: '1rem', color: '#fff', whiteSpace: 'normal', width: '15%', fontSize: isElderlyMode ? '0.8rem' : '1rem' }}>{t('profile.table_date')}</th>
+              <th style={{ padding: '1rem', color: '#fff', width: '25%', fontSize: isElderlyMode ? '0.8rem' : '1rem' }}>{t('profile.table_category')}</th>
+              <th style={{ padding: '1rem', color: '#fff', width: '25%', fontSize: isElderlyMode ? '0.8rem' : '1rem' }}>{t('profile.table_content')}</th>
+              <th style={{ padding: '1rem', color: '#fff', whiteSpace: 'normal', width: '20%', fontSize: isElderlyMode ? '0.8rem' : '1rem' }}>{t('profile.status')}</th>
             </tr>
           </thead>
           <tbody>
@@ -519,16 +519,16 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
             ) : (
               (isReportsExpanded ? myReports : myReports.slice(0, isMobile ? 1 : 3)).map(report => (
                 <tr key={report.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                  <td data-label="Report ID" style={{ padding: '1rem', fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary)', whiteSpace: 'nowrap' }}>
+                  <td data-label="Report ID" style={{ padding: '1rem', fontSize: isElderlyMode ? '0.8rem' : '0.85rem', fontWeight: 600, color: 'var(--primary)', whiteSpace: 'normal' }}>
                     {report.reportCode || `#${report.id.toString().slice(-6)}`}
                   </td>
-                  <td data-label={t('profile.table_date')} style={{ padding: '1rem', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
+                  <td data-label={t('profile.table_date')} style={{ padding: '1rem', fontSize: isElderlyMode ? '0.8rem' : '0.85rem', whiteSpace: 'normal' }}>
                     {new Date(report.timestamp).toLocaleDateString()}
                   </td>
-                  <td data-label={t('profile.table_category')} style={{ padding: '1rem', fontSize: '0.85rem', whiteSpace: 'normal', maxWidth: '150px' }}>
+                  <td data-label={t('profile.table_category')} style={{ padding: '1rem', fontSize: isElderlyMode ? '0.8rem' : '0.85rem', whiteSpace: 'normal' }}>
                     {getCategoryLabel(report.category, t)}
                   </td>
-                  <td data-label={t('profile.table_content')} style={{ padding: '1rem', fontSize: '0.85rem', maxWidth: '240px' }}>
+                  <td data-label={t('profile.table_content')} style={{ padding: '1rem', fontSize: isElderlyMode ? '0.8rem' : '0.85rem' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
                       <div style={{
                         whiteSpace: expandedSnippets.has(report.id) ? 'normal' : 'nowrap',
@@ -550,8 +550,8 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
                             padding: '0.35rem 0 0 0',
                             marginTop: '0.2rem',
                             fontWeight: 500,
-                            whiteSpace: 'nowrap',
-                            alignSelf: 'center'
+                            whiteSpace: 'normal',
+                            alignSelf: 'flex-start'
                           }}
                         >
                           {expandedSnippets.has(report.id) 
@@ -561,11 +561,11 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
                       )}
                     </div>
                   </td>
-                  <td data-label={t('profile.status')} style={{ padding: '1rem', whiteSpace: 'nowrap' }}>
+                  <td data-label={t('profile.status')} style={{ padding: '1rem', whiteSpace: 'normal', fontSize: isElderlyMode ? '0.8rem' : '0.85rem' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                      {report.status === 'confirmed' && <span style={{ color: 'var(--color-low)', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem' }}><CheckCircle size={14} /> {t('profile.confirmed')}</span>}
-                      {report.status === 'rejected' && <span style={{ color: 'var(--color-high)', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem' }}><XCircle size={14} /> {t('profile.rejected')}</span>}
-                      {(report.status === 'unverified' || report.status === 'under_review') && <span style={{ color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem' }}><Clock size={14} /> {t('profile.pending')}</span>}
+                      {report.status === 'confirmed' && <span style={{ color: 'var(--color-low)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}><CheckCircle size={14} /> {t('profile.confirmed')}</span>}
+                      {report.status === 'rejected' && <span style={{ color: 'var(--color-high)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}><XCircle size={14} /> {t('profile.rejected')}</span>}
+                      {(report.status === 'unverified' || report.status === 'under_review') && <span style={{ color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Clock size={14} /> {t('profile.pending')}</span>}
                     </div>
                   </td>
                 </tr>

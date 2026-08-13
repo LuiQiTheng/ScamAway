@@ -1128,6 +1128,13 @@ const translations = {
     "emergency.disclaimer_title": "Panduan Kecemasan",
     "emergency.disclaimer_text": "Saranan ini disediakan untuk membantu pengguna bertindak pantas menangani insiden penipuan. Sentiasa ikuti arahan yang diberikan oleh bank anda dan pihak berkuasa Malaysia yang berkaitan.",
 
+    // Engine
+    "engine.speech_done": "Penilaian risiko selesai. Keputusannya adalah {band} dengan skor risiko sebanyak {score} peratus.",
+    "engine.speech_low": "Tiada penunjuk penipuan yang kuat dikesan. Walau bagaimanapun, sila buat pengesahan secara bebas.",
+    "engine.speech_caution": "Awas. Elemen mencurigakan telah ditemui. Sila berhenti sebentar dan buat pengesahan.",
+    "engine.speech_high": "Amaran. Elemen berisiko tinggi dikesan. Jangan bayar atau kongsi maklumat keselamatan.",
+    "engine.speech_intro": "Berikut adalah tindakan keselamatan yang disyorkan.",
+
     // Statuses
     "status.unverified": "Belum Disahkan",
     "status.under_review": "Dalam Semakan",
