@@ -192,13 +192,17 @@ export default function ReportModal({
             )}
             
             {showDuplicateWarning && (
-              <div style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', padding: '0.75rem', borderRadius: '8px', color: '#fbbf24', fontSize: '0.85rem', marginBottom: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', textAlign: 'center' }}>
+              <div style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', padding: '0.85rem', borderRadius: '8px', color: '#34d399', fontSize: '0.85rem', marginBottom: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', textAlign: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                  <AlertTriangle size={16} />
-                  <strong>{lang === 'ms' ? '⚠️ Anda telah menghantar laporan serupa. Hantar juga?' : '⚠️ You have already submitted a similar report. Submit anyway?'}</strong>
+                  <CheckCircle size={18} />
+                  <span>
+                    {lang === 'ms' 
+                      ? 'Terima kasih! Maklumat ini telah dilaporkan sebelum ini. Sumbangan anda membantu memperkukuh perlindungan komuniti kami.' 
+                      : 'Thank you! This indicator has already been flagged by our community. Your input helps strengthen our collective scam detection.'}
+                  </span>
                 </div>
-                <button type="button" onClick={(e) => handleSubmit(e, true)} className="btn-secondary" style={{ borderColor: 'rgba(245, 158, 11, 0.5)', color: '#fbbf24', alignSelf: 'center', fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}>
-                  {lang === 'ms' ? 'Hantar Juga' : 'Submit Anyway'}
+                <button type="button" onClick={(e) => handleSubmit(e, true)} className="btn-secondary" style={{ borderColor: 'rgba(16, 185, 129, 0.5)', color: '#34d399', alignSelf: 'center', fontSize: '0.8rem', padding: '0.4rem 0.8rem', marginTop: '0.25rem' }}>
+                  {lang === 'ms' ? 'Hantar Tambahan' : 'Confirm & Submit'}
                 </button>
               </div>
             )}

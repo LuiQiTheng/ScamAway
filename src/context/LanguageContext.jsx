@@ -57,7 +57,7 @@ const translations = {
     "trends.safety_tip3_title": "Never share OTP or TAC codes.",
     "trends.safety_tip3_desc": "Official organisations will never request your verification codes.",
     "trends.safety_tip4_title": "Scan suspicious content.",
-    "trends.safety_tip4_desc": "Use Scam Away Scanner to verify URLs, messages and QR codes before taking action.",
+    "trends.safety_tip4_desc": "Use Scam Away Scanner to verify URLs, messages and phone numbers before taking action.",
 
     "trends.info_title": "Community Insights",
     "trends.info_content": "These charts are based on scam reports submitted by Scam Away users. They help you understand the most common scam types and identify emerging scam trends within the community.",
@@ -619,7 +619,7 @@ const translations = {
     "trends.safety_tip3_title": "Jangan kongsi kod OTP atau TAC.",
     "trends.safety_tip3_desc": "Organisasi rasmi tidak akan sekali-kali meminta kod pengesahan anda.",
     "trends.safety_tip4_title": "Imbas kandungan mencurigakan.",
-    "trends.safety_tip4_desc": "Gunakan Pengimbas Scam Away untuk menyemak URL, mesej dan kod QR sebelum mengambil tindakan.",
+    "trends.safety_tip4_desc": "Gunakan Pengimbas Scam Away untuk menyemak URL, mesej dan nombor telefon sebelum mengambil tindakan.",
 
     "trends.info_title": "Wawasan Komuniti",
     "trends.info_content": "Carta ini berdasarkan laporan scam yang dihantar oleh pengguna Scam Away. Ia membantu anda memahami jenis scam yang paling kerap berlaku serta mengenal pasti trend scam yang sedang meningkat dalam komuniti.",
