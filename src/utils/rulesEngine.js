@@ -87,11 +87,31 @@ function getIndicatorValue(entry) {
 }
 
 export function normalizePhone(value = '') {
-  const digits = String(value).replace(/\D/g, '');
+  let digits = String(value).replace(/\D/g, '');
   if (!digits) return '';
-  if (digits.startsWith('60')) return `+${digits}`;
-  if (digits.startsWith('0')) return `+6${digits}`;
-  if (digits.startsWith('1')) return `+60${digits}`;
+
+  if (digits.startsWith('0')) {
+    digits = '60' + digits.slice(1);
+  } else if (digits.startsWith('1')) {
+    digits = '60' + digits;
+  } else if (!digits.startsWith('60') && digits.length <= 10) {
+    digits = '60' + digits;
+  }
+
+  // Format Malaysian mobile numbers as +601X-XXXXXXX (country code and dash)
+  // Prefixes: 6010, 6011, 6012, 6013, 6014, 6015, 6016, 6017, 6018, 6019
+  if (digits.startsWith('601') && digits.length >= 9) {
+    return `+${digits.slice(0, 4)}-${digits.slice(4)}`;
+  }
+
+  // Malaysian landlines (603 for KL/Selangor; 604-609 for other regions)
+  if (digits.startsWith('603') && digits.length >= 8) {
+    return `+603-${digits.slice(3)}`;
+  }
+  if (/^60[4-9]/.test(digits) && digits.length >= 8) {
+    return `+${digits.slice(0, 3)}-${digits.slice(3)}`;
+  }
+
   return `+${digits}`;
 }
 

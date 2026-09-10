@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { hashPassword, sanitizeUserSession } from '../utils/cryptoAuth';
+import { hashPassword, sanitizeUserSession, isPasswordHashed } from '../utils/cryptoAuth';
 
 describe('cryptoAuth utility', () => {
   it('hashes password deterministically with salt', async () => {
@@ -11,6 +11,15 @@ describe('cryptoAuth utility', () => {
     expect(hash1.length).toBe(64); // SHA-256 is 64 hex chars
     expect(hash1).toBe(hash2);
     expect(hash1).not.toBe(hash3);
+  });
+
+  it('correctly identifies whether a password string is already hashed', async () => {
+    const hash = await hashPassword('admin123');
+    expect(isPasswordHashed(hash)).toBe(true);
+    expect(isPasswordHashed('admin123')).toBe(false);
+    expect(isPasswordHashed('password')).toBe(false);
+    expect(isPasswordHashed('')).toBe(false);
+    expect(isPasswordHashed(null)).toBe(false);
   });
 
   it('handles empty or non-string passwords gracefully', async () => {

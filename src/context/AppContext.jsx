@@ -2,7 +2,8 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { collection, onSnapshot, addDoc, updateDoc, doc, setDoc, getDocs, getDoc, query, where, deleteDoc, runTransaction, arrayUnion, arrayRemove } from "firebase/firestore";
 import { db } from '../config/firebase';
 import { translateText } from '../utils/translateText';
-import { hashPassword, sanitizeUserSession } from '../utils/cryptoAuth';
+import { hashPassword, sanitizeUserSession, isPasswordHashed } from '../utils/cryptoAuth';
+import { normalizePhone, normalizeHostname, normalizeBankAccount } from '../utils/rulesEngine';
 
 const AppContext = createContext();
 
@@ -17,6 +18,7 @@ const INITIAL_BLACKLIST = {
   urls: ['pos-laju.info', 'maybank-secure-login.xyz'],
   bankAccounts: ['164228910239']
 };
+
 
 export const AppProvider = ({ children }) => {
   const [reportsList, setReportsList] = useState(() => {
@@ -290,6 +292,41 @@ export const AppProvider = ({ children }) => {
     return () => unsubAudit();
   }, []);
 
+  // [SEC-01] Auto-migrate legacy plaintext passwords in Firestore (admins and users) to SHA-256
+  useEffect(() => {
+    const migrateLegacyPlaintextPasswords = async () => {
+      try {
+        // Upgrade legacy plaintext admin passwords (e.g. admin1)
+        const adminsSnap = await getDocs(collection(db, "admins"));
+        if (!adminsSnap.empty) {
+          adminsSnap.forEach(async (adminDoc) => {
+            const data = adminDoc.data();
+            if (data?.password && !isPasswordHashed(data.password)) {
+              const hashed = await hashPassword(data.password);
+              await updateDoc(doc(db, "admins", adminDoc.id), { password: hashed });
+            }
+          });
+        }
+
+        // Upgrade legacy plaintext user passwords
+        const usersSnap = await getDocs(collection(db, "users"));
+        if (!usersSnap.empty) {
+          usersSnap.forEach(async (userDoc) => {
+            const data = userDoc.data();
+            if (data?.password && !isPasswordHashed(data.password)) {
+              const hashed = await hashPassword(data.password);
+              await updateDoc(doc(db, "users", userDoc.id), { password: hashed });
+            }
+          });
+        }
+      } catch (e) {
+        // Silently skip if offline or running in mock test environment
+      }
+    };
+
+    migrateLegacyPlaintextPasswords();
+  }, []);
+
   // Helper to add audit log entries with actor identity tracking
   const addAuditLog = useCallback((action, reportId = null, rationale = '', details = '', performedBy = 'System Admin') => {
     const actor = adminProfile?.officerId || performedBy;
@@ -466,27 +503,51 @@ export const AppProvider = ({ children }) => {
   }, [addAuditLog]);
 
   const addBlacklistItem = useCallback(async (type, value) => {
-    if (!['phoneNumbers', 'urls', 'bankAccounts'].includes(type)) return;
+    if (!['phoneNumbers', 'urls', 'bankAccounts'].includes(type)) return { success: false };
+    
+    const normalizers = {
+      phoneNumbers: normalizePhone,
+      bankAccounts: normalizeBankAccount,
+      urls: normalizeHostname,
+    };
+    const normFn = normalizers[type] || ((v) => v);
+    const normValue = normFn(value);
+
+    // Check if duplicate exists (treating formats like 011-8762512 and 0118762512 as identical)
+    const existingMatch = blacklist[type]?.find(item => normFn(item) === normValue);
+    if (existingMatch) {
+      return { success: false, duplicate: true, existingMatch, normalized: normValue };
+    }
+
     setBlacklist(prev => ({
       ...prev,
-      [type]: Array.from(new Set([...prev[type], value]))
+      [type]: Array.from(new Set([...prev[type], normValue]))
     }));
-    addAuditLog(`Added to Blacklist (${type})`, null, `Value: ${value}`);
+    addAuditLog(`Added to Blacklist (${type})`, null, `Value: ${normValue}`);
     try {
       // DB-02: Use Firestore arrayUnion for atomic mutation
       await updateDoc(doc(db, "system", "blacklist"), {
-        [type]: arrayUnion(value)
+        [type]: arrayUnion(normValue)
       });
     } catch (e) {
       console.warn("⚠️ [Firestore] Failed to update blacklist in cloud:", e?.message);
     }
-  }, [addAuditLog]);
+    return { success: true, value: normValue };
+  }, [blacklist, addAuditLog]);
 
   const removeBlacklistItem = useCallback(async (type, value) => {
     if (!['phoneNumbers', 'urls', 'bankAccounts'].includes(type)) return;
+    const normalizers = {
+      phoneNumbers: normalizePhone,
+      bankAccounts: normalizeBankAccount,
+      urls: normalizeHostname,
+    };
+    const normFn = normalizers[type] || ((v) => v);
+    const normValue = normFn(value);
+
     setBlacklist(prev => ({
       ...prev,
-      [type]: prev[type].filter(item => item !== value)
+      [type]: prev[type].filter(item => normFn(item) !== normValue && item !== value)
     }));
     addAuditLog(`Removed from Blacklist (${type})`, null, `Value: ${value}`);
     try {
@@ -499,15 +560,25 @@ export const AppProvider = ({ children }) => {
     }
   }, [addAuditLog]);
 
+
   const updateBlacklistItem = useCallback(async (type, oldValue, newValue) => {
     if (!['phoneNumbers', 'urls', 'bankAccounts'].includes(type)) return;
+    const normalizers = {
+      phoneNumbers: normalizePhone,
+      bankAccounts: normalizeBankAccount,
+      urls: normalizeHostname,
+    };
+    const normFn = normalizers[type] || ((v) => v);
+    const normNewValue = normFn(newValue);
+    if (!normNewValue) return;
+
     setBlacklist(prev => ({
       ...prev,
-      [type]: prev[type].map(item => item === oldValue ? newValue : item)
+      [type]: prev[type].map(item => (item === oldValue || normFn(item) === normFn(oldValue)) ? normNewValue : item)
     }));
-    addAuditLog(`Updated Blacklist Item (${type})`, null, `From: ${oldValue} -> To: ${newValue}`);
+    addAuditLog(`Updated Blacklist Item (${type})`, null, `From: ${oldValue} -> To: ${normNewValue}`);
     try {
-      const updatedList = blacklist[type].map(item => item === oldValue ? newValue : item);
+      const updatedList = blacklist[type].map(item => (item === oldValue || normFn(item) === normFn(oldValue)) ? normNewValue : item);
       await updateDoc(doc(db, "system", "blacklist"), {
         [type]: updatedList
       });

@@ -42,6 +42,8 @@ export default function ModeratorDashboard() {
   const [newBlacklistType, setNewBlacklistType] = useState('urls');
   const [editingItem, setEditingItem] = useState(null); // { type, oldValue }
   const [editValue, setEditValue] = useState('');
+  const [blacklistFeedback, setBlacklistFeedback] = useState(null);
+
 
   // Dynamic placeholder for blacklist input
   const getBlacklistPlaceholder = () => {
@@ -164,7 +166,7 @@ export default function ModeratorDashboard() {
       return text.includes(q) || id.includes(q) || category.includes(q) || type.includes(q) || reporter.includes(q);
     });
 
-  const handleAddManualBlacklist = (e) => {
+  const handleAddManualBlacklist = async (e) => {
     e.preventDefault();
     if (!newBlacklistItem.trim()) return;
     const normalizers = {
@@ -172,11 +174,31 @@ export default function ModeratorDashboard() {
       phoneNumbers: normalizePhone,
       bankAccounts: normalizeBankAccount,
     };
-    const normalizedValue = normalizers[newBlacklistType](newBlacklistItem);
+    const normFn = normalizers[newBlacklistType] || ((v) => v);
+    const rawVal = newBlacklistItem.trim();
+    const normalizedValue = normFn(rawVal);
     if (!normalizedValue) return;
-    addBlacklistItem(newBlacklistType, normalizedValue);
+
+    const res = await addBlacklistItem(newBlacklistType, normalizedValue);
+    if (res?.duplicate) {
+      setBlacklistFeedback({
+        type: 'error',
+        message: lang === 'ms'
+          ? `Entri '${rawVal}' sudah wujud dalam senarai hitam.`
+          : `Entry '${rawVal}' is already registered in the blacklist.`
+      });
+      return;
+    }
+
+    setBlacklistFeedback({
+      type: 'success',
+      message: lang === 'ms'
+        ? `Berjaya menambah '${normalizedValue}' ke dalam senarai hitam.`
+        : `Successfully added '${normalizedValue}' to the blacklist.`
+    });
     setNewBlacklistItem('');
   };
+
 
   const renderBlacklistItem = (type, value) => {
     const isEditing = editingItem?.type === type && editingItem?.oldValue === value;
@@ -784,7 +806,10 @@ export default function ModeratorDashboard() {
                   <form onSubmit={handleAddManualBlacklist} style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                     <select
                       value={newBlacklistType}
-                      onChange={(e) => setNewBlacklistType(e.target.value)}
+                      onChange={(e) => {
+                        setNewBlacklistType(e.target.value);
+                        if (blacklistFeedback) setBlacklistFeedback(null);
+                      }}
                       className="input-field"
                       style={{ flex: 1, minWidth: '150px' }}
                     >
@@ -795,13 +820,33 @@ export default function ModeratorDashboard() {
                     <input
                       type="text"
                       value={newBlacklistItem}
-                      onChange={(e) => setNewBlacklistItem(e.target.value)}
+                      onChange={(e) => {
+                        setNewBlacklistItem(e.target.value);
+                        if (blacklistFeedback) setBlacklistFeedback(null);
+                      }}
                       className="input-field"
                       placeholder={getBlacklistPlaceholder()}
                       style={{ flex: 2, minWidth: '200px' }}
                     />
                     <button type="submit" className="btn-primary" style={{ whiteSpace: 'nowrap' }}>{t('admin.add_btn')}</button>
                   </form>
+                  {blacklistFeedback && (
+                    <div style={{
+                      marginTop: '0.75rem',
+                      padding: '0.65rem 0.85rem',
+                      borderRadius: '6px',
+                      fontSize: '0.85rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      background: blacklistFeedback.type === 'error' ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.12)',
+                      border: blacklistFeedback.type === 'error' ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(16, 185, 129, 0.3)',
+                      color: blacklistFeedback.type === 'error' ? '#fca5a5' : '#a7f3d0'
+                    }}>
+                      <span>{blacklistFeedback.type === 'error' ? '⚠️' : '✅'}</span>
+                      <span>{blacklistFeedback.message}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
@@ -837,11 +882,21 @@ export default function ModeratorDashboard() {
                   <>
                     {(isAuditExpanded ? auditLogs : auditLogs.slice(0, 3)).map(log => (
                       <div key={log.id} style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                          <span style={{ fontSize: '0.85rem', color: '#fff' }}>
-                            {t('admin.action')} <strong style={{ color: 'var(--primary)', textTransform: 'capitalize' }}>{log.action}</strong>
-                            {lang === 'ms' ? 'Laporan' : 'Report'} {log.reportCode ? `${log.reportCode}` : `#${log.reportId?.toString().slice(-6)}`}
-                            {log.performedBy && <span style={{ color: 'var(--text-muted)', marginLeft: '0.5rem' }}>by {log.performedBy}</span>}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                          <span style={{ fontSize: '0.85rem', color: '#fff', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.35rem' }}>
+                            <span>{t('admin.action')}</span>
+                            <strong style={{ color: 'var(--primary)', textTransform: 'capitalize' }}>{log.action}</strong>
+                            {(log.reportCode || log.reportId) && (
+                              <span style={{ color: 'var(--text-secondary)' }}>
+                                {t('admin.on_report') || (lang === 'ms' ? 'pada Laporan #' : 'on Report #')}
+                                {(log.reportCode || log.reportId?.toString().slice(-6)).replace(/^#/, '')}
+                              </span>
+                            )}
+                            {log.performedBy && (
+                              <span style={{ color: 'var(--text-muted)' }}>
+                                {lang === 'ms' ? 'oleh' : 'by'} {log.performedBy}
+                              </span>
+                            )}
                           </span>
                           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{new Date(log.timestamp).toLocaleString()}</span>
                         </div>

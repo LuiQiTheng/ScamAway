@@ -52,3 +52,15 @@ export function sanitizeUserSession(user) {
   const { password: _password, ...sanitized } = user;
   return sanitized;
 }
+
+/**
+ * Checks whether a password string is already a 64-character SHA-256 hexadecimal hash.
+ * 
+ * @param {string} password - The password string to inspect
+ * @returns {boolean} True if already a 64-character hex hash, false if legacy plaintext
+ */
+export function isPasswordHashed(password) {
+  if (!password || typeof password !== 'string') return false;
+  return /^[a-f0-9]{64}$/i.test(password);
+}
+

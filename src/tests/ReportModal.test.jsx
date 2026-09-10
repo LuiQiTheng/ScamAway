@@ -66,9 +66,9 @@ describe('ReportModal', () => {
     expect(onSubmitReport.mock.calls[0][0].originalText).toBeUndefined();
   });
 
-  it('redacts Malaysian phone numbers and long account numbers', () => {
+  it('redacts Malaysian phone numbers, account numbers, and IC numbers', () => {
     expect(
-      redactSensitiveInformation('Phone 60162518403, account 123456789012'),
-    ).toBe('Phone [REDACTED PHONE], account [REDACTED BANK ACCOUNT]');
+      redactSensitiveInformation('Phone 60162518403, account 1642289102, IC 990101-14-5566'),
+    ).toBe('Phone [REDACTED PHONE], account [REDACTED BANK ACCOUNT], IC [REDACTED IC/NRIC]');
   });
 });

@@ -268,7 +268,7 @@ describe('Context-aware scam detection engine', () => {
 
     expect(matches).toHaveLength(1);
     expect(matches[0].id).toBe('same-phone');
-    expect(matches[0].matchedIndicators).toContain('+60162518403');
+    expect(matches[0].matchedIndicators).toContain('+6016-2518403');
   });
 
   it('matches indicators from the original copy when the shared report is redacted', () => {
