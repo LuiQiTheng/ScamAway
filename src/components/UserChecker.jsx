@@ -3,11 +3,13 @@ import {
   ShieldAlert, ShieldCheck, Shield, Clipboard,
   Link, AlertTriangle,
   Volume2, VolumeX, Phone, CheckSquare,
-  Square, RefreshCw, Send, AlertCircle, Sparkles
+  Square, RefreshCw, Send, AlertCircle, Sparkles,
+  UploadCloud, X, CreditCard
 } from 'lucide-react';
 import {
   analyzeScamRisk,
   findMatchingVerifiedReports,
+  analyzeScreenshotRisk,
 } from '../utils/rulesEngine';
 import { checkUrlWithVirusTotal, checkDomainExists } from '../utils/virusTotal';
 import { QUICK_TEST_PRESETS } from '../content/educationalContent';
@@ -28,9 +30,15 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
   const [urlError, setUrlError] = useState('');
   const [isUrlInvalid, setIsUrlInvalid] = useState(false);
   const [phoneInput, setPhoneInput] = useState('');
+  const [bankInput, setBankInput] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const [scanSteps, setScanSteps] = useState([]);
   const [scanResult, setScanResult] = useState(null);
+
+  // Multimodal Screenshot & Image Paste State
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const fileInputRef = useRef(null);
 
   // Text to Speech
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
@@ -65,19 +73,30 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
     if (!scanResult || !lastScanRef.current) return;
 
     const rerun = async () => {
-      const res = await analyzeScamRisk(
-        lastScanRef.current.text,
-        {
-          ...lastScanRef.current.metadata,
-          verifiedReportsCount: reportsList.filter(
-            r => r.status === "confirmed"
-          ).length,
-          blacklist,
-          lang
-        }
-      );
-
-      setScanResult(res);
+      if (lastScanRef.current?.imageToScan) {
+        const res = await analyzeScreenshotRisk(
+          lastScanRef.current.imageToScan.fileBase64,
+          {
+            ...lastScanRef.current.metadata,
+            userText: lastScanRef.current.text,
+            blacklist,
+            reports: reportsList,
+            lang
+          }
+        );
+        setScanResult(res);
+      } else {
+        const res = await analyzeScamRisk(
+          lastScanRef.current.text,
+          {
+            ...lastScanRef.current.metadata,
+            blacklist,
+            reports: reportsList,
+            lang
+          }
+        );
+        setScanResult(res);
+      }
     };
 
     rerun();
@@ -90,25 +109,90 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
     };
   }, []);
 
-  const triggerScanAnimation = (finalText, metadata = {}) => {
+  // Image & Clipboard Handlers
+  const processImageFile = (file) => {
+    if (!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setSelectedImage({
+        fileBase64: event.target.result,
+        fileName: file.name || 'clipboard-screenshot.png',
+        mimeType: file.type || 'image/jpeg',
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handlePaste = (e) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith('image/')) {
+        e.preventDefault();
+        const file = items[i].getAsFile();
+        if (file) processImageFile(file);
+        return;
+      }
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const file = e.dataTransfer?.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      processImageFile(file);
+    }
+  };
+
+  const triggerScanAnimation = (finalText, metadata = {}, imageToScan = selectedImage) => {
     lastScanRef.current = {
       text: finalText,
-      metadata
+      metadata,
+      imageToScan
     };
 
     setIsScanning(true);
     setScanResult(null);
     setScanSteps([]);
 
-    const steps = [
-      t('scanner.step_extract'),
-      t('scanner.step_ccid'),
-      t('scanner.step_numverify'),
-      t('scanner.step_parse'),
-      t('scanner.step_match'),
-      t('scanner.step_db'),
-      t('scanner.step_score')
-    ];
+    const steps = imageToScan
+      ? [
+          lang === 'ms' ? 'Memuatkan tangkapan skrin ke Analisis Penglihatan AI Gemini...' : 'Uploading screenshot to Gemini AI Vision...',
+          lang === 'ms' ? 'Mengekstrak teks & tanda amaran visual...' : 'Extracting OCR text & visual anomalies...',
+          t('scanner.step_ccid'),
+          t('scanner.step_numverify'),
+          t('scanner.step_match'),
+          t('scanner.step_score')
+        ]
+      : (metadata?.isTargetCheck
+          ? [
+              lang === 'ms' ? 'Menyemak pangkalan data SemakMule PDRM...' : 'Querying PDRM SemakMule CCID database...',
+              lang === 'ms' ? 'Membandingkan senarai hitam Scam Away rasmi...' : 'Cross-referencing Scam Away verified blacklist...',
+              lang === 'ms' ? 'Mengesahkan reputasi & keselamatan rekod...' : 'Validating security reputation & integrity...',
+              t('scanner.step_score')
+            ]
+
+          : [
+              t('scanner.step_extract'),
+              t('scanner.step_ccid'),
+              t('scanner.step_numverify'),
+              t('scanner.step_parse'),
+              t('scanner.step_match'),
+              t('scanner.step_db'),
+              t('scanner.step_score')
+            ]);
+
 
     steps.forEach((step, idx) => {
       setTimeout(() => {
@@ -123,12 +207,27 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
         metadata,
       );
 
-      const res = await analyzeScamRisk(finalText, {
-        ...metadata,
-        matchedVerifiedReports,
-        blacklist: blacklist,
-        lang: lang
-      });
+      let res;
+      if (imageToScan) {
+        res = await analyzeScreenshotRisk(imageToScan.fileBase64, {
+          ...metadata,
+          userText: finalText,
+          matchedVerifiedReports,
+          blacklist,
+          lang
+        });
+        // Populate extracted text into input box if empty
+        if (res.visionForensics?.extractedText && !inputText.trim()) {
+          setInputText(res.visionForensics.extractedText);
+        }
+      } else {
+        res = await analyzeScamRisk(finalText, {
+          ...metadata,
+          matchedVerifiedReports,
+          blacklist,
+          lang
+        });
+      }
 
       // Check for URLs to scan with VT synchronously
       const urlsToCheck = res.analysis?.urls || [];
@@ -182,33 +281,56 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
     }, steps.length * 150 + 200);
   };
 
+  const handleTabChange = (newTab) => {
+    if (newTab === activeTab) return;
+    setActiveTab(newTab);
+    setScanResult(null);
+    setScanSteps([]);
+    setIsScanning(false);
+    setSelectedImage(null);
+    lastScanRef.current = null;
+    setUrlError('');
+    setIsUrlInvalid(false);
+    setVtResult(null);
+    setVtLoading(false);
+    setBankInput('');
+    stopSpeech();
+  };
+
   const handleScanText = () => {
-    if (!inputText.trim()) return;
-    triggerScanAnimation(inputText);
+    if (!inputText.trim() && !selectedImage) return;
+    triggerScanAnimation(inputText || (lang === 'ms' ? 'Imbasan Tangkapan Skrin' : 'Screenshot Incident Scan'));
   };
 
   const handleQuickTest = (preset) => {
-    setActiveTab('text');
+    handleTabChange('text');
     setInputText(preset.text);
-    setScanResult(null);
-    setScanSteps([]);
   };
 
-  const handleScanUrl = async () => {
+  const handleScanTarget = async () => {
     const rawUrl = urlInput.trim();
     const rawPhone = phoneInput.trim();
+    const rawBank = bankInput.trim();
 
-    if (!rawUrl && !rawPhone) {
-      setUrlError(t("scanner.empty_url_error"));
+    if (!rawUrl && !rawPhone && !rawBank) {
+      setUrlError(t("scanner.empty_target_error") || "Please enter at least a website address, phone number, or bank account number.");
       setIsUrlInvalid(true);
       setScanResult(null);
       return;
     }
 
-    if (!rawUrl && rawPhone) {
-      triggerScanAnimation(`Phone check request: ${rawPhone}`);
+    // If no URL is provided, scan phone and/or bank account directly without DNS check
+    if (!rawUrl) {
+      let targetText = "Target check request:";
+      if (rawBank) targetText += ` Bank account: ${rawBank}.`;
+      if (rawPhone) targetText += ` Phone info: ${rawPhone}.`;
+      triggerScanAnimation(targetText, {
+        isTargetCheck: true,
+        targets: { bank: rawBank, phone: rawPhone, url: null }
+      }, null);
       return;
     }
+
 
     let formatted = rawUrl;
 
@@ -270,9 +392,17 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
     setUrlError("");
     setIsUrlInvalid(false);
 
-    const combinedText = `Url check request: ${formatted}.${rawPhone ? ` Phone info: ${rawPhone}` : ""}`;
-    triggerScanAnimation(combinedText);
+    let combinedText = `Target check request: ${formatted}.`;
+    if (rawPhone) combinedText += ` Phone info: ${rawPhone}.`;
+    if (rawBank) combinedText += ` Bank account: ${rawBank}.`;
+    triggerScanAnimation(combinedText, {
+      isTargetCheck: true,
+      targets: { bank: rawBank, phone: rawPhone, url: formatted }
+    }, null);
   };
+
+
+  const handleScanUrl = handleScanTarget;
 
 
 
@@ -442,7 +572,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
           {/* Form Tabs */}
           <div className="scanner-tabs" role="tablist" aria-label="Scam evidence type" style={{ marginBottom: '1.5rem' }}>
             <button
-              onClick={() => { setActiveTab('text'); setScanResult(null); }}
+              onClick={() => handleTabChange('text')}
               className={`nav-link scanner-method-tab ${activeTab === 'text' ? 'active' : ''}`}
               role="tab"
               aria-selected={activeTab === 'text'}
@@ -452,13 +582,13 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
             </button>
 
             <button
-              onClick={() => { setActiveTab('url'); setScanResult(null); }}
+              onClick={() => handleTabChange('url')}
               className={`nav-link scanner-method-tab ${activeTab === 'url' ? 'active' : ''}`}
               role="tab"
               aria-selected={activeTab === 'url'}
               style={{ fontSize: isElderlyMode ? '1.15rem' : '0.9rem' }}
             >
-              <Link size={16} /> {t('scanner.url_btn')}
+              <CreditCard size={16} /> {t('scanner.url_btn')}
             </button>
           </div>
 
@@ -491,25 +621,96 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                 </div>
               </div>
 
-              <label className="form-label" htmlFor="scam-message-input">
-                {lang === 'ms' ? 'Mesej atau konteks untuk diperiksa' : 'Message or context to check'}
-              </label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <label className="form-label" htmlFor="scam-message-input" style={{ margin: 0 }}>
+                  {lang === 'ms' ? 'Mesej, tangkapan skrin, atau konteks untuk diperiksa' : 'Message, screenshot, or context to check'}
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="btn-secondary"
+                    style={{ fontSize: '0.8rem', padding: '0.35rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                    title={lang === 'ms' ? 'Pilih fail gambar dari peranti anda' : 'Select image file from your device'}
+                  >
+                    <UploadCloud size={15} />
+                    {lang === 'ms' ? 'Muat Naik Imej' : 'Upload Image'}
+                  </button>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={(e) => {
+                      if (e.target.files?.[0]) processImageFile(e.target.files[0]);
+                      e.target.value = '';
+                    }}
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                  />
+                </div>
+              </div>
+
+              {selectedImage && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  background: 'rgba(59, 130, 246, 0.12)',
+                  border: '1px solid rgba(59, 130, 246, 0.35)',
+                  borderRadius: '10px',
+                  padding: '0.65rem 0.85rem'
+                }}>
+                  <img
+                    src={selectedImage.fileBase64}
+                    alt="Attached screenshot preview"
+                    style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.2)' }}
+                  />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ color: '#fff', fontSize: '0.85rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      📷 {selectedImage.fileName}
+                    </div>
+                    <div style={{ color: '#93c5fd', fontSize: '0.75rem' }}>
+                      {lang === 'ms' ? 'Tangkapan skrin dikesan (Ctrl+V) • Sedia untuk analisis visual AI' : 'Screenshot attached (Ctrl+V) • Ready for AI vision analysis'}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedImage(null)}
+                    className="btn-secondary"
+                    style={{ padding: '0.3rem 0.5rem', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)', display: 'flex', alignItems: 'center' }}
+                    title={lang === 'ms' ? 'Buang imej' : 'Remove image'}
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              )}
+
               <textarea
                 id="scam-message-input"
                 className="input-field"
                 rows={isElderlyMode ? 5 : 4}
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                placeholder={t('scanner.placeholder')}
+                onPaste={handlePaste}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                placeholder={lang === 'ms'
+                  ? 'Taip, tampal teks, atau tampal tangkapan skrin (Ctrl+V) di sini...'
+                  : 'Type, paste text, or paste a screenshot (Ctrl+V) here...'}
                 aria-describedby="scam-message-hint"
                 maxLength={10000}
-                style={{ resize: 'vertical' }}
+                style={{
+                  resize: 'vertical',
+                  borderColor: isDragOver ? 'var(--primary)' : undefined,
+                  boxShadow: isDragOver ? '0 0 10px rgba(59, 130, 246, 0.4)' : undefined,
+                  transition: 'all 0.2s ease'
+                }}
               />
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span id="scam-message-hint" className="form-hint" style={{ flex: 1 }}>
                   {lang === 'ms'
-                    ? 'Jangan masukkan kata laluan, OTP, atau maklumat bank sebenar.'
-                    : 'Do not enter real passwords, OTPs, or banking details.'}
+                    ? 'Petua: Anda boleh tekan Ctrl+V untuk menampal gambar tangkapan skrin terus ke dalam kotak ini.'
+                    : 'Tip: You can press Ctrl+V to paste a screenshot directly into this box.'}
                 </span>
                 <span style={{ 
                   fontSize: '0.75rem', 
@@ -523,19 +724,67 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
               <button
                 onClick={handleScanText}
                 className="btn-primary scan-primary-action"
-                disabled={!inputText.trim() || isScanning}
+                disabled={(!inputText.trim() && !selectedImage) || isScanning}
                 style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
               >
                 {isScanning ? <RefreshCw className="spinning" size={18} /> : <ShieldAlert size={18} />}
-                {isScanning ? t('common.loading') : t('scanner.button')}
+                {isScanning ? t('common.loading') : (selectedImage ? (lang === 'ms' ? 'Imbas Imej & Analisis' : 'Scan Image & Analyze') : t('scanner.button'))}
               </button>
             </div>
           )}
 
           {activeTab === 'url' && (
             <div role="tabpanel" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              {/* Bank Account Input */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <label htmlFor="url-check-input" className="form-label">{t('scanner.url_label')}</label>
+                <label htmlFor="bank-check-input" className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <CreditCard size={15} color="var(--primary)" />
+                  {t('scanner.bank_label') || "Bank Account Number (Optional)"}
+                </label>
+                <input
+                  id="bank-check-input"
+                  type="text"
+                  value={bankInput}
+                  onChange={(e) => {
+                    setBankInput(e.target.value);
+                    if (urlError || isUrlInvalid) {
+                      setUrlError("");
+                      setIsUrlInvalid(false);
+                    }
+                  }}
+                  className="input-field"
+                  placeholder={t("scanner.bank_placeholder") || "e.g. 1234567890 (Maybank, CIMB, etc.)"}
+                />
+              </div>
+
+              {/* Phone Number Input */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label htmlFor="phone-check-input" className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <Phone size={15} color="var(--primary)" />
+                  {t('scanner.phone_label') || "Sender Phone Number (Optional)"}
+                </label>
+                <input
+                  id="phone-check-input"
+                  type="text"
+                  value={phoneInput}
+                  onChange={(e) => {
+                    setPhoneInput(e.target.value);
+                    if (urlError || isUrlInvalid) {
+                      setUrlError("");
+                      setIsUrlInvalid(false);
+                    }
+                  }}
+                  className="input-field"
+                  placeholder={t("scanner.phone_placeholder")}
+                />
+              </div>
+
+              {/* Website URL Input */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label htmlFor="url-check-input" className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <Link size={15} color="var(--primary)" />
+                  {t('scanner.url_label') || "URL / Web Address (Optional)"}
+                </label>
                 <input
                   id="url-check-input"
                   type="text"
@@ -578,28 +827,16 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                 )}
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <label htmlFor="phone-check-input" className="form-label">{t('scanner.phone_label')?.replace(' (Optional)', '') || "Sender Phone Number"}</label>
-                <input
-                  id="phone-check-input"
-                  type="text"
-                  value={phoneInput}
-                  onChange={(e) => setPhoneInput(e.target.value)}
-                  className="input-field"
-                  placeholder={t("scanner.phone_placeholder")}
-                />
-              </div>
-
               <button
-                onClick={handleScanUrl}
+                onClick={handleScanTarget}
                 className="btn-primary"
-                disabled={(!urlInput.trim() && !phoneInput.trim()) || isScanning}
-                style={{ width: '100%' }}
+                disabled={(!urlInput.trim() && !phoneInput.trim() && !bankInput.trim()) || isScanning}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
               >
-                {isScanning ? <RefreshCw className="spinning" size={18} /> : <Link size={18} />}
-                &nbsp;{isScanning
+                {isScanning ? <RefreshCw className="spinning" size={18} /> : <ShieldAlert size={18} />}
+                {isScanning
                   ? t('scanner.searching')
-                  : (lang === 'ms' ? 'Imbas & Analisis' : 'Scan & Analyze')}
+                  : (t('scanner.scan_target_btn') || (lang === 'ms' ? 'Imbas & Analisis' : 'Scan & Analyze'))}
               </button>
             </div>
           )}
@@ -651,6 +888,86 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
               </div>
             </div>
 
+            {/* Multimodal Visual Forensic Card */}
+            {scanResult.visionForensics && (
+              <div style={{
+                background: 'rgba(59, 130, 246, 0.07)',
+                border: '1px solid rgba(59, 130, 246, 0.25)',
+                borderRadius: '12px',
+                padding: '1.25rem',
+                marginBottom: '1.5rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.75rem'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <h4 style={{ fontSize: isElderlyMode ? '1.3rem' : '1.05rem', color: '#60a5fa', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    🔍 {lang === 'ms' ? 'Analisis Forensik Visual (Gemini Vision)' : 'Visual Forensics Analysis (Gemini Vision)'}
+                  </h4>
+                  {selectedImage && (
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      📷 {selectedImage.fileName}
+                    </span>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', fontSize: '0.85rem' }}>
+                  <div style={{ background: 'rgba(255, 255, 255, 0.05)', padding: '0.35rem 0.65rem', borderRadius: '6px' }}>
+                    <strong style={{ color: '#fff' }}>{lang === 'ms' ? 'Platform:' : 'Platform:'}</strong>{' '}
+                    <span style={{ color: 'var(--primary)' }}>{scanResult.visionForensics.platform || 'Unknown'}</span>
+                  </div>
+                  <div style={{ background: 'rgba(255, 255, 255, 0.05)', padding: '0.35rem 0.65rem', borderRadius: '6px' }}>
+                    <strong style={{ color: '#fff' }}>{lang === 'ms' ? 'Pengirim:' : 'Sender:'}</strong>{' '}
+                    <span style={{ color: '#fff' }}>{scanResult.visionForensics.sender || 'Unknown'}</span>
+                  </div>
+                  {scanResult.visionForensics.senderIsOverseas && (
+                    <div style={{ background: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.4)', padding: '0.35rem 0.65rem', borderRadius: '6px', color: '#f87171', fontWeight: 600 }}>
+                      ⚠️ {lang === 'ms' ? 'Pengirim Luar Negara Dikesan' : 'Overseas Sender Detected'}
+                    </div>
+                  )}
+                </div>
+
+                {scanResult.visionForensics.visualRedFlags?.length > 0 && (
+                  <div style={{ marginTop: '0.25rem' }}>
+                    <strong style={{ color: '#fbbf24', fontSize: '0.85rem' }}>🚩 {lang === 'ms' ? 'Tanda Amaran Visual / Logo Tiruan:' : 'Visual Red Flags / Forged Seals:'}</strong>
+                    <ul style={{ margin: '0.25rem 0 0 1.25rem', padding: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                      {scanResult.visionForensics.visualRedFlags.map((flag, i) => (
+                        <li key={i}>{flag}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {scanResult.visionForensics.explanation && (
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                    {scanResult.visionForensics.explanation}
+                  </p>
+                )}
+
+                {scanResult.visionForensics.extractedText && (
+                  <details style={{ marginTop: '0.25rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                    <summary style={{ cursor: 'pointer', color: 'var(--primary)', fontWeight: 600 }}>
+                      📝 {lang === 'ms' ? 'Lihat Teks Diekstrak dari Tangkapan Skrin (OCR)' : 'Review Extracted OCR Text'}
+                    </summary>
+                    <pre style={{
+                      marginTop: '0.5rem',
+                      padding: '0.75rem',
+                      background: 'rgba(0, 0, 0, 0.3)',
+                      borderRadius: '6px',
+                      whiteSpace: 'pre-wrap',
+                      fontSize: '0.8rem',
+                      color: 'var(--text-primary)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      maxHeight: '150px',
+                      overflowY: 'auto'
+                    }}>
+                      {scanResult.visionForensics.extractedText}
+                    </pre>
+                  </details>
+                )}
+              </div>
+            )}
+
             {/* Explainable evidence indicators (8.3 Explainability) */}
             <div style={{ marginBottom: '1.5rem' }}>
               <h4 style={{ fontSize: isElderlyMode ? '1.3rem' : '1.05rem', color: '#fff', marginBottom: '0.75rem' }}>
@@ -658,28 +975,90 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
               </h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {scanResult.explanations.length > 0 ? (
-                  scanResult.explanations.map((exp, idx) => (
-                    <div key={idx} style={{
-                      background: 'rgba(255,255,255,0.01)',
-                      padding: '1rem',
-                      borderRadius: '8px',
-                      border: '1px solid var(--border-color)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '0.25rem'
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <strong style={{ color: '#fff', fontSize: '0.9rem' }}>⚠️ {exp.label}</strong>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{t('result.weight')}: +{exp.weight}%</span>
+                  scanResult.explanations.map((exp, idx) => {
+                    const isSafe = exp.category === 'safe' || exp.weight === 0;
+                    const isAdvisory = exp.category === 'safe_advisory';
+                    const isCaution = exp.category === 'caution' || exp.category === 'verification' || (exp.weight > 0 && exp.weight < 40);
+                    const icon = isSafe ? '✅' : (isAdvisory ? 'ℹ️' : (isCaution ? '⚠️' : '🚨'));
+                    
+                    const cardBg = isSafe
+                      ? 'rgba(16, 185, 129, 0.05)'
+                      : (isAdvisory ? 'rgba(59, 130, 246, 0.05)' : 'rgba(255,255,255,0.01)');
+                    const cardBorder = isSafe
+                      ? '1px solid rgba(16, 185, 129, 0.25)'
+                      : (isAdvisory ? '1px solid rgba(59, 130, 246, 0.25)' : '1px solid var(--border-color)');
+
+                    return (
+                      <div key={idx} style={{
+                        background: cardBg,
+                        padding: '1rem',
+                        borderRadius: '8px',
+                        border: cardBorder,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.25rem'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                          <strong style={{
+                            color: isSafe ? '#a7f3d0' : (isAdvisory ? '#93c5fd' : '#fff'),
+                            fontSize: '0.9rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.35rem'
+                          }}>
+                            <span>{icon}</span> {exp.label}
+                          </strong>
+                          {isSafe ? (
+                            <span style={{
+                              fontSize: '0.75rem',
+                              color: '#10b981',
+                              fontWeight: 600,
+                              background: 'rgba(16, 185, 129, 0.1)',
+                              padding: '0.15rem 0.5rem',
+                              borderRadius: '4px'
+                            }}>
+                              {t('result.status_clean') || (lang === 'ms' ? 'Status: Bersih' : 'Status: Clean')}
+                            </span>
+                          ) : (isAdvisory ? (
+                            <span style={{
+                              fontSize: '0.75rem',
+                              color: '#60a5fa',
+                              fontWeight: 600,
+                              background: 'rgba(59, 130, 246, 0.1)',
+                              padding: '0.15rem 0.5rem',
+                              borderRadius: '4px'
+                            }}>
+                              {t('result.status_advisory') || (lang === 'ms' ? 'Notis Nasihat' : 'Advisory Notice')}
+                            </span>
+                          ) : (
+                            <span style={{
+                              fontSize: '0.75rem',
+                              color: exp.weight >= 40 ? '#ef4444' : '#f59e0b',
+                              fontWeight: 500
+                            }}>
+                              {t('result.weight')}: +{exp.weight || 0}%
+                            </span>
+                          ))}
+                        </div>
+                        <p style={{
+                          fontSize: '0.85rem',
+                          color: isSafe || isAdvisory ? 'var(--text-primary)' : 'var(--text-secondary)',
+                          wordBreak: 'break-word',
+                          whiteSpace: 'pre-wrap',
+                          lineHeight: '1.45',
+                          marginTop: '0.25rem'
+                        }}>
+                          {exp.text}
+                        </p>
                       </div>
-                      <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>{exp.text}</p>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', padding: '0.5rem 0' }}>
                     {t('result.no_critical_evidence')}
                   </div>
                 )}
+
               </div>
             </div>
 

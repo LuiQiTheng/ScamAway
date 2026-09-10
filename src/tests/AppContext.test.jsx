@@ -5,7 +5,7 @@ import { AppProvider, useAppContext } from '../context/AppContext';
 
 vi.mock('firebase/firestore', () => ({
   collection: vi.fn(),
-  onSnapshot: vi.fn((ref, callback) => {
+  onSnapshot: vi.fn((_ref, _callback) => {
     // Return a dummy unsubscribe function and don't trigger the callback so no data is loaded
     return () => {};
   }),
@@ -18,7 +18,20 @@ vi.mock('firebase/firestore', () => ({
   query: vi.fn(),
   where: vi.fn(),
   deleteDoc: vi.fn(),
+  runTransaction: vi.fn(async (_db, fn) => {
+    const mockTx = {
+      get: vi.fn().mockResolvedValue({ exists: () => true, data: () => ({ count: 5 }) }),
+      set: vi.fn()
+    };
+    return await fn(mockTx);
+  }),
+  arrayUnion: vi.fn((val) => val),
+  arrayRemove: vi.fn((val) => val),
   getFirestore: vi.fn(() => ({}))
+}));
+
+vi.mock('../utils/translateText', () => ({
+  translateText: vi.fn(async (text) => text)
 }));
 
 const TestComponent = () => {
@@ -93,5 +106,32 @@ describe('AppContext', () => {
       expect(stored[0]).toBeDefined();
       expect(stored[0].status).toBe('confirmed');
     });
+  });
+
+  it('strips originalText on addReport to prevent PII leakage [SEC-02]', async () => {
+    let addReportFn;
+    const HelperComponent = () => {
+      const { addReport } = useAppContext();
+      addReportFn = addReport;
+      return null;
+    };
+
+    render(
+      <AppProvider>
+        <HelperComponent />
+      </AppProvider>
+    );
+
+    await act(async () => {
+      await addReportFn({
+        text: 'Redacted text [REDACTED PHONE]',
+        originalText: 'Raw sensitive text 0123456789',
+        category: 'phishing'
+      });
+    });
+
+    const stored = JSON.parse(localStorage.getItem('scam_away_reports'));
+    expect(stored[0].text).toBe('Redacted text [REDACTED PHONE]');
+    expect(stored[0].originalText).toBeUndefined();
   });
 });

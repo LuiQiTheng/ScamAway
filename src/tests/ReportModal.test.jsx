@@ -58,12 +58,12 @@ describe('ReportModal', () => {
     expect(onSubmitReport).toHaveBeenCalledWith(
       expect.objectContaining({
         category: 'job',
-        originalText: 'Telegram job. WhatsApp 60162518403 and pay account 123456789012.',
         text: expect.stringContaining('[REDACTED PHONE]'),
         score: 72,
         status: 'unverified',
       }),
     );
+    expect(onSubmitReport.mock.calls[0][0].originalText).toBeUndefined();
   });
 
   it('redacts Malaysian phone numbers and long account numbers', () => {

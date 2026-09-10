@@ -1,4 +1,4 @@
-import { analyzeTextWithGemini } from './aiEngine';
+import { analyzeTextWithGemini, analyzeScreenshotWithGemini } from './aiEngine';
 import { validateAiAnalysis } from './aiValidation';
 import { getRiskBand } from './riskScale';
 import { LESSON_CARDS } from './lessonCards';
@@ -39,8 +39,12 @@ function initSignatures() {
   });
 
   QUIZ_POOL.forEach(q => {
-    const labelEn = `Known Scam Pattern - ${q.category}`;
-    const labelMs = `Corak Penipuan Dikenali - ${q.category}`;
+    let labelEn = `Known Scam Pattern - ${q.category}`;
+    let labelMs = `Corak Penipuan Dikenali - ${q.category}`;
+    if (!q.isScam) {
+      labelEn = `Verified Safe - ${q.category || "Normal Communication"}`;
+      labelMs = `Disahkan Selamat - ${q.category || "Komunikasi Normal"}`;
+    }
     const expObj = { en: q.explanation, ms: q.explanation_ms || q.explanation };
     if (q.text) knownSignatures.push({ type: 'quiz', isScam: q.isScam, keywords: extractKeywords(q.text), explanation: expObj, label: { en: labelEn, ms: labelMs } });
     if (q.text_ms) knownSignatures.push({ type: 'quiz', isScam: q.isScam, keywords: extractKeywords(q.text_ms), explanation: expObj, label: { en: labelEn, ms: labelMs } });
@@ -50,13 +54,21 @@ function initSignatures() {
     const isScam = qt.tone === 'danger' || qt.tone === 'warning';
     const isCaution = qt.tone === 'caution';
     
-    const labelEn = `Known Scam Pattern - ${qt.pattern_label_en || "Demo Pattern"}`;
-    const labelMs = `Corak Penipuan Dikenali - ${qt.pattern_label_ms || "Corak Demo"}`;
+    let labelEn = `Known Scam Pattern - ${qt.pattern_label_en || "Demo Pattern"}`;
+    let labelMs = `Corak Penipuan Dikenali - ${qt.pattern_label_ms || "Corak Demo"}`;
+    if (!isScam && !isCaution) {
+      labelEn = `Verified Safe - ${qt.pattern_label_en || "Normal Communication"}`;
+      labelMs = `Disahkan Selamat - ${qt.pattern_label_ms || "Komunikasi Normal"}`;
+    } else if (isCaution) {
+      labelEn = `Caution Pattern - ${qt.pattern_label_en || "Verification Needed"}`;
+      labelMs = `Corak Perlu Awas - ${qt.pattern_label_ms || "Perlu Pengesahan"}`;
+    }
     const expObj = { en: qt.explanation_en, ms: qt.explanation_ms || qt.explanation_en };
     
     if (qt.text) knownSignatures.push({ type: 'demo', isScam, isCaution, keywords: extractKeywords(qt.text), explanation: expObj, label: { en: labelEn, ms: labelMs } });
     if (qt.text_ms) knownSignatures.push({ type: 'demo', isScam, isCaution, keywords: extractKeywords(qt.text_ms), explanation: expObj, label: { en: labelEn, ms: labelMs } });
   });
+
 
   signaturesInitialized = true;
 }
@@ -83,8 +95,19 @@ export function normalizePhone(value = '') {
   return `+${digits}`;
 }
 
+/**
+ * Normalizes defanged URLs commonly found in scam alerts and technical disclosures.
+ * Replaces [.] and (.) with dots, and hxxp(s) with http(s).
+ */
+export function defangUrl(text = '') {
+  return String(text)
+    .replace(/\bhxxp(s)?:\/\//gi, 'http$1://')
+    .replace(/\[\.\]|\(\.\)|\[dot\]|\(dot\)/gi, '.');
+}
+
 export function normalizeHostname(value = '') {
-  const trimmed = String(value)
+  const defanged = defangUrl(value);
+  const trimmed = String(defanged)
     .trim()
     .replace(/^[("'`<\u005b]+/, '')
     .replace(/[)"'`>\],;.!?]+$/, '');
@@ -100,6 +123,10 @@ export function normalizeHostname(value = '') {
       .replace(/\.$/, '')
       .replace(/^www\./, '');
   } catch {
+    const match = trimmed.match(/(?:https?:\/\/)?([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i);
+    if (match) {
+      return match[1].toLowerCase().replace(/^www\./, '');
+    }
     return '';
   }
 }
@@ -173,26 +200,34 @@ function hasAny(text, patterns) {
  * Parses input text to extract key indicators: URLs, Phone numbers, and Payment details
  */
 export function extractIndicators(text) {
+  const normalizedText = defangUrl(text);
   const urlRegex = /(https?:\/\/[^\s]+|([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,})/gi;
   const phoneRegex = /(?:\+?6[\s-]?)?0?1\d(?:[\s-]?\d){7,8}/g;
   const paymentRegex = /(RM\s*\d+(\.\d{2})?|\b\d+,\d{3}\s*(RM|ringgit)?|bank\s*transfer|pay\b)/gi;
 
-  const foundUrls = String(text).match(urlRegex) || [];
-  const foundPhones = String(text).match(phoneRegex) || [];
+  const foundUrls = String(normalizedText).match(urlRegex) || [];
+  const foundPhones = String(normalizedText).match(phoneRegex) || [];
   
   const cleanedUrls = foundUrls.map(normalizeHostname).filter(Boolean);
   const phones = [...new Set(foundPhones.map((phone) => phone.trim()))];
 
+  const normalizedPhones = [...new Set(phones.map(normalizePhone).filter(Boolean))];
+  const phoneDigits = new Set(normalizedPhones.map(normalizeBankAccount));
+  const bankAccounts = extractBankAccountCandidates(normalizedText).filter(
+    (account) => !phoneDigits.has(account),
+  );
+
   return {
     urls: [...new Set(cleanedUrls)],
     phones,
-    normalizedPhones: [...new Set(phones.map(normalizePhone).filter(Boolean))],
-    hasPaymentKeywords: paymentRegex.test(text),
-    extractedPayment: text.match(/(RM\s*\d+(\.\d{2})?)/gi)?.[0] || null
+    normalizedPhones,
+    bankAccounts,
+    hasPaymentKeywords: paymentRegex.test(normalizedText),
+    extractedPayment: normalizedText.match(/(RM\s*\d+(\.\d{2})?)/gi)?.[0] || null
   };
 }
 
-function collectComparableIndicators(text, metadata = {}) {
+function collectComparableIndicators(text, _metadata = {}) {
   const extracted = extractIndicators(text);
   const phoneDigits = new Set(extracted.normalizedPhones.map(normalizeBankAccount));
   const domains = extracted.urls
@@ -214,7 +249,7 @@ export function findMatchingVerifiedReports(text, reports = [], metadata = {}) {
   return reports
     .filter((report) => report?.status === 'confirmed')
     .map((report) => {
-      const reportText = report.originalText || report.text || '';
+      const reportText = `${report.text || ''} ${report.originalText || ''}`.trim();
       const known = collectComparableIndicators(reportText);
       const matchedIndicators = [
         ...submitted.domains.filter((value) => known.domains.includes(value)),
@@ -268,10 +303,8 @@ export async function analyzeScamRisk(text, metadata = {}) {
       finalScore = Math.floor(80 + ((maxJaccard - 0.55) / 0.45) * 15) + jitter;
       finalScore = Math.min(99, finalScore);
     } else {
-      // Scale from 15 down to 0, with jitter
-      const jitter = (text.length % 4);
-      finalScore = Math.max(0, Math.floor(15 - ((maxJaccard - 0.55) / 0.45) * 12)) + jitter;
-      finalScore = Math.min(19, finalScore);
+      // Pure safe communication
+      finalScore = 0;
     }
 
     const bandResult = getRiskBand(finalScore, lang);
@@ -286,10 +319,14 @@ export async function analyzeScamRisk(text, metadata = {}) {
     const recommendedActions = lang === 'ms' 
       ? (isHighRisk 
         ? ["Hentikan semua komunikasi dengan segera.", "Jangan buat sebarang transaksi kewangan atau pindahan wang.", "Lapor dan sekat nombor atau akaun ini."]
-        : ["Abaikan mesej ini jika anda tidak menjangkakannya.", "Jangan klik sebarang pautan."])
+        : (bestMatch.isCaution
+          ? ["Sahkan identiti perekrut atau syarikat melalui laman web rasmi.", "Jangan kongsi maklumat sensitif seperti kad pengenalan atau nombor akaun sebelum pengesahan."]
+          : ["Tiada ancaman dikesan. Mesej ini kelihatan seperti komunikasi harian yang selamat.", "Kekal peka dan jangan kongsi maklumat kewangan atau peribadi secara rawak."]))
       : (isHighRisk
         ? ["Cease all communication immediately.", "Do not make any financial transactions or transfers.", "Report and block this number or account."]
-        : ["Ignore this message if you did not expect it.", "Do not click any links."]);
+        : (bestMatch.isCaution
+          ? ["Verify the recruiter or company identity through their official website.", "Do not share sensitive details like your IC or bank account before verification."]
+          : ["No threats detected. This appears to be normal, safe communication.", "Stay mindful and avoid sharing financial or identity details indiscriminately."]));
 
     return {
       score: finalScore,
@@ -300,11 +337,12 @@ export async function analyzeScamRisk(text, metadata = {}) {
       confidence: lang === 'ms' ? 'Tinggi' : 'High',
       explanations: [
         {
-          category: bestMatch.isScam ? "other" : "safe",
+          category: bestMatch.isScam ? "other" : (bestMatch.isCaution ? "caution" : "safe"),
           label: bestMatch.label 
                  ? (lang === 'ms' ? bestMatch.label.ms : bestMatch.label.en) 
                  : (lang === 'ms' ? "Corak Dikesan" : "Pattern Detected"),
-          text: explanationStr
+          text: explanationStr,
+          weight: bestMatch.isScam ? 80 : (bestMatch.isCaution ? 40 : 0)
         }
       ],
       indicators: extractIndicators(text),
@@ -357,6 +395,27 @@ export async function analyzeScamRisk(text, metadata = {}) {
   const bankAccountCandidates = extractBankAccountCandidates(text).filter(
     (account) => !phoneDigits.has(account),
   );
+
+  // If explicit targets passed via metadata, ensure they are registered
+  if (metadata?.targets?.bank) {
+    const explicitBank = normalizeBankAccount(metadata.targets.bank);
+    if (explicitBank && explicitBank.length >= 8 && !bankAccountCandidates.includes(explicitBank)) {
+      bankAccountCandidates.push(explicitBank);
+    }
+  }
+  if (metadata?.targets?.phone) {
+    const explicitPhone = normalizePhone(metadata.targets.phone);
+    if (explicitPhone && !analysis.normalizedPhones.includes(explicitPhone)) {
+      analysis.normalizedPhones.push(explicitPhone);
+    }
+  }
+  if (metadata?.targets?.url) {
+    const explicitUrl = String(metadata.targets.url).trim();
+    if (explicitUrl && !analysis.urls.includes(explicitUrl)) {
+      analysis.urls.push(explicitUrl);
+    }
+  }
+
   const matchedBlacklistAccount = blacklist.bankAccounts.find((entry) =>
     bankAccountCandidates.includes(normalizeBankAccount(getIndicatorValue(entry))),
   );
@@ -469,8 +528,108 @@ export async function analyzeScamRisk(text, metadata = {}) {
 
   // Base score setting if matched a blacklisted element
   if (matchedBlacklistIndicator) {
-    score = Math.max(score, 85); 
+    score = Math.max(score, 90); 
   }
+
+  // --- TARGET CHECK FAST-PATH (Phone, Bank & URL Check Tab) ---
+  if (metadata?.isTargetCheck) {
+    if (matchedBlacklistIndicator) {
+      score = Math.max(score, 90);
+      const bandResult = getRiskBand(score, lang);
+      return {
+        score,
+        riskIndex: score,
+        riskBand: bandResult.label,
+        bandColor: bandResult.color,
+        evidenceStrength: lang === 'ms' ? 'Tinggi' : 'High',
+        confidence: lang === 'ms' ? 'Tinggi' : 'High',
+        explanations,
+        indicators: analysis,
+        indicatorsMatched,
+        context: { type: 'target_check', verificationStatus: 'risk_assessed', hasWhatsAppLink: false },
+        recommendedActions: lang === 'ms' ? [
+          "JANGAN buat sebarang pembayaran atau pemindahan wang ke sasaran ini.",
+          "Sekat nombor, akaun, atau URL ini serta-merta.",
+          "Laporkan butiran ini kepada Pusat Respons Scam Kebangsaan (NSRC 997) jika wang telah dipindahkan."
+        ] : [
+          "DO NOT make any payment or financial transfer to this target.",
+          "Block this number, account, or URL immediately.",
+          "Report these details to the National Scam Response Centre (NSRC 997) if funds were moved."
+        ],
+        ccidMatches,
+        numverifyResults
+      };
+    }
+
+    // Clean Target Check -> 10/100 Precautionary Advisory
+    score = 10;
+    const bandResult = getRiskBand(score, lang);
+
+    if (bankAccountCandidates.length > 0) {
+      explanations.push({
+        category: 'safe',
+        label: lang === 'ms' ? "Pengesahan PDRM SemakMule: Bersih (Akaun Bank)" : "PDRM SemakMule Check: Clean (Bank Account)",
+        text: lang === 'ms'
+          ? `Akaun bank (${bankAccountCandidates[0]}) tiada rekod penipuan dalam pangkalan data SemakMule PDRM atau senarai hitam.`
+          : `Bank account (${bankAccountCandidates[0]}) has no reported scam records in the PDRM SemakMule database or verified blacklist.`,
+        weight: 0
+      });
+    }
+
+    if (analysis.normalizedPhones.length > 0) {
+      explanations.push({
+        category: 'safe',
+        label: lang === 'ms' ? "Pengesahan PDRM SemakMule: Bersih (Telefon)" : "PDRM SemakMule Check: Clean (Phone)",
+        text: lang === 'ms'
+          ? `Nombor telefon (${analysis.normalizedPhones[0]}) tiada rekod penipuan dalam pangkalan data SemakMule PDRM atau senarai hitam.`
+          : `Phone number (${analysis.normalizedPhones[0]}) has no reported scam records in the PDRM SemakMule database or verified blacklist.`,
+        weight: 0
+      });
+    }
+
+    if (analysis.urls.length > 0) {
+      explanations.push({
+        category: 'safe',
+        label: lang === 'ms' ? "Reputasi Domain: Tiada Ancaman Dikenali" : "Domain Reputation: No Known Threats",
+        text: lang === 'ms'
+          ? `Alamat web (${analysis.urls[0]}) telah disemak dan tiada rekod pancingan data atau ancaman keselamatan.`
+          : `The web address (${analysis.urls[0]}) was checked against known threat databases and is not listed.`,
+        weight: 0
+      });
+    }
+
+    explanations.push({
+      category: 'safe_advisory',
+      label: lang === 'ms' ? "Nasihat Berjaga-jaga: Butiran Kewangan & Identiti" : "Precautionary Advisory: Financial & Identity Details",
+      text: lang === 'ms'
+        ? "Tiada rekod penipuan ditemui dalam PDRM SemakMule atau senarai hitam kami. Walau bagaimanapun, akaun keldai baharu atau nombor belum tersenarai mungkin belum dilaporkan. Sebagai langkah berjaga-jaga, sentiasa semak semula identiti penerima sebelum membuat pemindahan wang atau berkongsi maklumat peribadi."
+        : "No reports found in PDRM SemakMule or our verified blacklist. However, newly created mule accounts or unlisted contacts may not yet have reports filed. Always double-check beneficiary details before making financial transactions or sharing personal information.",
+      weight: 10
+    });
+
+    return {
+      score,
+      riskIndex: score,
+      riskBand: bandResult.label,
+      bandColor: bandResult.color,
+      evidenceStrength: lang === 'ms' ? 'Tinggi' : 'High',
+      confidence: lang === 'ms' ? 'Tinggi' : 'High',
+      explanations,
+      indicators: analysis,
+      indicatorsMatched: [],
+      context: { type: 'target_check', verificationStatus: 'verified_clean', hasWhatsAppLink: false },
+      recommendedActions: lang === 'ms' ? [
+        "Sentiasa pastikan nama pemegang akaun di skrin pemindahan perbankan dalam talian atau ATM adalah betul sebelum mengesahkan.",
+        "Jangan sesekali memindahkan wang di bawah tekanan, desakan segera, atau ke pihak ketiga yang tidak dikenali."
+      ] : [
+        "Always verify the beneficiary account holder name on the ATM or online banking transfer screen before confirming.",
+        "Never transfer funds under pressure, urgency, or to unknown third parties."
+      ],
+      ccidMatches,
+      numverifyResults
+    };
+  }
+
 
   // 2. CONTEXT-AWARE RULE LAYER
   // A word such as "urgent" or the presence of a link is not enough on its own.
@@ -587,11 +746,11 @@ export async function analyzeScamRisk(text, metadata = {}) {
     /\b(?:ninja\s*van|pos\s*laju|poslaju|pos\s*malaysia|j&t|dhl|fedex)\b/i
   ]);
   const hasParcelProblemClaim = hasAffirmativePattern(text, [
-    /\b(?:parcel|bungkusan|delivery).{0,55}(?:held|on hold|ditahan|failed|gagal|invalid address|customs|kastam|returned|cancelled|disposal|return to sender)\b/i,
-    /\b(?:sorting hub|clearance|redelivery|customs).{0,35}(?:fee|payment|required|failed)\b/i,
+    /\b(?:parcel|bungkusan|delivery).{0,55}(?:held|on hold|ditahan|failed|gagal|invalid address|customs|kastam|returned|cancelled|disposal|return to sender|tertahan)\b/i,
+    /\b(?:sorting hub|clearance|redelivery|customs).{0,35}(?:fee|payment|bayaran|cukai|required|failed)\b/i,
     /\b(?:unpaid|tertunggak|belum dibayar).{0,30}(?:customs|fee|tax|cukai)\b/i,
-    /\b(?:rider|penghantar).{0,30}(?:on the way|dalam perjalanan|deliver)\b/i,
-    /\b(?:cash amount due|prepare exact cash|cod|bayar semasa terima)\b/i
+    /\b(?:update|kemaskini).{0,30}(?:address|alamat).{0,30}(?:redeliver|penghantaran semula)\b/i,
+    /\b(?:cash amount due|prepare exact cash|bayar semasa terima)\s*(?:rm\s*\d+|\d{2,})/i
   ]);
 
   const isInvestmentContext = hasAny(text, [
@@ -630,8 +789,8 @@ export async function analyzeScamRisk(text, metadata = {}) {
   );
 
   const isCourierScam = isCourierContext &&
-    (hasParcelProblemClaim || hasPaymentRequest) &&
-    (hasPaymentRequest || hasNonWhatsAppWebSource || hasDirectPressure);
+    hasParcelProblemClaim &&
+    (hasPaymentRequest || hasNonWhatsAppWebSource || (hasDirectPressure && analysis.urls.length > 0));
 
   const isInvestmentScam = isInvestmentContext &&
     (hasImpossibleReturn || hasHighDailyIncomeClaim || hasPaymentRequest);
@@ -643,6 +802,52 @@ export async function analyzeScamRisk(text, metadata = {}) {
     (hasFearThreat || hasDirectPressure) &&
     (hasPaymentRequest || hasCreds || hasNonWhatsAppWebSource || hasDirectPressure);
 
+  const hasBankOrFinancialBrand = hasAny(text, [
+    /\b(?:cimb(?:\s*clicks|bank)?|maybank(?:2u)?|public\s*bank|rhb(?:\s*now)?|hong\s*leong|hlb|ambank|bank\s*islam|bsn|affin|alliance\s*bank|uob|ocbc|hsbc|touch\s*['’]?n\s*go|tng\s*ewallet|grabpay)\b/i
+  ]);
+
+  const hasUnauthorizedChargeClaim = hasAffirmativePattern(text, [
+    /\b(?:charged|debited|deducted|authorized|transacted|withdrawn|dipotong|dikenakan|didebitkan).{0,40}(?:account|card|kad|akaun|balance|baki)\b/i,
+    /\b(?:account|card|kad|akaun).{0,40}(?:charged|debited|deducted|dipotong|didebitkan)\b/i,
+    /\b(?:did not authorize|did not make|unauthorized|not your transaction|bukan anda|bukan transaksi anda|tidak sahkan|tanpa kebenaran)\b/i,
+    /\b(?:alert|urgent|notice|makluman).{0,30}(?:rm\s*\d+|\d+,\d{3})/i,
+    /\b(?:rm\s*\d+(\.\d{2})?|\b\d+,\d{3}).{0,40}(?:charged|deducted|debited|dipotong|dikenakan)\b/i
+  ]);
+
+  const hasCancelOrDisputeAction = hasAffirmativePattern(text, [
+    /\b(?:click|tap|klik|tekan).{0,45}(?:cancel|dispute|batal|pertikai|report|sekat|block|stop|verify|sahkan)\b/i,
+    /\b(?:to cancel|to dispute|untuk batal|untuk pertikai|to stop|to reverse)\b/i,
+    /\b(?:if not you|if unauthorized|jika bukan anda).{0,40}(?:click|call|contact|hubungi|klik|tekan)\b/i
+  ]);
+
+  const OFFICIAL_BANK_DOMAINS = new Set([
+    'cimb.com.my', 'cimbclicks.com.my', 'maybank2u.com.my', 'maybank.com',
+    'pbebank.com', 'rhbgroup.com', 'hlb.com.my', 'ambank.com.my', 'bankislam.com'
+  ]);
+
+  const hasOfficialBankDomain = analysis.urls.some((url) => {
+    const host = normalizeHostname(url);
+    return OFFICIAL_BANK_DOMAINS.has(host);
+  });
+
+  const hasSpoofedBankDomain = analysis.urls.some((url) => {
+    const host = normalizeHostname(url);
+    if (!host || OFFICIAL_BANK_DOMAINS.has(host)) return false;
+    return /(?:cimb|maybank|rhb|pbebank|hlb|bankislam|ambank)[-._]|[-._](?:cimb|maybank|rhb|pbebank|hlb)/i.test(host);
+  });
+
+  const hasUntrustedBankLink = analysis.urls.some((url) => {
+    const host = normalizeHostname(url);
+    return host && !OFFICIAL_BANK_DOMAINS.has(host) && !isWhatsAppDomain(host);
+  });
+
+  // Legitimate bank notifications (especially SMS) have NO clickable links or OTP requests.
+  // Phishing is triggered when an alert combines banking claims with spoofed/untrusted links,
+  // click-to-cancel traps, or requests for credentials.
+  const isBankingPhishing = (hasBankOrFinancialBrand || hasSpoofedBankDomain) &&
+    (hasUnauthorizedChargeClaim || hasCancelOrDisputeAction) &&
+    (hasSpoofedBankDomain || hasUntrustedBankLink || (hasCancelOrDisputeAction && analysis.urls.length > 0));
+
   const hasStrongJobRisk = hasJobAdvanceFee ||
     hasCreds ||
     hasUnrealisticJobIncome ||
@@ -653,6 +858,18 @@ export async function analyzeScamRisk(text, metadata = {}) {
   // --- CORE SCAM ARCHETYPE SCORING ---
   // Each evidence contribution is added once. Scores are not artificially
   // floored and then incremented by the same evidence a second time.
+
+  if (isBankingPhishing || hasSpoofedBankDomain) {
+    ruleContribution += 65;
+    explanations.push({
+      category: "phishing",
+      label: lang === 'ms' ? "Penipuan Pancingan Data Perbankan (Bank Phishing)" : "Banking Phishing / Fake Bank Alert",
+      text: lang === 'ms'
+        ? "Mesej menyamar sebagai amaran transaksi atau pemotongan bank untuk mencetuskan panik dengan pautan pembatalan palsu yang direka untuk mencuri kelayakan perbankan."
+        : "The message impersonates a bank transaction alert to induce panic with a fraudulent cancellation link designed to steal banking credentials.",
+      weight: 65
+    });
+  }
 
   if (isJobPost || hasJobAdvanceFee || hasHighDailyIncomeClaim) {
     if (hasJobAdvanceFee || hasUnrealisticJobIncome || hasStrongJobRisk || (hasPaymentRequest && hasHighDailyIncomeClaim) || (hasSecrecy && hasPaymentRequest)) {
@@ -717,10 +934,13 @@ export async function analyzeScamRisk(text, metadata = {}) {
   }
 
   // If ANY core archetype triggered, guarantee a minimum Critical score
-  const hitCoreArchetype = isCourierScam || isInvestmentScam || isEmergencyScam || hasAuthorityExtortion ||
+  const hitCoreArchetype = isCourierScam || isInvestmentScam || isEmergencyScam || hasAuthorityExtortion || isBankingPhishing || hasSpoofedBankDomain ||
     (isJobPost && (hasJobAdvanceFee || hasUnrealisticJobIncome || hasStrongJobRisk || (hasPaymentRequest && hasHighDailyIncomeClaim)));
   if (hitCoreArchetype) {
     score = Math.max(score, 85);
+  }
+  if (hasSpoofedBankDomain) {
+    score = Math.max(score, 92);
   }
 
   if (hasCreds) {
@@ -858,18 +1078,28 @@ export async function analyzeScamRisk(text, metadata = {}) {
     }
 
     if (hitCoreArchetype) {
-      score = 85;
+      // Dynamic baseline scaling from 85 to 98 based on compounding threat vectors
+      let dynamicScore = 85;
+      if (hasPaymentRequest) dynamicScore += 3;
+      if (hasCreds) dynamicScore += 4;
+      if (hasFearThreat) dynamicScore += 3;
+      if (hasSpoofedBankDomain) dynamicScore += 5;
+      if (hasUntrustedBankLink || (otherDomains.length > 0)) dynamicScore += 2;
+      if (hasDirectPressure) dynamicScore += 2;
+      score = Math.min(98, Math.max(score, dynamicScore));
     } else {
       score += ruleContribution;
     }
   }
 
   // 3. TRUE AI SEMANTIC ANALYSIS (Gemini API)
+  let validatedGeminiScore = 0;
   try {
     const geminiResult = await analyzeTextWithGemini(text, lang);
     const validatedGeminiResult = validateAiAnalysis(geminiResult, text, lang);
     if (validatedGeminiResult) {
       acceptedAiAnalysis = true;
+      validatedGeminiScore = validatedGeminiResult.score;
       let semanticScore = validatedGeminiResult.score;
 
       // A normal job advertisement with only a WhatsApp contact must not be
@@ -904,50 +1134,105 @@ export async function analyzeScamRisk(text, metadata = {}) {
   }
 
 
-  // 4. COMMUNITY FUSION
-  // Only exact canonical phone/domain/account matches are eligible. A global
-  // report count or a shared brand word is not evidence about this submission.
+  // 4. COMMUNITY FUSION & DYNAMIC BLACKLIST SCALING [BUG-01]
+  // Only exact canonical phone/domain/account matches are eligible.
   const matchedVerifiedReports = Array.isArray(metadata.matchedVerifiedReports)
     ? metadata.matchedVerifiedReports.filter(
         (report) => Array.isArray(report.matchedIndicators) && report.matchedIndicators.length > 0,
       )
-    : [];
-  const verifiedReports = matchedVerifiedReports.length;
+    : (Array.isArray(metadata.reports)
+        ? findMatchingVerifiedReports(text, metadata.reports, metadata)
+        : []);
+  const verifiedReports = typeof metadata.verifiedReports === 'number'
+    ? metadata.verifiedReports
+    : matchedVerifiedReports.length;
+
   if (verifiedReports > 0) {
-    const commBonus = verifiedReports >= 3 ? 15 : 8;
+    score = 100;
     const communityIndicators = [
-      ...new Set(matchedVerifiedReports.flatMap((report) => report.matchedIndicators)),
+      ...new Set(matchedVerifiedReports.flatMap((report) => report.matchedIndicators || [])),
     ];
-    score += commBonus;
-    explanations.push({
+    explanations.unshift({
       category: "community",
-      label: lang === 'ms' ? "Padanan Penunjuk Komuniti" : "Community Indicator Match",
+      label: lang === 'ms' ? "🚨 KES PENIPUAN DISAHKAN RASMI" : "🚨 OFFICIALLY CONFIRMED SCAM",
       text: lang === 'ms'
-        ? `Penunjuk yang sama (${communityIndicators.join(', ')}) muncul dalam ${verifiedReports} laporan yang disahkan moderator.`
-        : `The same indicator (${communityIndicators.join(', ')}) appears in ${verifiedReports} moderator-confirmed report${verifiedReports === 1 ? '' : 's'}.`,
-      weight: commBonus
+        ? `Penunjuk yang sama (${communityIndicators.length > 0 ? communityIndicators.join(', ') : 'Penunjuk'}) sepadan dengan laporan penipuan yang telah disahkan rasmi oleh pihak berkuasa/moderator.`
+        : `This indicator (${communityIndicators.length > 0 ? communityIndicators.join(', ') : 'Indicator'}) matches a scam incident officially confirmed by authorities/moderators.`,
+      weight: 100
     });
     indicatorsMatched.push(...communityIndicators);
+  } else if (matchedBlacklistIndicator) {
+    // Dynamic Blacklist Scaling (90–99 Scale) based on compounding threat factors
+    let dynamicScore = 90;
+    if (hasAuthorityExtortion || hasAuthority) dynamicScore += 3;
+    if (hasPaymentRequest || hasCreds) dynamicScore += 3;
+    if (hasDirectPressure || hasRiskyPressure) dynamicScore += 2;
+    if (acceptedAiAnalysis && validatedGeminiScore >= 80) dynamicScore += 2;
+    dynamicScore = Math.min(99, dynamicScore);
+    score = Math.max(score, dynamicScore);
   }
 
-  if (matchedBlacklistIndicator && verifiedReports === 0) {
-    score = 85;
+  // Ensure score never exceeds 99 unless it is an officially confirmed incident
+  if (verifiedReports > 0) {
+    score = 100;
+  } else {
+    score = Math.min(99, Math.max(0, score));
   }
 
-  // Keep score capped between 0 and 100
-  score = Math.min(100, Math.max(0, score));
+  // Precautionary check: If no scam rules triggered but sensitive personal/financial assets exist
+  const hasMalaysianIc = /\b\d{6}[-\s]?\d{2}[-\s]?\d{4}\b/.test(text) || /\b(?:mykad|no\.?\s*k\/?p|ic\s*no\.?)\b/i.test(text);
+  const hasAddressLocation = /\b\d{5}\s+[A-Za-z]+|\b(?:jalan|lorong|taman|poskod|kampung|blok|unit|alamat)\b/i.test(text);
+  const hasFinancialOrIdentityAssets = bankAccountCandidates.length > 0 || analysis.normalizedPhones.length > 0 || analysis.urls.length > 0 || hasMalaysianIc || hasAddressLocation;
+
+  if (score === 0 && hasFinancialOrIdentityAssets && !matchedBlacklistIndicator) {
+    score = 10;
+    explanations.push({
+      category: 'safe_advisory',
+      label: lang === 'ms' ? "Nasihat Berjaga-jaga: Butiran Kewangan & Identiti" : "Precautionary Advisory: Financial & Identity Details",
+      text: lang === 'ms'
+        ? "Tiada corak penipuan dikesan. Walau bagaimanapun, mesej ini mengandungi butiran kewangan atau identiti penting (seperti akaun bank, nombor telefon, atau alamat). Sebagai langkah berjaga-jaga, sentiasa semak semula identiti sebelum membuat sebarang pemindahan wang atau perkongsian maklumat."
+        : "No suspicious scam patterns were detected. However, this message involves sensitive financial or identity details (such as account, contact, or location details). As a precautionary measure, always double-check the recipient's identity before making transfers or sharing personal info.",
+      weight: 10
+    });
+  } else if (score === 0 && explanations.length === 0) {
+    explanations.push({
+      category: 'safe',
+      label: lang === 'ms' ? "Disahkan Selamat - Komunikasi Normal" : "Verified Safe - Normal Communication",
+      text: lang === 'ms'
+        ? "Tiada corak penipuan, desakan kecemasan, atau penunjuk mencurigakan dikesan dalam mesej ini."
+        : "No scam patterns, urgent pressure, or suspicious indicators were detected in this message.",
+      weight: 0
+    });
+  }
 
   // Determine risk band
   const scaleBand = getRiskBand(score, lang);
   let riskBand = scaleBand.label;
   let bandColor = scaleBand.color;
-  let recommendedActions = lang === 'ms' ? [
-    "Sahkan identiti pengirim secara bebas.",
-    "Jangan muat turun sebarang lampiran atau klik pada pautan yang bersarang."
-  ] : [
-    "Verify the sender identity independently.",
-    "Do not download any attachments or click on nested links."
-  ];
+  let recommendedActions = lang === 'ms' ? (
+    score === 0 ? [
+      "Tiada ancaman dikesan. Mesej ini kelihatan seperti komunikasi harian yang selamat.",
+      "Kekal berhati-hati dan jangan kongsi maklumat sensitif seperti kata laluan atau kod TAC/OTP."
+    ] : (score === 10 ? [
+      "Sentiasa sahkan identiti penerima sebelum membuat pemindahan wang atau berkongsi maklumat peribadi.",
+      "Jangan buat bayaran di bawah tekanan atau desakan segera daripada pihak yang tidak disahkan."
+    ] : [
+      "Sahkan identiti pengirim secara bebas.",
+      "Jangan muat turun sebarang lampiran atau klik pada pautan yang bersarang."
+    ])
+  ) : (
+    score === 0 ? [
+      "No immediate threats detected. This appears to be normal everyday communication.",
+      "Stay vigilant and avoid sharing sensitive details such as passwords or TAC/OTP codes."
+    ] : (score === 10 ? [
+      "Always verify the recipient's identity before making financial transfers or sharing personal information.",
+      "Never transfer funds or share sensitive information under pressure or urgency."
+    ] : [
+      "Verify the sender identity independently.",
+      "Do not download any attachments or click on nested links."
+    ])
+  );
+
 
   if (score >= 80) {
     riskBand = lang === 'ms' ? "Kritikal" : "Critical";
@@ -1048,5 +1333,103 @@ export async function analyzeScamRisk(text, metadata = {}) {
     recommendedActions,
     ccidMatches,
     numverifyResults
+  };
+}
+
+/**
+ * Multimodal Screenshot Risk Analysis Engine (Task L-5 / ENH-01).
+ * Extracts text and visual forensic signals with Gemini 1.5 Flash vision,
+ * then evaluates the extracted text against CCID/SemakMule, local blacklists,
+ * and context-aware heuristics in the rules engine.
+ * 
+ * @param {string|object} screenshotData - Base64 image string or { fileBase64, mimeType }
+ * @param {object} [metadata={}] - Additional context (lang, blacklist, reports, etc.)
+ * @returns {Promise<object>} Unified multimodal scam assessment
+ */
+export async function analyzeScreenshotRisk(screenshotData, metadata = {}) {
+  const lang = metadata.lang || 'en';
+  const fileBase64 = typeof screenshotData === 'string' ? screenshotData : screenshotData?.fileBase64;
+  const mimeType = (typeof screenshotData === 'object' && screenshotData?.mimeType) ? screenshotData.mimeType : 'image/jpeg';
+
+  let visionResult = null;
+  try {
+    visionResult = await analyzeScreenshotWithGemini(fileBase64, mimeType, lang);
+  } catch (err) {
+    console.warn("⚠️ [Vision Analysis] Failed:", err?.message);
+  }
+
+  const combinedTextParts = [metadata.userText, visionResult?.extractedText].filter(Boolean);
+  const textToAnalyze = combinedTextParts.join('\n').trim();
+  
+  // Feed verbatim extracted text into the hybrid rules engine
+  const baseAnalysis = await analyzeScamRisk(textToAnalyze, {
+    ...metadata,
+    lang
+  });
+
+  if (!visionResult) {
+    return {
+      ...baseAnalysis,
+      visionForensics: null
+    };
+  }
+
+  // Merge visual red flags and forensic signals
+  const updatedExplanations = [...baseAnalysis.explanations];
+  let finalScore = baseAnalysis.score;
+
+  if (visionResult.visualRedFlags && visionResult.visualRedFlags.length > 0) {
+    const flagsList = visionResult.visualRedFlags.join('; ');
+    updatedExplanations.unshift({
+      category: 'impersonation',
+      label: lang === 'ms' ? 'Tanda Amaran Visual Dikesan' : 'Visual Red Flags Detected',
+      text: lang === 'ms'
+        ? `Analisis forensik visual mengesan penyelewengan: ${flagsList}`
+        : `Visual forensic analysis identified anomalies: ${flagsList}`,
+      weight: 25
+    });
+    finalScore = Math.max(finalScore, 75);
+  }
+
+  if (visionResult.senderIsOverseas) {
+    updatedExplanations.unshift({
+      category: 'contact',
+      label: lang === 'ms' ? 'Pengirim Luar Negara Dikesan' : 'Overseas Sender Detected',
+      text: lang === 'ms'
+        ? `Pengirim (${visionResult.sender}) dikesan menggunakan awalan antarabangsa luar dari Malaysia.`
+        : `The sender (${visionResult.sender}) is using an international prefix contacting Malaysian targets.`,
+      weight: 20
+    });
+    finalScore = Math.max(finalScore, 70);
+  }
+
+  if (typeof visionResult.riskScore === 'number' && visionResult.riskScore > finalScore) {
+    finalScore = Math.max(finalScore, visionResult.riskScore);
+  }
+
+  // Confirmed reports always remain 100%; otherwise cap at 99
+  if (baseAnalysis.score === 100) {
+    finalScore = 100;
+  } else {
+    finalScore = Math.min(99, finalScore);
+  }
+
+  const updatedBand = getRiskBand(finalScore, lang);
+
+  return {
+    ...baseAnalysis,
+    score: finalScore,
+    riskIndex: finalScore,
+    riskBand: updatedBand.label,
+    bandColor: updatedBand.color,
+    explanations: updatedExplanations,
+    visionForensics: {
+      platform: visionResult.platform,
+      sender: visionResult.sender,
+      senderIsOverseas: visionResult.senderIsOverseas,
+      visualRedFlags: visionResult.visualRedFlags,
+      extractedText: visionResult.extractedText,
+      explanation: visionResult.explanation
+    }
   };
 }

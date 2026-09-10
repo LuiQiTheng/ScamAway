@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { collection, onSnapshot, addDoc, updateDoc, doc, setDoc, getDocs, getDoc, query, where, deleteDoc } from "firebase/firestore";
+import { collection, onSnapshot, addDoc, updateDoc, doc, setDoc, getDocs, getDoc, query, where, deleteDoc, runTransaction, arrayUnion, arrayRemove } from "firebase/firestore";
 import { db } from '../config/firebase';
 import { translateText } from '../utils/translateText';
+import { hashPassword, sanitizeUserSession } from '../utils/cryptoAuth';
 
 const AppContext = createContext();
 
@@ -80,19 +81,19 @@ export const AppProvider = ({ children }) => {
     return null;
   });
 
-  // Sync Current User Session
+  // Sync Current User Session (Session Sanitization)
   useEffect(() => {
     if (currentUser) {
-      localStorage.setItem('scam_shield_user_session', JSON.stringify({ user: currentUser, timestamp: new Date().getTime() }));
+      localStorage.setItem('scam_shield_user_session', JSON.stringify({ user: sanitizeUserSession(currentUser), timestamp: new Date().getTime() }));
     } else {
       localStorage.removeItem('scam_shield_user_session');
     }
   }, [currentUser]);
 
-  // Sync Admin Profile Session
+  // Sync Admin Profile Session (Session Sanitization)
   useEffect(() => {
     if (adminProfile) {
-      localStorage.setItem('scam_shield_admin_session', JSON.stringify({ user: adminProfile, timestamp: new Date().getTime() }));
+      localStorage.setItem('scam_shield_admin_session', JSON.stringify({ user: sanitizeUserSession(adminProfile), timestamp: new Date().getTime() }));
     } else {
       localStorage.removeItem('scam_shield_admin_session');
     }
@@ -103,18 +104,36 @@ export const AppProvider = ({ children }) => {
     const q = query(collection(db, "users"), where("username", "==", userData.username));
     const snapshot = await getDocs(q);
     if (!snapshot.empty) throw new Error("Username already exists");
-    const docRef = await addDoc(collection(db, "users"), userData);
-    const createdUser = { id: docRef.id, ...userData };
+    
+    const hashedPassword = await hashPassword(userData.password);
+    const userToSave = { ...userData, password: hashedPassword };
+    const docRef = await addDoc(collection(db, "users"), userToSave);
+    const createdUser = sanitizeUserSession({ id: docRef.id, ...userToSave });
     setCurrentUser(createdUser);
     return createdUser;
   };
 
   const loginUser = async (username, password) => {
-    const q = query(collection(db, "users"), where("username", "==", username), where("password", "==", password));
+    const q = query(collection(db, "users"), where("username", "==", username));
     const snapshot = await getDocs(q);
     if (snapshot.empty) throw new Error("Invalid username or password");
     const userDoc = snapshot.docs[0];
-    const user = { id: userDoc.id, ...userDoc.data() };
+    const data = userDoc.data();
+    const storedPassword = data.password;
+    const hashedInput = await hashPassword(password);
+
+    let passwordValid = false;
+    if (storedPassword === hashedInput) {
+      passwordValid = true;
+    } else if (storedPassword === password) {
+      // Backward-compatibility: auto-upgrade legacy plaintext password to cryptographic hash
+      passwordValid = true;
+      await updateDoc(doc(db, "users", userDoc.id), { password: hashedInput });
+    }
+
+    if (!passwordValid) throw new Error("Invalid username or password");
+
+    const user = sanitizeUserSession({ id: userDoc.id, ...data });
     setCurrentUser(user);
     return user;
   };
@@ -123,18 +142,36 @@ export const AppProvider = ({ children }) => {
     const q = query(collection(db, "admins"), where("officerId", "==", adminData.officerId));
     const snapshot = await getDocs(q);
     if (!snapshot.empty) throw new Error("Officer ID already exists");
-    const docRef = await addDoc(collection(db, "admins"), adminData);
-    const createdAdmin = { id: docRef.id, ...adminData };
+    
+    const hashedPassword = await hashPassword(adminData.password);
+    const adminToSave = { ...adminData, password: hashedPassword };
+    const docRef = await addDoc(collection(db, "admins"), adminToSave);
+    const createdAdmin = sanitizeUserSession({ id: docRef.id, ...adminToSave });
     setAdminProfile(createdAdmin);
     return createdAdmin;
   };
 
   const loginAdmin = async (officerId, password) => {
-    const q = query(collection(db, "admins"), where("officerId", "==", officerId), where("password", "==", password));
+    const q = query(collection(db, "admins"), where("officerId", "==", officerId));
     const snapshot = await getDocs(q);
     if (snapshot.empty) throw new Error("Invalid Officer ID or password");
     const adminDoc = snapshot.docs[0];
-    const admin = { id: adminDoc.id, ...adminDoc.data() };
+    const data = adminDoc.data();
+    const storedPassword = data.password;
+    const hashedInput = await hashPassword(password);
+
+    let passwordValid = false;
+    if (storedPassword === hashedInput) {
+      passwordValid = true;
+    } else if (storedPassword === password) {
+      // Backward-compatibility: auto-upgrade legacy plaintext password to cryptographic hash
+      passwordValid = true;
+      await updateDoc(doc(db, "admins", adminDoc.id), { password: hashedInput });
+    }
+
+    if (!passwordValid) throw new Error("Invalid Officer ID or password");
+
+    const admin = sanitizeUserSession({ id: adminDoc.id, ...data });
     setAdminProfile(admin);
     return admin;
   };
@@ -148,9 +185,13 @@ export const AppProvider = ({ children }) => {
       if (!snapshot.empty) throw new Error("Officer ID already exists");
     }
 
-    const updatedAdmin = { ...adminProfile, ...adminData };
+    const dataToUpdate = { ...adminData };
+    if (dataToUpdate.password) {
+      dataToUpdate.password = await hashPassword(dataToUpdate.password);
+    }
+    const updatedAdmin = sanitizeUserSession({ ...adminProfile, ...dataToUpdate });
     setAdminProfile(updatedAdmin);
-    await updateDoc(doc(db, "admins", adminProfile.id), adminData);
+    await updateDoc(doc(db, "admins", adminProfile.id), dataToUpdate);
   };
 
   const updateGuardian = async (guardianData) => {
@@ -170,15 +211,28 @@ export const AppProvider = ({ children }) => {
       if (!snapshot.empty) throw new Error("Username already taken");
     }
 
-    const updatedUser = { ...currentUser, ...userData };
+    const dataToUpdate = { ...userData };
+    if (dataToUpdate.password) {
+      dataToUpdate.password = await hashPassword(dataToUpdate.password);
+    }
+    const updatedUser = sanitizeUserSession({ ...currentUser, ...dataToUpdate });
     setCurrentUser(updatedUser);
-    await updateDoc(doc(db, "users", currentUser.id), userData);
+    await updateDoc(doc(db, "users", currentUser.id), dataToUpdate);
   };
 
   const deleteCurrentUser = async (password) => {
     const activeUser = currentUser || adminProfile;
     if (!activeUser?.id) throw new Error("No user logged in");
-    if (activeUser.password !== password) {
+    
+    const collectionName = (adminProfile && activeUser.officerId) ? "admins" : "users";
+    const userDocSnap = await getDoc(doc(db, collectionName, activeUser.id));
+    if (!userDocSnap.exists()) {
+      throw new Error("User record not found");
+    }
+    
+    const storedPassword = userDocSnap.data().password;
+    const hashedInput = await hashPassword(password);
+    if (storedPassword !== hashedInput && storedPassword !== password) {
       throw new Error("Incorrect password");
     }
 
@@ -345,20 +399,29 @@ export const AppProvider = ({ children }) => {
   }, []);
 
   const addReport = useCallback(async (newReport) => {
+    // SEC-02: Omit originalText to halt global PII leakage across Firestore and client state
+    const { originalText: _unneededOriginalText, ...safeReport } = newReport;
+
     let nextNum = 1;
     try {
       const counterRef = doc(db, "system", "reportCounter");
-      const counterSnap = await getDoc(counterRef);
-      if (counterSnap.exists()) {
-        nextNum = (counterSnap.data().count || 0) + 1;
-      }
-      await setDoc(counterRef, { count: nextNum }, { merge: true });
+      // DB-01: Atomic runTransaction concurrency lock for report counter
+      await runTransaction(db, async (transaction) => {
+        const counterSnap = await transaction.get(counterRef);
+        if (counterSnap.exists()) {
+          nextNum = (counterSnap.data().count || 0) + 1;
+        } else {
+          nextNum = 1;
+        }
+        transaction.set(counterRef, { count: nextNum }, { merge: true });
+      });
     } catch (e) {
+      console.warn("⚠️ [Firestore] Transaction counter fallback:", e?.message);
       nextNum = Date.now() % 10000;
     }
     
     const reportCode = `#${String(nextNum).padStart(6, '0')}`;
-    const reportData = { ...newReport, id: Date.now(), reportCode, reporterId: currentUser?.id || 'guest' };
+    const reportData = { ...safeReport, id: Date.now(), reportCode, reporterId: currentUser?.id || 'guest' };
     
     setReportsList(prev => [reportData, ...prev]);
     try {
@@ -377,7 +440,7 @@ export const AppProvider = ({ children }) => {
       try {
         rationaleMs = await translateText(rationale, 'en', 'ms');
         rationaleEn = await translateText(rationale, 'ms', 'en');
-      } catch (e) {}
+      } catch (_e) {}
     }
 
     setReportsList(prev => prev.map(r => r.id === id ? { ...r, status: newStatus, rationale, rationaleEn, rationaleMs } : r));
@@ -410,14 +473,14 @@ export const AppProvider = ({ children }) => {
     }));
     addAuditLog(`Added to Blacklist (${type})`, null, `Value: ${value}`);
     try {
-      const updatedList = Array.from(new Set([...blacklist[type], value]));
+      // DB-02: Use Firestore arrayUnion for atomic mutation
       await updateDoc(doc(db, "system", "blacklist"), {
-        [type]: updatedList
+        [type]: arrayUnion(value)
       });
     } catch (e) {
       console.warn("⚠️ [Firestore] Failed to update blacklist in cloud:", e?.message);
     }
-  }, [blacklist, addAuditLog]);
+  }, [addAuditLog]);
 
   const removeBlacklistItem = useCallback(async (type, value) => {
     if (!['phoneNumbers', 'urls', 'bankAccounts'].includes(type)) return;
@@ -427,14 +490,14 @@ export const AppProvider = ({ children }) => {
     }));
     addAuditLog(`Removed from Blacklist (${type})`, null, `Value: ${value}`);
     try {
-      const updatedList = blacklist[type].filter(item => item !== value);
+      // DB-02: Use Firestore arrayRemove for atomic mutation
       await updateDoc(doc(db, "system", "blacklist"), {
-        [type]: updatedList
+        [type]: arrayRemove(value)
       });
     } catch (e) {
       console.warn("⚠️ [Firestore] Failed to remove blacklist item in cloud:", e?.message);
     }
-  }, [blacklist, addAuditLog]);
+  }, [addAuditLog]);
 
   const updateBlacklistItem = useCallback(async (type, oldValue, newValue) => {
     if (!['phoneNumbers', 'urls', 'bankAccounts'].includes(type)) return;

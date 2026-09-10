@@ -34,5 +34,10 @@ dist-ssr
 
 # Exclude large competition files and audit reports
 ScamAway.pdf
+*.mp4
+*.MOV
+*.pdf
+SYSTEM_AUDIT_REPORT.md
 scam_away_audit_prompt.md
 scam_away_audit_report.md
+

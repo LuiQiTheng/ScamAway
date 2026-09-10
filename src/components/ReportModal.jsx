@@ -103,8 +103,7 @@ export default function ReportModal({
     if (!bypassDuplicateCheck) {
       const isDuplicate = reportsList.some(r => 
         r.reporterId === currentUser?.id &&
-        (r.originalText?.substring(0, 50) === message.substring(0, 50) || 
-         r.text?.substring(0, 50) === message.substring(0, 50))
+        r.text?.substring(0, 50) === redactedText.substring(0, 50)
       );
       if (isDuplicate) {
         setShowDuplicateWarning(true);
@@ -116,7 +115,6 @@ export default function ReportModal({
       const code = await onSubmitReport?.({
         category,
         text: redactedText,
-        originalText: message,
         score: scanResult?.score || 0,
         riskBand: scanResult?.riskBand || 'Low evidence',
         timestamp: new Date().toISOString(),
