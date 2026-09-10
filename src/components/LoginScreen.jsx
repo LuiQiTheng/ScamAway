@@ -174,7 +174,7 @@ export default function LoginScreen({ onLogin }) {
       minHeight: '100vh',
       display: 'flex',
       alignItems: 'center',
-      justify: 'center',
+      justifyContent: 'center',      
       padding: '2rem',
       background: 'radial-gradient(circle at 50% 50%, #0f172a 0%, #020617 100%)',
       fontFamily: "'Inter', sans-serif"
@@ -184,7 +184,7 @@ export default function LoginScreen({ onLogin }) {
         <div
           style={{
             display: "flex",
-            justify: "center",
+            justifyContent: "center",
             marginBottom: "1.25rem",
             fontSize: "0.9rem",
             fontWeight: 500,
