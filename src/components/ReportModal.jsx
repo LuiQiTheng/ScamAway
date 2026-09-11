@@ -228,8 +228,8 @@ export default function ReportModal({
               }}
             >
               {lang === 'ms'
-                ? 'Petunjuk ini telah pun dilaporkan oleh komuniti kami. Maklum balas anda membantu memperkukuh pengesanan penipuan, jadi penyerahan lanjut tidak diperlukan.'
-                : 'This indicator has already been flagged by our community. Your input helps strengthen our collective scam detection, so no further submission is required.'}
+                ? 'Petunjuk ini telah pun dilaporkan oleh komuniti kami. Terima kasih kerana membantu menjaga keselamatan rangkaian!'
+                : 'This indicator has already been flagged by our community. Thank you for helping keep the network safe!'}
             </p>
 
             <button
