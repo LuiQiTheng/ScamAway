@@ -12,11 +12,70 @@ import {
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { SCAM_CATEGORIES, getCategoryLabel } from '../config/categories';
 
-export default function ModeratorDashboard() {
+const DEFAULT_MOCK_AUDIT_LOGS = [
+  {
+    id: 'audit-1',
+    officerId: 'OFF001',
+    officerName: 'Insp. Ahmad Razak',
+    department: 'Commercial Crime Investigation Dept (CCID)',
+    action: 'Case Status Updated to confirmed',
+    reportCode: 'REP-2026-8812',
+    reportId: 'REP-2026-8812',
+    rationale: 'Marked report as confirmed scam after reviewing supporting evidence.',
+    timestamp: '2026-08-30T14:35:00.000Z'
+  },
+  {
+    id: 'audit-2',
+    officerId: 'OFF002',
+    officerName: 'Sgt. Siti Nurhaliza',
+    department: 'Cyber Crime Division',
+    action: 'Added to Blacklist (phoneNumbers)',
+    reportCode: null,
+    rationale: 'Added phone number to blacklist due to multiple verified reports.',
+    details: 'Value: +6011-8762512',
+    timestamp: '2026-08-29T10:15:00.000Z'
+  },
+  {
+    id: 'audit-3',
+    officerId: 'OFF001',
+    officerName: 'Insp. Ahmad Razak',
+    department: 'Commercial Crime Investigation Dept (CCID)',
+    action: 'Broadcast Threat Alert Published',
+    reportCode: null,
+    rationale: 'Raised threat alert after high-risk indicators were detected.',
+    details: 'Category: Banking & Phishing Scam',
+    timestamp: '2026-08-28T16:20:00.000Z'
+  },
+  {
+    id: 'audit-4',
+    officerId: 'OFF003',
+    officerName: 'Insp. Tan Kah Hock',
+    department: 'Financial Crime Unit',
+    action: 'Case Status Updated to rejected',
+    reportCode: 'REP-2026-9041',
+    reportId: 'REP-2026-9041',
+    rationale: 'Legitimate transaction confirmed upon verification with bank issuer.',
+    timestamp: '2026-08-27T11:05:00.000Z'
+  },
+  {
+    id: 'audit-5',
+    officerId: 'OFF002',
+    officerName: 'Sgt. Siti Nurhaliza',
+    department: 'Cyber Crime Division',
+    action: 'Added to Blacklist (urls)',
+    reportCode: null,
+    rationale: 'Registered malicious phishing domain reported by multiple users.',
+    details: 'Value: pos-laju.info',
+    timestamp: '2026-08-26T09:40:00.000Z'
+  }
+];
+
+export default function ModeratorDashboard({ onNavigate }) {
   const {
     reportsList, updateReportStatus, addAlert,
     addBlacklistItem, blacklist,
-    removeBlacklistItem, updateBlacklistItem, auditLogs
+    removeBlacklistItem, updateBlacklistItem, auditLogs,
+    adminProfile
   } = useAppContext();
   const { t, lang } = useLanguage();
   const [selectedReport, setSelectedReport] = useState(null);
@@ -37,12 +96,104 @@ export default function ModeratorDashboard() {
   const [filterCategory, setFilterCategory] = useState('all');
   const [selectedForBulk, setSelectedForBulk] = useState(new Set());
 
+  // Audit Sub-tab Search & Action Type Filter state
+  const [auditSearchQuery, setAuditSearchQuery] = useState('');
+  const [auditActionFilter, setAuditActionFilter] = useState('all');
+
   // Blacklist Management State
   const [newBlacklistItem, setNewBlacklistItem] = useState('');
   const [newBlacklistType, setNewBlacklistType] = useState('urls');
   const [editingItem, setEditingItem] = useState(null); // { type, oldValue }
   const [editValue, setEditValue] = useState('');
   const [blacklistFeedback, setBlacklistFeedback] = useState(null);
+
+  // Helper for audit categorization and formatting
+  const getAuditCategory = (action = '') => {
+    const act = action.toLowerCase();
+    if (act.includes('blacklist')) return 'Blacklist Changes';
+    if (act.includes('alert') || act.includes('broadcast') || act.includes('threat')) return 'Threat Alerts';
+    return 'Status Updates';
+  };
+
+  const formatAuditTimestamp = (ts) => {
+    if (!ts) return 'N/A';
+    try {
+      const date = new Date(ts);
+      if (isNaN(date.getTime())) return ts;
+      return date.toLocaleDateString(lang === 'ms' ? 'ms-MY' : 'en-GB', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      });
+    } catch {
+      return ts;
+    }
+  };
+
+  // PART 1: Access Guard Check
+  if (!adminProfile) {
+    return (
+      <div className="page-shell moderator-page">
+        <div className="glass-panel" style={{
+          padding: '3rem 2rem',
+          maxWidth: '520px',
+          margin: '3rem auto',
+          textAlign: 'center',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '1.25rem',
+          border: '1px solid rgba(239, 68, 68, 0.4)',
+          background: 'rgba(15, 23, 42, 0.95)',
+          boxShadow: '0 0 30px rgba(239, 68, 68, 0.15)',
+          borderRadius: '16px'
+        }}>
+          <div style={{
+            width: '64px',
+            height: '64px',
+            borderRadius: '16px',
+            background: 'rgba(239, 68, 68, 0.15)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#ef4444'
+          }}>
+            <ShieldAlert size={36} />
+          </div>
+
+          <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#fff', margin: 0 }}>
+            {t('admin.access_denied') || 'Access Denied'}
+          </h2>
+
+          <p style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
+            {lang === 'ms'
+              ? 'Papan pemuka ini terhad kepada pegawai polis dan pentadbir yang berkuasa sahaja. Sila log masuk dengan akaun pentadbir untuk mengakses halaman ini.'
+              : 'This dashboard is restricted to authorised police and admin officers. Please log in with an administrative account to access this page.'}
+          </p>
+
+          <button
+            onClick={() => {
+              if (typeof onNavigate === 'function') {
+                onNavigate('check');
+              } else {
+                try { localStorage.setItem('scam_shield_active_tab', 'check'); } catch {}
+                window.location.reload();
+              }
+            }}
+            className="btn-primary"
+            style={{ marginTop: '0.5rem', padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+          >
+            <Shield size={18} />
+            {lang === 'ms' ? 'Kembali ke Halaman Utama' : 'Return to Main Page'}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
 
   // Dynamic placeholder for blacklist input
@@ -234,6 +385,44 @@ export default function ModeratorDashboard() {
       </li>
     );
   };
+  // Audit trail search & action type filter logic
+  const rawAuditLogs = (auditLogs && auditLogs.length > 0) ? auditLogs : DEFAULT_MOCK_AUDIT_LOGS;
+
+  const filteredAuditLogs = rawAuditLogs.filter(log => {
+    // 1. Action Type Filter
+    const cat = getAuditCategory(log.action);
+    if (auditActionFilter !== 'all' && cat !== auditActionFilter) {
+      return false;
+    }
+
+    // 2. Search Query Filter (Officer ID, Officer Name, Report Code)
+    if (auditSearchQuery.trim()) {
+      const q = auditSearchQuery.toLowerCase().trim();
+      const officerId = (log.officerId || log.performedBy || 'OFF001').toLowerCase();
+      const officerName = (log.officerName || log.performedByName || (log.performedBy && log.performedBy !== log.officerId ? log.performedBy : null) || 'Insp. Ahmad Razak').toLowerCase();
+
+      let reportCode = (log.reportCode || '').toLowerCase();
+      if (!reportCode && log.reportId) {
+        const matchingReport = reportsList.find(r => r.id === log.reportId);
+        reportCode = (matchingReport?.reportCode || `#${log.reportId.toString().slice(-6)}`).toLowerCase();
+      }
+
+      const rationale = (log.rationale || log.details || '').toLowerCase();
+      const action = (log.action || '').toLowerCase();
+      const department = (log.department || '').toLowerCase();
+
+      const isMatch = officerId.includes(q) ||
+                      officerName.includes(q) ||
+                      reportCode.includes(q) ||
+                      rationale.includes(q) ||
+                      action.includes(q) ||
+                      department.includes(q);
+
+      if (!isMatch) return false;
+    }
+
+    return true;
+  });
 
   return (
     <div className="page-shell moderator-page">
@@ -873,48 +1062,156 @@ export default function ModeratorDashboard() {
             )}
 
             {activeSubTab === 'audit' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {auditLogs.length === 0 ? (
-                  <div style={{ padding: '2rem 0', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                    {t('admin.no_audit')}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                {/* Search & Action Filter Controls */}
+                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center', background: 'rgba(255,255,255,0.01)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                  <label className="admin-search-field" style={{ flex: 1, minWidth: '220px', margin: 0 }}>
+                    <Search size={16} color="var(--text-muted)" aria-hidden="true" />
+                    <input
+                      className="admin-search-input"
+                      type="search"
+                      value={auditSearchQuery}
+                      onChange={(e) => setAuditSearchQuery(e.target.value)}
+                      placeholder={lang === 'ms' ? 'Cari ID Pegawai, Nama, atau Kod Laporan...' : 'Search by Officer ID, Name, or Report Code...'}
+                      aria-label="Search audit logs"
+                    />
+                  </label>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                      <Filter size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
+                      {lang === 'ms' ? 'Jenis Tindakan:' : 'Action Type:'}
+                    </span>
+                    <select
+                      className="input-field admin-filter"
+                      value={auditActionFilter}
+                      onChange={(e) => setAuditActionFilter(e.target.value)}
+                      aria-label="Filter audit logs by action type"
+                      style={{ minWidth: '170px' }}
+                    >
+                      <option value="all">{lang === 'ms' ? 'Semua Tindakan' : 'All Action Types'}</option>
+                      <option value="Status Updates">{lang === 'ms' ? 'Kemaskini Status' : 'Status Updates'}</option>
+                      <option value="Blacklist Changes">{lang === 'ms' ? 'Perubahan Senarai Hitam' : 'Blacklist Changes'}</option>
+                      <option value="Threat Alerts">{lang === 'ms' ? 'Amaran Ancaman' : 'Threat Alerts'}</option>
+                    </select>
+                  </div>
+                </div>
+
+                {filteredAuditLogs.length === 0 ? (
+                  <div style={{ padding: '2.5rem 1rem', textAlign: 'center', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.01)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                    <p style={{ fontSize: '1rem', margin: 0 }}>
+                      {auditSearchQuery.trim() || auditActionFilter !== 'all'
+                        ? (lang === 'ms' ? 'Tiada rekod audit ditemui mengikut carian anda.' : 'No audit records match your search criteria.')
+                        : t('admin.no_audit')}
+                    </p>
                   </div>
                 ) : (
                   <>
-                    {(isAuditExpanded ? auditLogs : auditLogs.slice(0, 3)).map(log => (
-                      <div key={log.id} style={{ padding: '1rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                          <span style={{ fontSize: '0.85rem', color: '#fff', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.35rem' }}>
-                            <span>{t('admin.action')}</span>
-                            <strong style={{ color: 'var(--primary)', textTransform: 'capitalize' }}>{log.action}</strong>
-                            {(log.reportCode || log.reportId) && (
-                              <span style={{ color: 'var(--text-secondary)' }}>
-                                {t('admin.on_report') || (lang === 'ms' ? 'pada Laporan #' : 'on Report #')}
-                                {(log.reportCode || log.reportId?.toString().slice(-6)).replace(/^#/, '')}
-                              </span>
-                            )}
-                            {log.performedBy && (
-                              <span style={{ color: 'var(--text-muted)' }}>
-                                {lang === 'ms' ? 'oleh' : 'by'} {log.performedBy}
-                              </span>
-                            )}
-                          </span>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{new Date(log.timestamp).toLocaleString()}</span>
-                        </div>
-                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{t('admin.note')} {log.rationale || 'N/A'}</span>
-                      </div>
-                    ))}
+                    {(isAuditExpanded ? filteredAuditLogs : filteredAuditLogs.slice(0, 3)).map(log => {
+                      const officerId = log.officerId || log.performedBy || 'OFF001';
+                      const officerName = log.officerName || (log.performedBy && log.performedBy !== officerId ? log.performedBy : null) || 'Insp. Ahmad Razak';
+                      const department = log.department || 'Commercial Crime Investigation Dept (CCID)';
+                      const cat = getAuditCategory(log.action);
 
-                    {auditLogs.length > 3 && (
+                      let reportCode = log.reportCode || null;
+                      if (!reportCode && log.reportId) {
+                        const rMatch = reportsList.find(r => r.id === log.reportId);
+                        reportCode = rMatch?.reportCode || `#${log.reportId.toString().slice(-6)}`;
+                      }
+
+                      const badgeStyle = cat === 'Blacklist Changes'
+                        ? { bg: 'rgba(245, 158, 11, 0.12)', border: '1px solid rgba(245, 158, 11, 0.3)', color: '#fbbf24' }
+                        : cat === 'Threat Alerts'
+                        ? { bg: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#fca5a5' }
+                        : { bg: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.3)', color: '#a7f3d0' };
+
+                      return (
+                        <div
+                          key={log.id}
+                          style={{
+                            padding: '1.25rem',
+                            background: 'rgba(255,255,255,0.02)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '10px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.75rem'
+                          }}
+                        >
+                          {/* Header: Officer ID, Name, Dept & Formatted Timestamp */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                              <span style={{
+                                background: 'rgba(6, 182, 212, 0.12)',
+                                border: '1px solid rgba(6, 182, 212, 0.3)',
+                                color: 'var(--primary)',
+                                padding: '0.2rem 0.5rem',
+                                borderRadius: '6px',
+                                fontSize: '0.75rem',
+                                fontWeight: 700,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.25rem'
+                              }}>
+                                <UserCheck size={13} /> {officerId}
+                              </span>
+                              <strong style={{ color: '#fff', fontSize: '0.95rem' }}>{officerName}</strong>
+                              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>({department})</span>
+                            </div>
+                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                              🕒 {formatAuditTimestamp(log.timestamp)}
+                            </span>
+                          </div>
+
+                          {/* Action Type & Report Code Row */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                            <span style={{
+                              fontSize: '0.8rem',
+                              fontWeight: 600,
+                              padding: '0.25rem 0.65rem',
+                              borderRadius: '20px',
+                              background: badgeStyle.bg,
+                              border: badgeStyle.border,
+                              color: badgeStyle.color
+                            }}>
+                              {log.action}
+                            </span>
+
+                            {reportCode && (
+                              <span style={{ fontSize: '0.8rem', color: 'var(--primary)', background: 'rgba(255,255,255,0.03)', padding: '0.2rem 0.6rem', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                                📋 {lang === 'ms' ? 'Kod Laporan:' : 'Report Code:'} <strong>{reportCode}</strong>
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Rationale / Notes */}
+                          <div style={{
+                            fontSize: '0.85rem',
+                            color: 'var(--text-secondary)',
+                            background: 'rgba(0,0,0,0.2)',
+                            padding: '0.65rem 0.85rem',
+                            borderRadius: '6px',
+                            border: '1px solid rgba(255,255,255,0.05)',
+                            lineHeight: '1.45'
+                          }}>
+                            <strong style={{ color: '#cbd5e1' }}>{lang === 'ms' ? 'Rasional / Nota:' : 'Rationale / Notes:'}</strong>{' '}
+                            {log.rationale || log.details || 'N/A'}
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {filteredAuditLogs.length > 3 && (
                       <button
                         onClick={() => setIsAuditExpanded(!isAuditExpanded)}
                         className="btn-secondary"
-                        style={{ alignSelf: 'center', marginTop: '0.5rem', fontSize: '0.85rem', padding: '0.4rem 1rem' }}
+                        style={{ alignSelf: 'center', marginTop: '0.5rem', fontSize: '0.85rem', padding: '0.4rem 1.25rem' }}
                       >
                         {isAuditExpanded
                           ? (lang === 'ms' ? 'Papar Sedikit' : 'Show Less')
                           : (lang === 'ms'
-                            ? `Papar Lebih (${auditLogs.length - 3} lagi)`
-                            : `Show More (${auditLogs.length - 3} more)`)}
+                            ? `Papar Lebih (${filteredAuditLogs.length - 3} lagi)`
+                            : `Show More (${filteredAuditLogs.length - 3} more)`)}
                       </button>
                     )}
                   </>

@@ -375,13 +375,26 @@ export const AppProvider = ({ children }) => {
 
   // Helper to add audit log entries with actor identity tracking
   const addAuditLog = useCallback((action, reportId = null, rationale = '', details = '', performedBy = 'System Admin') => {
-    const actor = adminProfile?.officerId || performedBy;
+    const actorId = adminProfile?.officerId || (typeof performedBy === 'string' && performedBy.startsWith('OFF') ? performedBy : 'OFF001');
+    const actorName = adminProfile?.name || 'Insp. Ahmad Razak';
+    const dept = adminProfile?.department || 'Commercial Crime Investigation Dept (CCID)';
+
+    let rCode = null;
+    if (reportId) {
+      const rep = reportsList.find(r => r.id === reportId);
+      rCode = rep?.reportCode || (typeof reportId === 'string' && reportId.startsWith('REP-') ? reportId : `#${reportId.toString().slice(-6)}`);
+    }
+
     const entry = {
       reportId,
+      reportCode: rCode,
       action,
       rationale,
       details,
-      performedBy: actor,
+      performedBy: actorId,
+      officerId: actorId,
+      officerName: actorName,
+      department: dept,
       timestamp: new Date().toISOString()
     };
     
