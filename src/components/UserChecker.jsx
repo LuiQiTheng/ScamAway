@@ -54,6 +54,9 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
   // Guardian Alert Modal
   const [showGuardianAlert, setShowGuardianAlert] = useState(false);
 
+  // Emergency Assistance Popup state
+  const [showEmergencyPopup, setShowEmergencyPopup] = useState(false);
+
   // VirusTotal scan state
   const [vtResult, setVtResult] = useState(null);
   const [vtLoading, setVtLoading] = useState(false);
@@ -164,6 +167,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
 
     setIsScanning(true);
     setScanResult(null);
+    setShowEmergencyPopup(false);
     setScanSteps([]);
 
     const steps = imageToScan
@@ -270,6 +274,10 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
 
       setScanResult(res);
 
+      if (res.score >= 80) {
+        setShowEmergencyPopup(true);
+      }
+
       if (
         (res.bandColor === "high" || res.bandColor === "critical") &&
         (isKidMode || isElderlyMode)
@@ -285,6 +293,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
     if (newTab === activeTab) return;
     setActiveTab(newTab);
     setScanResult(null);
+    setShowEmergencyPopup(false);
     setScanSteps([]);
     setIsScanning(false);
     setSelectedImage(null);
@@ -1309,7 +1318,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                 {t('result.report_scam_btn')}
               </button>
               <button
-                onClick={() => { setScanResult(null); setInputText(''); setUrlInput(''); setPhoneInput(''); setShowGuardianAlert(false); setVtResult(null); setVtLoading(false); }}
+                onClick={() => { setScanResult(null); setInputText(''); setUrlInput(''); setPhoneInput(''); setShowGuardianAlert(false); setShowEmergencyPopup(false); setVtResult(null); setVtLoading(false); }}
                 className="btn-secondary"
                 style={{ flex: 1 }}
               >
@@ -1336,6 +1345,131 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
         guardianName={currentUser?.guardian?.name || "Guardian"}
         onClose={() => setShowGuardianAlert(false)}
       />
+
+      {/* Immediate Emergency Assistance Popup */}
+      {showEmergencyPopup && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="emergency-popup-title"
+          aria-describedby="emergency-popup-desc"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 2000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "1rem",
+            background: "rgba(0, 0, 0, 0.75)",
+            backdropFilter: "blur(6px)",
+            WebkitBackdropFilter: "blur(6px)",
+          }}
+        >
+          <div
+            className="glass-panel fade-in"
+            style={{
+              width: "100%",
+              maxWidth: "480px",
+              padding: isElderlyMode ? "2rem" : "1.5rem",
+              borderRadius: "20px",
+              border: "1px solid rgba(239, 68, 68, 0.5)",
+              background: "rgba(18, 10, 15, 0.95)",
+              boxShadow: "0 0 30px rgba(239, 68, 68, 0.3)",
+              display: "flex",
+              flexDirection: "column",
+              gap: "1.25rem",
+              maxHeight: "90vh",
+              overflowY: "auto",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+              <div
+                style={{
+                  width: "48px",
+                  height: "48px",
+                  borderRadius: "12px",
+                  background: "rgba(239, 68, 68, 0.15)",
+                  border: "1px solid rgba(239, 68, 68, 0.3)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <ShieldAlert size={28} color="#ef4444" />
+              </div>
+              <h2
+                id="emergency-popup-title"
+                style={{
+                  margin: 0,
+                  fontSize: isElderlyMode ? "1.6rem" : "1.35rem",
+                  fontWeight: 800,
+                  color: "#ff4d4d",
+                  lineHeight: 1.2,
+                }}
+              >
+                🚨 High Risk Detected
+              </h2>
+            </div>
+
+            <p
+              id="emergency-popup-desc"
+              style={{
+                margin: 0,
+                fontSize: isElderlyMode ? "1.25rem" : "0.95rem",
+                color: "var(--text-primary)",
+                lineHeight: 1.5,
+              }}
+            >
+              If you have transferred money or shared banking information, contact your bank immediately or call the National Scam Response Centre (NSRC) at 997.
+            </p>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginTop: "0.5rem" }}>
+              <a
+                href="tel:997"
+                className="btn-primary"
+                aria-label="Call NSRC 997"
+                style={{
+                  width: "100%",
+                  textAlign: "center",
+                  textDecoration: "none",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "0.5rem",
+                  background: "linear-gradient(135deg, #ef4444, #b91c1c)",
+                  color: "#fff",
+                  fontSize: isElderlyMode ? "1.25rem" : "1rem",
+                  fontWeight: 700,
+                  padding: isElderlyMode ? "0.9rem 1.25rem" : "0.75rem 1rem",
+                  borderRadius: "10px",
+                  boxShadow: "0 4px 14px rgba(239, 68, 68, 0.4)",
+                }}
+              >
+                <Phone size={20} />
+                Call NSRC 997
+              </a>
+
+              <button
+                type="button"
+                onClick={() => setShowEmergencyPopup(false)}
+                className="btn-secondary"
+                aria-label="I haven't transferred money"
+                style={{
+                  width: "100%",
+                  fontSize: isElderlyMode ? "1.15rem" : "0.9rem",
+                  padding: isElderlyMode ? "0.8rem 1.25rem" : "0.65rem 1rem",
+                  borderRadius: "10px",
+                  color: "var(--text-secondary)",
+                }}
+              >
+                I haven't transferred money
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
