@@ -16,15 +16,19 @@ import { useScrollToTop } from './utils/useScrollToTop';
 export default function App() {
   const { userNotifications, dismissNotification, adminProfile, setAdminProfile, currentUser, setCurrentUser, updateGuardian } = useAppContext();
   const [activeTab, setActiveTab] = useState(() => localStorage.getItem('scam_shield_active_tab') || 'check');
+  const [isGuest, setIsGuest] = useState(false);
+  const [showGuestGateModal, setShowGuestGateModal] = useState(false);
+  const [loginFormType, setLoginFormType] = useState('selection');
   
   useScrollToTop(activeTab);
   
   const { lang, toggleLanguage, t } = useLanguage();
 
-  const userRole = adminProfile ? 'admin' : (currentUser ? 'user' : null);
+  const userRole = adminProfile ? 'admin' : (currentUser ? 'user' : (isGuest ? 'guest' : null));
   const isLoggedIn = !!userRole;
 
   const handleRoleChange = (role) => {
+    setIsGuest(false);
     const newTab = role === 'admin' ? 'moderator' : 'check';
     setActiveTab(newTab);
     localStorage.setItem('scam_shield_active_tab', newTab);
@@ -33,7 +37,17 @@ export default function App() {
   const handleLogout = () => {
     setAdminProfile(null);
     setCurrentUser(null);
+    setIsGuest(false);
+    setLoginFormType('selection');
     localStorage.removeItem('scam_shield_active_tab');
+  };
+
+  const handleTabClick = (tabKey) => {
+    if (isGuest && (tabKey === 'knowledge' || tabKey === 'profile')) {
+      setShowGuestGateModal(true);
+      return;
+    }
+    setActiveTab(tabKey);
   };
 
   let activeMode = 'normal';
@@ -58,7 +72,16 @@ export default function App() {
   }, [currentUser, isElderlyMode, isKidMode]);
 
   if (!isLoggedIn) {
-    return <LoginScreen onLogin={handleRoleChange} />;
+    return (
+      <LoginScreen
+        onLogin={handleRoleChange}
+        onGuestAccess={() => {
+          setIsGuest(true);
+          setActiveTab('check');
+        }}
+        initialFormType={loginFormType}
+      />
+    );
   }
 
   return (
@@ -104,10 +127,10 @@ export default function App() {
         </div>
 
         <nav className="nav-links">
-          {userRole === 'user' ? (
+          {userRole === 'user' || userRole === 'guest' ? (
             <>
               <button
-                onClick={() => setActiveTab('check')}
+                onClick={() => handleTabClick('check')}
                 className={`nav-link ${activeTab === 'check' ? 'active' : ''}`}
                 aria-current={activeTab === 'check' ? 'page' : undefined}
                 style={{ fontSize: isElderlyMode ? '1.25rem' : '0.9rem' }}
@@ -115,7 +138,7 @@ export default function App() {
                 🛡️ {t('nav.scanner')}
               </button>
               <button
-                onClick={() => setActiveTab('knowledge')}
+                onClick={() => handleTabClick('knowledge')}
                 className={`nav-link ${activeTab === 'knowledge' ? 'active' : ''}`}
                 aria-current={activeTab === 'knowledge' ? 'page' : undefined}
                 style={{ fontSize: isElderlyMode ? '1.25rem' : '0.9rem' }}
@@ -123,7 +146,7 @@ export default function App() {
                 🧠 {t('nav.knowledge')}
               </button>
               <button
-                onClick={() => setActiveTab('profile')}
+                onClick={() => handleTabClick('profile')}
                 className={`nav-link nav-link-profile ${activeTab === 'profile' ? 'active' : ''}`}
                 aria-current={activeTab === 'profile' ? 'page' : undefined}
                 style={{ fontSize: isElderlyMode ? '1.25rem' : '0.9rem' }}
@@ -177,25 +200,43 @@ export default function App() {
             {lang === 'en' ? 'EN / BM' : 'BM / EN'}
           </button>
 
-          {/* Logout Button */}
-          <button
-            onClick={handleLogout}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '0.35rem',
-              background: 'transparent', border: '1px solid rgba(239, 68, 68, 0.4)',
-              padding: '0.35rem 0.75rem', borderRadius: '20px', color: '#f87171', cursor: 'pointer',
-              fontSize: '0.75rem', fontWeight: 600, transition: 'all 0.2s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent';
-            }}
-          >
-            <LogOut size={14} />
-            {lang === 'en' ? 'Log Out' : 'Log Keluar'}
-          </button>
+          {/* Logout / Login Button */}
+          {isGuest ? (
+            <button
+              onClick={() => {
+                setIsGuest(false);
+                setLoginFormType('user-login');
+              }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '0.35rem',
+                background: 'rgba(59, 130, 246, 0.15)', border: '1px solid rgba(59, 130, 246, 0.4)',
+                padding: '0.35rem 0.75rem', borderRadius: '20px', color: '#60a5fa', cursor: 'pointer',
+                fontSize: '0.75rem', fontWeight: 600, transition: 'all 0.2s ease'
+              }}
+            >
+              <User size={14} />
+              {lang === 'en' ? 'Sign In / Register' : 'Log Masuk / Daftar'}
+            </button>
+          ) : (
+            <button
+              onClick={handleLogout}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '0.35rem',
+                background: 'transparent', border: '1px solid rgba(239, 68, 68, 0.4)',
+                padding: '0.35rem 0.75rem', borderRadius: '20px', color: '#f87171', cursor: 'pointer',
+                fontSize: '0.75rem', fontWeight: 600, transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+              }}
+            >
+              <LogOut size={14} />
+              {lang === 'en' ? 'Log Out' : 'Log Keluar'}
+            </button>
+          )}
         </div>
       </header>
 
@@ -205,6 +246,11 @@ export default function App() {
             userMode={activeMode}
             isElderlyMode={isElderlyMode}
             isKidMode={isKidMode}
+            isGuest={isGuest}
+            onRegister={() => {
+              setIsGuest(false);
+              setLoginFormType('user-signup');
+            }}
           />
         )}
         {activeTab === 'knowledge' && (
@@ -235,6 +281,86 @@ export default function App() {
               setShowGuardianPrompt(false);
             }}
           />
+        )}
+
+        {/* Guest Protected Tab Registration Modal */}
+        {showGuestGateModal && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="guest-gate-title"
+            aria-describedby="guest-gate-desc"
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 3000,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '1rem',
+              background: 'rgba(0, 0, 0, 0.8)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+            }}
+          >
+            <div
+              className="glass-panel fade-in"
+              style={{
+                width: '100%',
+                maxWidth: '440px',
+                padding: '2rem 1.5rem',
+                borderRadius: '20px',
+                border: '1px solid rgba(59, 130, 246, 0.3)',
+                background: 'rgba(15, 23, 42, 0.95)',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '1.25rem'
+              }}
+            >
+              <div style={{
+                width: '56px', height: '56px', borderRadius: '16px',
+                background: 'rgba(59, 130, 246, 0.15)', border: '1px solid rgba(59, 130, 246, 0.3)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}>
+                <ShieldAlert size={30} color="#3b82f6" />
+              </div>
+
+              <h2 id="guest-gate-title" style={{ fontSize: '1.4rem', fontWeight: 700, color: '#fff', margin: 0 }}>
+                {lang === 'ms' ? 'Buka Perlindungan Penuh' : 'Unlock Full Protection'}
+              </h2>
+
+              <p id="guest-gate-desc" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
+                {lang === 'ms'
+                  ? 'Daftar percuma untuk menyimpan penjejakan laporan, mengambil kuiz kesedaran scam, dan melindungi ahli keluarga.'
+                  : 'Sign up free to save report tracking, take scam awareness quizzes, and protect family members.'}
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', marginTop: '0.5rem' }}>
+                <button
+                  onClick={() => {
+                    setShowGuestGateModal(false);
+                    setIsGuest(false);
+                    setLoginFormType('user-signup');
+                  }}
+                  className="btn-primary"
+                  style={{ width: '100%', padding: '0.75rem', fontWeight: 600, fontSize: '0.95rem' }}
+                >
+                  {lang === 'ms' ? 'Daftar Percuma' : 'Sign Up Free'}
+                </button>
+
+                <button
+                  onClick={() => setShowGuestGateModal(false)}
+                  className="btn-secondary"
+                  style={{ width: '100%', padding: '0.65rem', fontSize: '0.85rem' }}
+                >
+                  {lang === 'ms' ? 'Tutup' : 'Close'}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </main>
 

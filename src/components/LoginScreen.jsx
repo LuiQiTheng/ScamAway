@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShieldAlert, ShieldCheck, User, ArrowRight, X, Loader, Eye, EyeOff, KeyRound, CheckCircle2 } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, User, ArrowRight, X, Loader, Eye, EyeOff, KeyRound, CheckCircle2, Zap } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppContext } from '../context/AppContext';
 
@@ -44,7 +44,7 @@ function PasswordInput({ value, onChange, placeholder = "•••••••�
   );
 }
 
-export default function LoginScreen({ onLogin }) {
+export default function LoginScreen({ onLogin, onGuestAccess, initialFormType = 'selection' }) {
   const { t, lang, toggleLanguage } = useLanguage();
   const { 
     registerUser, 
@@ -56,7 +56,7 @@ export default function LoginScreen({ onLogin }) {
   } = useAppContext();
   
   // Navigation State: 'selection', 'user-signup', 'user-login', 'user-forgot-password', 'admin-signup', 'admin-login', 'admin-forgot-password'
-  const [formType, setFormType] = useState('selection');
+  const [formType, setFormType] = useState(initialFormType);
   
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -455,6 +455,35 @@ export default function LoginScreen({ onLogin }) {
                   </div>
                 </div>
                 <ArrowRight size={18} color="var(--text-muted)" />
+              </button>
+
+              {/* Emergency Quick Scan Button (Guest Mode) */}
+              <button
+                type="button"
+                onClick={() => onGuestAccess && onGuestAccess()}
+                className="login-role-button"
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem 1.5rem',
+                  background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.15) 0%, rgba(245, 158, 11, 0.05) 100%)',
+                  border: '1px solid rgba(234, 179, 8, 0.35)', borderRadius: '16px',
+                  cursor: 'pointer', transition: 'all 0.25s ease', textAlign: 'left', width: '100%',
+                  boxShadow: '0 4px 15px rgba(234, 179, 8, 0.1)', marginTop: '0.25rem'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                  <div style={{ background: 'rgba(234, 179, 8, 0.2)', padding: '0.75rem', borderRadius: '12px' }}>
+                    <Zap size={24} color="#eab308" />
+                  </div>
+                  <div>
+                    <h3 style={{ color: '#fff', fontSize: '1.05rem', fontWeight: 600, marginBottom: '0.2rem' }}>
+                      {lang === 'ms' ? 'Imbasan Pantas / Semakan Kecemasan' : 'Quick Scan / Emergency Check'}
+                    </h3>
+                    <p style={{ color: '#fde047', fontSize: '0.78rem', margin: 0, fontWeight: 500 }}>
+                      {lang === 'ms' ? '(Tanpa Pendaftaran)' : '(No Sign Up Needed)'}
+                    </p>
+                  </div>
+                </div>
+                <ArrowRight size={18} color="#eab308" />
               </button>
             </div>
           )}

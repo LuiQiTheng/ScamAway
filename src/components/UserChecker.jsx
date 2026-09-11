@@ -4,7 +4,7 @@ import {
   Link, AlertTriangle,
   Volume2, VolumeX, Phone, CheckSquare,
   Square, RefreshCw, Send, AlertCircle, Sparkles,
-  UploadCloud, X, CreditCard
+  UploadCloud, X, CreditCard, User
 } from 'lucide-react';
 import {
   analyzeScamRisk,
@@ -19,7 +19,7 @@ import { useAppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useScrollToTop } from '../utils/useScrollToTop';
 
-export default function UserChecker({ userMode = 'normal', isElderlyMode = false, isKidMode = false, onSetUserMode }) {
+export default function UserChecker({ userMode = 'normal', isElderlyMode = false, isKidMode = false, isGuest = false, onRegister, onSetUserMode }) {
   const { reportsList, activeAlert, addReport, blacklist, currentUser } = useAppContext();
   const { t, lang } = useLanguage();
   const lastScanRef = useRef(null);
@@ -1325,6 +1325,50 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                 {t('result.scan_another_btn')}
               </button>
             </div>
+
+            {/* Post-Scan Conversion Hook CTA for Guest Mode (Shown ONLY when threat is detected) */}
+            {isGuest && (scanResult.score >= 30 || scanResult.bandColor !== 'low') && (
+              <div style={{
+                marginTop: '1.5rem',
+                padding: '1.25rem 1.5rem',
+                borderRadius: '16px',
+                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(37, 99, 235, 0.05) 100%)',
+                border: '1px solid rgba(59, 130, 246, 0.35)',
+                boxShadow: '0 8px 25px rgba(59, 130, 246, 0.15)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.75rem',
+                alignItems: 'center',
+                textAlign: 'center'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#60a5fa', fontWeight: 700, fontSize: '1rem' }}>
+                  <Sparkles size={20} />
+                  <span>{lang === 'ms' ? 'Simpan Laporan Ini Sebagai Bukti Polis' : 'Save Report for Police Evidence'}</span>
+                </div>
+                <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.88rem', lineHeight: 1.4, maxWidth: '480px' }}>
+                  {lang === 'ms'
+                    ? 'Cipta akaun rakyat percuma untuk menyimpan laporan ini bagi bukti polis'
+                    : 'Create free citizen account to save this report for police evidence'}
+                </p>
+                <button
+                  onClick={() => onRegister && onRegister()}
+                  className="btn-primary"
+                  style={{
+                    marginTop: '0.25rem',
+                    padding: '0.65rem 1.5rem',
+                    fontSize: '0.9rem',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    boxShadow: '0 4px 14px rgba(59, 130, 246, 0.4)'
+                  }}
+                >
+                  <User size={16} />
+                  {lang === 'ms' ? 'Cipta akaun rakyat percuma' : 'Create free citizen account'}
+                </button>
+              </div>
+            )}
 
           </div>
         )}
