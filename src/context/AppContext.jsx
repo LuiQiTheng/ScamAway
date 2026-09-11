@@ -115,6 +115,52 @@ export const AppProvider = ({ children }) => {
     return createdUser;
   };
 
+  // Combined reset password function (Supports both Users and Admins)
+  const resetPassword = async (identifier, newPassword) => {
+    if (!identifier || !newPassword) {
+      throw new Error("Please fill in all fields");
+    }
+
+    const trimmedIdentifier = identifier.trim();
+    const lowerIdentifier = trimmedIdentifier.toLowerCase();
+    const hashedPassword = await hashPassword(newPassword);
+
+    // 1. Search in 'users' collection (by username or email)
+    const qUserByName = query(collection(db, "users"), where("username", "==", trimmedIdentifier));
+    let snapshot = await getDocs(qUserByName);
+
+    if (snapshot.empty) {
+      const qUserByEmail = query(collection(db, "users"), where("email", "==", lowerIdentifier));
+      snapshot = await getDocs(qUserByEmail);
+    }
+
+    if (!snapshot.empty) {
+      const userDoc = snapshot.docs[0];
+      await updateDoc(doc(db, "users", userDoc.id), { password: hashedPassword });
+      return true;
+    }
+
+    // 2. Search in 'admins' collection (by officerId or email)
+    const qAdminById = query(collection(db, "admins"), where("officerId", "==", trimmedIdentifier));
+    snapshot = await getDocs(qAdminById);
+
+    if (snapshot.empty) {
+      const qAdminByEmail = query(collection(db, "admins"), where("email", "==", lowerIdentifier));
+      snapshot = await getDocs(qAdminByEmail);
+    }
+
+    if (!snapshot.empty) {
+      const adminDoc = snapshot.docs[0];
+      await updateDoc(doc(db, "admins", adminDoc.id), { password: hashedPassword });
+      return true;
+    }
+
+    throw new Error("No user or admin account found with this ID/Username/Email");
+  };
+
+  // Keep resetUserPassword as an alias for backward compatibility
+  const resetUserPassword = resetPassword;
+
   const loginUser = async (username, password) => {
     const q = query(collection(db, "users"), where("username", "==", username));
     const snapshot = await getDocs(q);
@@ -588,17 +634,20 @@ export const AppProvider = ({ children }) => {
   }, [blacklist, addAuditLog]);
 
   const contextValue = useMemo(() => ({
-    reportsList, addReport,    updateReportStatus, addAlert, activeAlert,
+    reportsList, addReport, updateReportStatus, addAlert, activeAlert,
     blacklist, addBlacklistItem, removeBlacklistItem, updateBlacklistItem,
     adminProfile, setAdminProfile,
     currentUser, setCurrentUser,
     registerUser, loginUser, registerAdmin, loginAdmin, updateAdminProfile, updateGuardian, updateCurrentUser, deleteCurrentUser,
-    auditLogs, addAuditLog
+    resetPassword, resetUserPassword,
+    auditLogs, addAuditLog,
+    userNotifications, dismissNotification // <-- 补充补上这两个变量
   }), [
     reportsList, addReport, activeAlert, auditLogs, userNotifications, dismissNotification,
     updateReportStatus, addAlert,
     blacklist, addBlacklistItem, removeBlacklistItem, updateBlacklistItem,
-    adminProfile, currentUser, registerUser, loginUser, registerAdmin, loginAdmin, updateGuardian, updateCurrentUser
+    adminProfile, currentUser, registerUser, loginUser, registerAdmin, loginAdmin, updateGuardian, updateCurrentUser,
+    resetPassword, resetUserPassword
   ]);
 
   return (

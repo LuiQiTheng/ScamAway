@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle, Eye, EyeOff, Shield, X, AlertTriangle } from 'lucide-react';
+import { CheckCircle, Eye, EyeOff, Shield, X, AlertTriangle, ShieldAlert } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAppContext } from '../context/AppContext';
 import { redactSensitiveInformation } from '../utils/redaction';
@@ -13,7 +13,7 @@ export default function ReportModal({
   onSubmitReport,
 }) {
   const { t, lang } = useLanguage();
-  const { reportsList, currentUser } = useAppContext();
+  const { reportsList } = useAppContext();
   const [category, setCategory] = useState('phishing');
   const [message, setMessage] = useState(originalText);
   const [consent, setConsent] = useState(false);
@@ -22,7 +22,6 @@ export default function ReportModal({
   const [assignedCode, setAssignedCode] = useState(null);
   const [messageError, setMessageError] = useState('');
   const [submitError, setSubmitError] = useState('');
-  const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
   const modalRef = useRef(null);
   const messageRef = useRef(null);
   const closeTimerRef = useRef(null);
@@ -31,6 +30,28 @@ export default function ReportModal({
     () => redactSensitiveInformation(message),
     [message],
   );
+
+  // Check if the current indicator/text is already flagged in the global reports database
+  const isAlreadyFlagged = useMemo(() => {
+    if (!message && !originalText) return false;
+    const targetText = (message || originalText).trim().toLowerCase();
+    if (!targetText) return false;
+
+    return (reportsList || []).some((report) => {
+      const existingText = (
+        report.text ||
+        report.evidence ||
+        report.scamText ||
+        ''
+      )
+        .trim()
+        .toLowerCase();
+      return (
+        existingText &&
+        (existingText.includes(targetText) || targetText.includes(existingText))
+      );
+    });
+  }, [message, originalText, reportsList]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -42,7 +63,6 @@ export default function ReportModal({
     setSubmitted(false);
     setMessageError('');
     setSubmitError('');
-    setShowDuplicateWarning(false);
 
     const focusTimer = window.setTimeout(() => messageRef.current?.focus(), 0);
     return () => window.clearTimeout(focusTimer);
@@ -88,9 +108,11 @@ export default function ReportModal({
 
   if (!isOpen) return null;
 
-  const handleSubmit = async (event, bypassDuplicateCheck = false) => {
+  const handleSubmit = async (event) => {
     if (event) event.preventDefault();
     setSubmitError('');
+
+    if (isAlreadyFlagged) return; // Prevent submission if duplicate exists
 
     if (!message.trim()) {
       setMessageError(t('report.message_required'));
@@ -99,17 +121,6 @@ export default function ReportModal({
     }
 
     if (!consent) return;
-
-    if (!bypassDuplicateCheck) {
-      const isDuplicate = reportsList.some(r => 
-        r.reporterId === currentUser?.id &&
-        r.text?.substring(0, 50) === redactedText.substring(0, 50)
-      );
-      if (isDuplicate) {
-        setShowDuplicateWarning(true);
-        return;
-      }
-    }
 
     try {
       const code = await onSubmitReport?.({
@@ -120,15 +131,18 @@ export default function ReportModal({
         timestamp: new Date().toISOString(),
         status: 'unverified',
       });
-      
+
       if (code) {
         setAssignedCode(code);
       }
 
       setSubmitted(true);
-      closeTimerRef.current = window.setTimeout(onClose, 1800);
     } catch (e) {
-      setSubmitError(lang === 'ms' ? 'Gagal menghantar laporan. Sila cuba lagi.' : 'Failed to submit report. Please try again.');
+      setSubmitError(
+        lang === 'ms'
+          ? 'Gagal menghantar laporan. Sila cuba lagi.'
+          : 'Failed to submit report. Please try again.',
+      );
     }
   };
 
@@ -164,21 +178,110 @@ export default function ReportModal({
           <X size={21} />
         </button>
 
-        {submitted ? (
+        {/* CONDITION 1: Duplicate Found (Group Leader Requirement - Pop-up Modal) */}
+        {isAlreadyFlagged ? (
+          <div
+            style={{
+              textAlign: 'center',
+              padding: '1.5rem 1rem',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+            }}
+          >
+            <div
+              style={{
+                width: '64px',
+                height: '64px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#ef4444',
+                marginBottom: '1.25rem',
+              }}
+            >
+              <ShieldAlert size={36} />
+            </div>
+
+            <h2
+              id="report-modal-title"
+              style={{
+                fontSize: '1.35rem',
+                fontWeight: '700',
+                color: '#f8fafc',
+                marginBottom: '0.75rem',
+              }}
+            >
+              {lang === 'ms'
+                ? 'Petunjuk Telah Dilaporkan'
+                : 'Indicator Already Flagged'}
+            </h2>
+
+            <p
+              style={{
+                fontSize: '0.92rem',
+                color: '#94a3b8',
+                lineHeight: '1.6',
+                marginBottom: '1.75rem',
+              }}
+            >
+              {lang === 'ms'
+                ? 'Petunjuk ini telah pun dilaporkan oleh komuniti kami. Maklum balas anda membantu memperkukuh pengesanan penipuan, jadi penyerahan lanjut tidak diperlukan.'
+                : 'This indicator has already been flagged by our community. Your input helps strengthen our collective scam detection, so no further submission is required.'}
+            </p>
+
+            <button
+              type="button"
+              onClick={closeModal}
+              className="btn-primary"
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                borderRadius: '10px',
+                fontWeight: '600',
+              }}
+            >
+              {lang === 'ms' ? 'Kembali ke Pemintas' : 'Back to Scanner'}
+            </button>
+          </div>
+        ) : submitted ? (
+          /* CONDITION 2: Report Successfully Submitted */
           <div className="report-success" role="status" aria-live="polite">
             <CheckCircle size={58} aria-hidden="true" />
             <h2 id="report-modal-title">{t('report.submitted')}</h2>
             {assignedCode && (
-              <p style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--primary)', margin: '0.25rem 0' }}>{assignedCode}</p>
+              <p
+                style={{
+                  fontSize: '1.25rem',
+                  fontWeight: 600,
+                  color: 'var(--primary)',
+                  margin: '0.25rem 0',
+                }}
+              >
+                {assignedCode}
+              </p>
             )}
             <p>{t('report.thank_you')}</p>
+            <button
+              type="button"
+              onClick={closeModal}
+              className="btn-primary"
+              style={{ marginTop: '1.25rem', width: '100%' }}
+            >
+              {lang === 'ms' ? 'Selesai' : 'Done'}
+            </button>
           </div>
         ) : (
+          /* CONDITION 3: Standard Submission Form */
           <form onSubmit={handleSubmit} className="report-form">
             <div className="report-heading">
               <Shield size={29} aria-hidden="true" />
               <div>
-                <p className="section-eyebrow">{t('report.community_eyebrow')}</p>
+                <p className="section-eyebrow">
+                  {t('report.community_eyebrow')}
+                </p>
                 <h2 id="report-modal-title">{t('report.title')}</h2>
               </div>
             </div>
@@ -186,24 +289,19 @@ export default function ReportModal({
             <p className="report-description">{t('report.desc')}</p>
 
             {submitError && (
-              <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', padding: '0.75rem', borderRadius: '8px', color: '#fca5a5', fontSize: '0.85rem', marginBottom: '0.5rem', textAlign: 'center' }}>
+              <div
+                style={{
+                  background: 'rgba(239, 68, 68, 0.1)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  padding: '0.75rem',
+                  borderRadius: '8px',
+                  color: '#fca5a5',
+                  fontSize: '0.85rem',
+                  marginBottom: '0.5rem',
+                  textAlign: 'center',
+                }}
+              >
                 {submitError}
-              </div>
-            )}
-            
-            {showDuplicateWarning && (
-              <div style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', padding: '0.85rem', borderRadius: '8px', color: '#34d399', fontSize: '0.85rem', marginBottom: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', textAlign: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                  <CheckCircle size={18} />
-                  <span>
-                    {lang === 'ms' 
-                      ? 'Terima kasih! Maklumat ini telah dilaporkan sebelum ini. Sumbangan anda membantu memperkukuh perlindungan komuniti kami.' 
-                      : 'Thank you! This indicator has already been flagged by our community. Your input helps strengthen our collective scam detection.'}
-                  </span>
-                </div>
-                <button type="button" onClick={(e) => handleSubmit(e, true)} className="btn-secondary" style={{ borderColor: 'rgba(16, 185, 129, 0.5)', color: '#34d399', alignSelf: 'center', fontSize: '0.8rem', padding: '0.4rem 0.8rem', marginTop: '0.25rem' }}>
-                  {lang === 'ms' ? 'Hantar Tambahan' : 'Confirm & Submit'}
-                </button>
               </div>
             )}
 
@@ -217,11 +315,14 @@ export default function ReportModal({
                 onChange={(event) => {
                   setMessage(event.target.value);
                   if (event.target.value.trim()) setMessageError('');
-                  setShowDuplicateWarning(false);
                   setSubmitError('');
                 }}
                 placeholder={t('report.message_placeholder')}
-                aria-describedby={messageError ? 'report-message-error' : 'report-message-help'}
+                aria-describedby={
+                  messageError
+                    ? 'report-message-error'
+                    : 'report-message-help'
+                }
                 aria-invalid={Boolean(messageError)}
               />
               {messageError ? (
@@ -229,7 +330,9 @@ export default function ReportModal({
                   {messageError}
                 </small>
               ) : (
-                <small id="report-message-help">{t('report.message_help')}</small>
+                <small id="report-message-help">
+                  {t('report.message_help')}
+                </small>
               )}
             </label>
 
@@ -251,9 +354,14 @@ export default function ReportModal({
             <div className="report-preview">
               <div className="report-preview-heading">
                 <span>{t('report.redacted_preview')}</span>
-                <button type="button" onClick={() => setShowRaw((value) => !value)}>
+                <button
+                  type="button"
+                  onClick={() => setShowRaw((value) => !value)}
+                >
                   {showRaw ? <EyeOff size={15} /> : <Eye size={15} />}
-                  {showRaw ? t('report.show_masked') : t('report.show_original')}
+                  {showRaw
+                    ? t('report.show_masked')
+                    : t('report.show_original')}
                 </button>
               </div>
               <pre className={showRaw ? 'showing-raw' : ''}>
@@ -273,7 +381,11 @@ export default function ReportModal({
             </label>
 
             <div className="report-actions">
-              <button type="button" onClick={closeModal} className="btn-secondary">
+              <button
+                type="button"
+                onClick={closeModal}
+                className="btn-secondary"
+              >
                 {t('report.cancel')}
               </button>
               <button
