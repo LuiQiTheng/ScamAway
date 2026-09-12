@@ -15,58 +15,58 @@ import { SCAM_CATEGORIES, getCategoryLabel } from '../config/categories';
 const DEFAULT_MOCK_AUDIT_LOGS = [
   {
     id: 'audit-1',
-    officerId: 'OFF001',
-    officerName: 'Insp. Ahmad Razak',
-    department: 'Commercial Crime Investigation Dept (CCID)',
-    action: 'Case Status Updated to confirmed',
-    reportCode: 'REP-2026-8812',
-    reportId: 'REP-2026-8812',
+    officerId: 'admin1',
+    officerName: 'Inspector Ali',
+    department: 'Royal Malaysia Police',
+    action: 'Case Status Updated to Confirmed Scam',
+    reportCode: '511814',
+    reportId: '511814',
     rationale: 'Marked report as confirmed scam after reviewing supporting evidence.',
-    timestamp: '2026-08-30T14:35:00.000Z'
+    timestamp: '2026-09-11T13:04:00.000Z'
   },
   {
     id: 'audit-2',
-    officerId: 'OFF002',
-    officerName: 'Sgt. Siti Nurhaliza',
-    department: 'Cyber Crime Division',
-    action: 'Added to Blacklist (phoneNumbers)',
-    reportCode: null,
+    officerId: 'officer02',
+    officerName: 'Sgt. Kumar',
+    department: 'Royal Malaysia Police',
+    action: 'Blacklist Added',
+    reportCode: '498732',
+    reportId: '498732',
     rationale: 'Added phone number to blacklist due to multiple verified reports.',
-    details: 'Value: +6011-8762512',
-    timestamp: '2026-08-29T10:15:00.000Z'
+    timestamp: '2026-09-10T16:32:00.000Z'
   },
   {
     id: 'audit-3',
-    officerId: 'OFF001',
-    officerName: 'Insp. Ahmad Razak',
-    department: 'Commercial Crime Investigation Dept (CCID)',
-    action: 'Broadcast Threat Alert Published',
-    reportCode: null,
+    officerId: 'admin1',
+    officerName: 'Inspector Ali',
+    department: 'Royal Malaysia Police',
+    action: 'Threat Alert Raised',
+    reportCode: '487201',
+    reportId: '487201',
     rationale: 'Raised threat alert after high-risk indicators were detected.',
-    details: 'Category: Banking & Phishing Scam',
-    timestamp: '2026-08-28T16:20:00.000Z'
+    timestamp: '2026-09-09T11:15:00.000Z'
   },
   {
     id: 'audit-4',
-    officerId: 'OFF003',
-    officerName: 'Insp. Tan Kah Hock',
-    department: 'Financial Crime Unit',
-    action: 'Case Status Updated to rejected',
-    reportCode: 'REP-2026-9041',
-    reportId: 'REP-2026-9041',
-    rationale: 'Legitimate transaction confirmed upon verification with bank issuer.',
-    timestamp: '2026-08-27T11:05:00.000Z'
+    officerId: 'officer05',
+    officerName: 'Cpl. Tan',
+    department: 'Royal Malaysia Police',
+    action: 'Case Status Updated to Under Review',
+    reportCode: '472659',
+    reportId: '472659',
+    rationale: 'Set case status to under review pending additional information.',
+    timestamp: '2026-09-08T15:27:00.000Z'
   },
   {
     id: 'audit-5',
-    officerId: 'OFF002',
-    officerName: 'Sgt. Siti Nurhaliza',
-    department: 'Cyber Crime Division',
-    action: 'Added to Blacklist (urls)',
-    reportCode: null,
-    rationale: 'Registered malicious phishing domain reported by multiple users.',
-    details: 'Value: pos-laju.info',
-    timestamp: '2026-08-26T09:40:00.000Z'
+    officerId: 'admin1',
+    officerName: 'Inspector Ali',
+    department: 'Royal Malaysia Police',
+    action: 'Blacklist Removed',
+    reportCode: '461223',
+    reportId: '461223',
+    rationale: 'Removed number from blacklist after manual verification.',
+    timestamp: '2026-09-07T10:08:00.000Z'
   }
 ];
 
@@ -120,14 +120,16 @@ export default function ModeratorDashboard({ onNavigate }) {
     try {
       const date = new Date(ts);
       if (isNaN(date.getTime())) return ts;
-      return date.toLocaleDateString(lang === 'ms' ? 'ms-MY' : 'en-GB', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-      });
+      const day = date.getDate();
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const month = monthNames[date.getMonth()];
+      const year = date.getFullYear();
+      let hours = date.getHours();
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12;
+      return `${day} ${month} ${year}, ${hours}:${minutes} ${ampm}`;
     } catch {
       return ts;
     }
@@ -1064,42 +1066,104 @@ export default function ModeratorDashboard({ onNavigate }) {
             {activeSubTab === 'audit' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                 {/* Search & Action Filter Controls */}
-                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center', background: 'rgba(255,255,255,0.01)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
-                  <label className="admin-search-field" style={{ flex: 1, minWidth: '220px', margin: 0 }}>
-                    <Search size={16} color="var(--text-muted)" aria-hidden="true" />
+                <div style={{
+                  display: 'flex',
+                  gap: '1rem',
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: '0.25rem'
+                }}>
+                  {/* Search Box */}
+                  <div style={{
+                    flex: 1,
+                    minWidth: '260px',
+                    position: 'relative',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}>
+                    <Search
+                      size={16}
+                      color="#94a3b8"
+                      style={{ position: 'absolute', left: '1rem', pointerEvents: 'none' }}
+                    />
                     <input
-                      className="admin-search-input"
                       type="search"
                       value={auditSearchQuery}
                       onChange={(e) => setAuditSearchQuery(e.target.value)}
-                      placeholder={lang === 'ms' ? 'Cari ID Pegawai, Nama, atau Kod Laporan...' : 'Search by Officer ID, Name, or Report Code...'}
+                      placeholder={lang === 'ms' ? 'Cari ID Pegawai, Nama atau Kod Laporan...' : 'Search Officer ID, Name or Report Code...'}
                       aria-label="Search audit logs"
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem 1rem 0.75rem 2.5rem',
+                        background: 'rgba(15, 23, 42, 0.6)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: '10px',
+                        color: '#fff',
+                        fontSize: '0.9rem',
+                        outline: 'none'
+                      }}
                     />
-                  </label>
+                  </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                      <Filter size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
-                      {lang === 'ms' ? 'Jenis Tindakan:' : 'Action Type:'}
-                    </span>
+                  {/* Action Type Filter Dropdown */}
+                  <div style={{
+                    position: 'relative',
+                    display: 'flex',
+                    alignItems: 'center',
+                    minWidth: '160px'
+                  }}>
+                    <Filter
+                      size={15}
+                      color="#94a3b8"
+                      style={{ position: 'absolute', left: '0.85rem', pointerEvents: 'none', zIndex: 1 }}
+                    />
                     <select
-                      className="input-field admin-filter"
                       value={auditActionFilter}
                       onChange={(e) => setAuditActionFilter(e.target.value)}
                       aria-label="Filter audit logs by action type"
-                      style={{ minWidth: '170px' }}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem 2rem 0.75rem 2.25rem',
+                        background: 'rgba(15, 23, 42, 0.6)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: '10px',
+                        color: '#fff',
+                        fontSize: '0.88rem',
+                        cursor: 'pointer',
+                        outline: 'none',
+                        appearance: 'none',
+                        WebkitAppearance: 'none'
+                      }}
                     >
-                      <option value="all">{lang === 'ms' ? 'Semua Tindakan' : 'All Action Types'}</option>
-                      <option value="Status Updates">{lang === 'ms' ? 'Kemaskini Status' : 'Status Updates'}</option>
-                      <option value="Blacklist Changes">{lang === 'ms' ? 'Perubahan Senarai Hitam' : 'Blacklist Changes'}</option>
-                      <option value="Threat Alerts">{lang === 'ms' ? 'Amaran Ancaman' : 'Threat Alerts'}</option>
+                      <option value="all" style={{ background: '#0f172a', color: '#fff' }}>
+                        {lang === 'ms' ? 'Semua' : 'All'}
+                      </option>
+                      <option value="Status Updates" style={{ background: '#0f172a', color: '#fff' }}>
+                        {lang === 'ms' ? 'Kemaskini Status' : 'Status Updates'}
+                      </option>
+                      <option value="Blacklist Changes" style={{ background: '#0f172a', color: '#fff' }}>
+                        {lang === 'ms' ? 'Perubahan Senarai Hitam' : 'Blacklist Changes'}
+                      </option>
+                      <option value="Threat Alerts" style={{ background: '#0f172a', color: '#fff' }}>
+                        {lang === 'ms' ? 'Amaran Ancaman' : 'Threat Alerts'}
+                      </option>
                     </select>
+                    <span style={{ position: 'absolute', right: '0.85rem', pointerEvents: 'none', color: '#94a3b8', fontSize: '0.75rem' }}>▼</span>
                   </div>
                 </div>
 
+                {/* Audit Cards List */}
                 {filteredAuditLogs.length === 0 ? (
-                  <div style={{ padding: '2.5rem 1rem', textAlign: 'center', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.01)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
-                    <p style={{ fontSize: '1rem', margin: 0 }}>
+                  <div style={{
+                    padding: '3rem 1.5rem',
+                    textAlign: 'center',
+                    color: '#94a3b8',
+                    background: 'rgba(15, 23, 42, 0.4)',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(255, 255, 255, 0.08)'
+                  }}>
+                    <p style={{ fontSize: '0.95rem', margin: 0 }}>
                       {auditSearchQuery.trim() || auditActionFilter !== 'all'
                         ? (lang === 'ms' ? 'Tiada rekod audit ditemui mengikut carian anda.' : 'No audit records match your search criteria.')
                         : t('admin.no_audit')}
@@ -1107,10 +1171,8 @@ export default function ModeratorDashboard({ onNavigate }) {
                   </div>
                 ) : (
                   <>
-                    {(isAuditExpanded ? filteredAuditLogs : filteredAuditLogs.slice(0, 3)).map(log => {
-                      const officerId = log.officerId || log.performedBy || 'OFF001';
-                      const officerName = log.officerName || (log.performedBy && log.performedBy !== officerId ? log.performedBy : null) || 'Insp. Ahmad Razak';
-                      const department = log.department || 'Commercial Crime Investigation Dept (CCID)';
+                    {(isAuditExpanded ? filteredAuditLogs : filteredAuditLogs.slice(0, 5)).map(log => {
+                      const officerId = log.officerId || log.performedBy || 'admin1';
                       const cat = getAuditCategory(log.action);
 
                       let reportCode = log.reportCode || null;
@@ -1119,100 +1181,127 @@ export default function ModeratorDashboard({ onNavigate }) {
                         reportCode = rMatch?.reportCode || `#${log.reportId.toString().slice(-6)}`;
                       }
 
-                      const badgeStyle = cat === 'Blacklist Changes'
-                        ? { bg: 'rgba(245, 158, 11, 0.12)', border: '1px solid rgba(245, 158, 11, 0.3)', color: '#fbbf24' }
-                        : cat === 'Threat Alerts'
-                        ? { bg: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#fca5a5' }
-                        : { bg: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.3)', color: '#a7f3d0' };
+                      // Determine Action Icon and Color Palette matching reference design
+                      let IconComp = ShieldCheck;
+                      let iconBg = 'rgba(16, 185, 129, 0.12)';
+                      let iconBorder = '1px solid rgba(16, 185, 129, 0.3)';
+                      let iconColor = '#10b981';
+
+                      const actionLower = (log.action || '').toLowerCase();
+                      if (actionLower.includes('blacklist')) {
+                        IconComp = XCircle;
+                        iconBg = 'rgba(239, 68, 68, 0.12)';
+                        iconBorder = '1px solid rgba(239, 68, 68, 0.3)';
+                        iconColor = '#ef4444';
+                      } else if (actionLower.includes('alert') || actionLower.includes('broadcast') || actionLower.includes('threat')) {
+                        IconComp = ShieldAlert;
+                        iconBg = 'rgba(139, 92, 246, 0.12)';
+                        iconBorder = '1px solid rgba(139, 92, 246, 0.3)';
+                        iconColor = '#a78bfa';
+                      } else if (actionLower.includes('under review')) {
+                        IconComp = FileText;
+                        iconBg = 'rgba(59, 130, 246, 0.12)';
+                        iconBorder = '1px solid rgba(59, 130, 246, 0.3)';
+                        iconColor = '#3b82f6';
+                      }
 
                       return (
                         <div
                           key={log.id}
                           style={{
-                            padding: '1.25rem',
-                            background: 'rgba(255,255,255,0.02)',
-                            border: '1px solid var(--border-color)',
-                            borderRadius: '10px',
                             display: 'flex',
-                            flexDirection: 'column',
-                            gap: '0.75rem'
+                            alignItems: 'flex-start',
+                            gap: '1rem',
+                            padding: '1.25rem 1.5rem',
+                            background: 'rgba(15, 23, 42, 0.5)',
+                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                            borderRadius: '12px',
+                            transition: 'all 0.2s ease'
                           }}
                         >
-                          {/* Header: Officer ID, Name, Dept & Formatted Timestamp */}
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-                              <span style={{
-                                background: 'rgba(6, 182, 212, 0.12)',
-                                border: '1px solid rgba(6, 182, 212, 0.3)',
-                                color: 'var(--primary)',
-                                padding: '0.2rem 0.5rem',
-                                borderRadius: '6px',
-                                fontSize: '0.75rem',
-                                fontWeight: 700,
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '0.25rem'
-                              }}>
-                                <UserCheck size={13} /> {officerId}
-                              </span>
-                              <strong style={{ color: '#fff', fontSize: '0.95rem' }}>{officerName}</strong>
-                              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>({department})</span>
-                            </div>
-                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                              🕒 {formatAuditTimestamp(log.timestamp)}
-                            </span>
-                          </div>
-
-                          {/* Action Type & Report Code Row */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                            <span style={{
-                              fontSize: '0.8rem',
-                              fontWeight: 600,
-                              padding: '0.25rem 0.65rem',
-                              borderRadius: '20px',
-                              background: badgeStyle.bg,
-                              border: badgeStyle.border,
-                              color: badgeStyle.color
-                            }}>
-                              {log.action}
-                            </span>
-
-                            {reportCode && (
-                              <span style={{ fontSize: '0.8rem', color: 'var(--primary)', background: 'rgba(255,255,255,0.03)', padding: '0.2rem 0.6rem', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
-                                📋 {lang === 'ms' ? 'Kod Laporan:' : 'Report Code:'} <strong>{reportCode}</strong>
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Rationale / Notes */}
+                          {/* Left Action Icon Circle */}
                           <div style={{
-                            fontSize: '0.85rem',
-                            color: 'var(--text-secondary)',
-                            background: 'rgba(0,0,0,0.2)',
-                            padding: '0.65rem 0.85rem',
-                            borderRadius: '6px',
-                            border: '1px solid rgba(255,255,255,0.05)',
-                            lineHeight: '1.45'
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '50%',
+                            background: iconBg,
+                            border: iconBorder,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: iconColor,
+                            flexShrink: 0,
+                            marginTop: '2px'
                           }}>
-                            <strong style={{ color: '#cbd5e1' }}>{lang === 'ms' ? 'Rasional / Nota:' : 'Rationale / Notes:'}</strong>{' '}
-                            {log.rationale || log.details || 'N/A'}
+                            <IconComp size={20} />
+                          </div>
+
+                          {/* Main Card Information */}
+                          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
+                            {/* Header: Action Title & Timestamp */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                              <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#fff' }}>
+                                <span style={{ color: '#cbd5e1', fontWeight: 500 }}>Action: </span>
+                                <span style={{ color: '#06b6d4' }}>{log.action}</span>
+                              </div>
+                              <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>
+                                {formatAuditTimestamp(log.timestamp)}
+                              </span>
+                            </div>
+
+                            {/* Metadata Row: Officer/Admin ID & Report Code */}
+                            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '1.25rem', fontSize: '0.85rem', color: '#94a3b8' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                <User size={15} color="#94a3b8" />
+                                <strong style={{ color: '#fff', fontWeight: 600 }}>{officerId}</strong>
+                              </div>
+
+                              {reportCode && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                  <FileText size={15} color="#94a3b8" />
+                                  <span>Report #{reportCode.toString().replace(/^#/, '')}</span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Note / Rationale */}
+                            {(log.rationale || log.details) && (
+                              <div style={{ fontSize: '0.85rem', color: '#94a3b8', marginTop: '0.1rem' }}>
+                                <span style={{ color: '#cbd5e1', fontWeight: 500 }}>Note: </span>
+                                {log.rationale || log.details}
+                              </div>
+                            )}
                           </div>
                         </div>
                       );
                     })}
 
-                    {filteredAuditLogs.length > 3 && (
-                      <button
-                        onClick={() => setIsAuditExpanded(!isAuditExpanded)}
-                        className="btn-secondary"
-                        style={{ alignSelf: 'center', marginTop: '0.5rem', fontSize: '0.85rem', padding: '0.4rem 1.25rem' }}
-                      >
-                        {isAuditExpanded
-                          ? (lang === 'ms' ? 'Papar Sedikit' : 'Show Less')
-                          : (lang === 'ms'
-                            ? `Papar Lebih (${filteredAuditLogs.length - 3} lagi)`
-                            : `Show More (${filteredAuditLogs.length - 3} more)`)}
-                      </button>
+                    {/* Show More Button */}
+                    {filteredAuditLogs.length > 5 && (
+                      <div style={{ display: 'flex', justifyContent: 'center', marginTop: '0.5rem' }}>
+                        <button
+                          onClick={() => setIsAuditExpanded(!isAuditExpanded)}
+                          style={{
+                            background: 'rgba(15, 23, 42, 0.8)',
+                            border: '1px solid rgba(255, 255, 255, 0.15)',
+                            borderRadius: '20px',
+                            padding: '0.5rem 1.5rem',
+                            color: '#94a3b8',
+                            fontSize: '0.85rem',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            fontWeight: 500
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--primary)'}
+                          onMouseLeave={(e) => e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)'}
+                        >
+                          {isAuditExpanded
+                            ? (lang === 'ms' ? 'Tunjuk Kurang' : 'Show Less')
+                            : (lang === 'ms'
+                              ? `Tunjuk Lebih (${filteredAuditLogs.length - 5} lagi)`
+                              : `Show More (${filteredAuditLogs.length - 5} more)`)}
+                        </button>
+                      </div>
                     )}
                   </>
                 )}
