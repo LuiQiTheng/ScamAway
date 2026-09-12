@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { 
-  TrendingUp, BarChart2, ShieldAlert, Info, 
-  ShieldCheck, Flame, AlertTriangle, Target, HelpCircle, UserCheck, BookOpen, Lightbulb
+  TrendingUp, BarChart2, Info, 
+  ShieldCheck, AlertTriangle, Target, HelpCircle, BookOpen, Lightbulb
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -13,7 +13,7 @@ import {
 } from 'recharts';
 
 export default function TrendsDashboard() {
-  const { reportsList, blacklist } = useAppContext();
+  const { reportsList } = useAppContext();
   const { t, lang } = useLanguage();
 
   // 1. Retrieve Today's Scam Lesson from daily rotation
@@ -21,69 +21,7 @@ export default function TrendsDashboard() {
     return getTodayScamLesson();
   }, []);
 
-  // 2. Dynamic Top Category & Educational Mapping Calculation
-  const topCategoryInfo = useMemo(() => {
-    if (!reportsList || reportsList.length === 0) {
-      return { 
-        rawKey: 'parcel', 
-        displayName: lang === 'ms' ? 'Scam Penghantaran Bungkusan' : 'Parcel Delivery Scam', 
-        guidanceKey: 'trends.guidance_parcel'
-      };
-    }
-
-    const counts = {};
-    reportsList.forEach(r => {
-      const cat = (r.category || r.type || 'parcel').toLowerCase();
-      counts[cat] = (counts[cat] || 0) + 1;
-    });
-
-    const sortedKeys = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
-    const topKey = sortedKeys[0] || 'parcel';
-
-    let displayName = 'Parcel Delivery Scam';
-    let guidanceKey = 'trends.guidance_parcel';
-
-    if (topKey.includes('parcel')) {
-      displayName = lang === 'ms' ? 'Scam Penghantaran Bungkusan' : 'Parcel Delivery Scam';
-      guidanceKey = 'trends.guidance_parcel';
-    } else if (topKey.includes('market')) {
-      displayName = lang === 'ms' ? 'Scam Pasaran Dalam Talian' : 'Marketplace Scam';
-      guidanceKey = 'trends.guidance_marketplace';
-    } else if (topKey.includes('bank') || topKey.includes('phish')) {
-      displayName = lang === 'ms' ? 'Scam Perbankan & Pancingan Data' : 'Banking & Phishing Scam';
-      guidanceKey = 'trends.guidance_banking';
-    } else if (topKey.includes('job')) {
-      displayName = lang === 'ms' ? 'Scam Tawaran Kerja' : 'Job Offer Scam';
-      guidanceKey = 'trends.guidance_job';
-    } else if (topKey.includes('invest')) {
-      displayName = lang === 'ms' ? 'Skim Pelaburan Palsu' : 'Investment Scam';
-      guidanceKey = 'trends.guidance_investment';
-    } else if (topKey.includes('gov') || topKey.includes('auth') || topKey.includes('macau')) {
-      displayName = lang === 'ms' ? 'Scam Penyamaran Kerajaan' : 'Government Impersonation Scam';
-      guidanceKey = 'trends.guidance_government';
-    } else {
-      displayName = `${topKey.charAt(0).toUpperCase() + topKey.slice(1)} Scam`;
-      guidanceKey = 'trends.guidance_default';
-    }
-
-    return { rawKey: topKey, displayName, guidanceKey };
-  }, [reportsList, lang]);
-
-  // 3. Last Updated Timestamp Computation
-  const lastUpdatedDate = useMemo(() => {
-    if (!reportsList || reportsList.length === 0) return null;
-    const sorted = [...reportsList].sort((a, b) => new Date(b.timestamp || b.date) - new Date(a.timestamp || a.date));
-    const latest = sorted[0];
-    if (!latest) return null;
-    const d = new Date(latest.timestamp || latest.date);
-    return d.toLocaleDateString(lang === 'ms' ? 'ms-MY' : 'en-US', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    });
-  }, [reportsList, lang]);
-
-  // 4. Chronological Timeline Data Sorting
+  // 2. Chronological Timeline Data Sorting
   const timelineData = useMemo(() => {
     if (!reportsList || reportsList.length === 0) return [];
     

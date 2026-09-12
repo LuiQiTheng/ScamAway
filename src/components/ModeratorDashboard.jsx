@@ -95,6 +95,7 @@ export default function ModeratorDashboard({ onNavigate }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [selectedForBulk, setSelectedForBulk] = useState(new Set());
+  const [expandedClusters, setExpandedClusters] = useState(new Set());
 
   // Audit Sub-tab Search & Action Type Filter state
   const [auditSearchQuery, setAuditSearchQuery] = useState('');
@@ -237,6 +238,123 @@ export default function ModeratorDashboard({ onNavigate }) {
   };
 
 
+// Helper for normalized scam pattern / concept classification
+function getScamConceptPattern(report = {}) {
+  const text = `${report.text || ''} ${report.description || ''} ${report.title || ''} ${report.category || ''}`.toLowerCase();
+  
+  // 1. Parcel / Delivery COD Payment Scam
+  if (
+    /(?:parcel|package|delivery|bungkusan|pos\s*laju|poslaju|ninja\s*van|j&t|courier|cod|cash-on-delivery)/i.test(text) &&
+    /(?:fee|pay|payment|transfer|bayar|clearance|release|held|hold|customs|kastam|tertahan|gagal)/i.test(text)
+  ) {
+    return 'parcel_delivery_payment';
+  }
+
+  // 2. Bank Account Suspension / Phishing Verification Scam
+  if (
+    /(?:bank|banking|online\s*banking|account|akaun|maybank|cimb|rhb|public\s*bank|tac|otp)/i.test(text) &&
+    /(?:suspend|risk|verify|confirm|update|locked|blocked|gantung|sekat|sahkan|kemaskini|log\s*in)/i.test(text)
+  ) {
+    return 'bank_account_verification';
+  }
+
+  // 3. Government / Tax Refund Scam
+  if (
+    /(?:lhdn|tax|cukai|government|kerajaan|refund|pemulangan|hasil|kwsp|epf)/i.test(text) &&
+    /(?:refund|pay|processing|fee|pemulangan|bayar|yuran)/i.test(text)
+  ) {
+    return 'government_refund_payment';
+  }
+
+  // 4. Job Offer / Task Advance Fee Scam
+  if (
+    /(?:job|work|hiring|kerja|jawatan|recruiter|task|tugasan|wfh|part-time|like\s*video|tiktok|shopee\s*agent)/i.test(text) &&
+    /(?:fee|deposit|commission|komisen|pay|bayar|starter|yuran|unlock|aktifkan)/i.test(text)
+  ) {
+    return 'job_offer_fee';
+  }
+
+  // 5. Investment / High Return Scam
+  if (
+    /(?:investment|pelaburan|crypto|trading|forex|bursa|profit|untung|guaranteed|pulangan)/i.test(text) &&
+    /(?:return|profit|guaranteed|untung|dijamin|deposit|capital|modal)/i.test(text)
+  ) {
+    return 'investment_return_scam';
+  }
+
+  // 6. Police / Authority Impersonation Scam
+  if (
+    /(?:police|polis|pdrm|court|mahkamah|warrant|waran|arrest|tangkap|lhdn|kastam|sprm|investigation)/i.test(text) &&
+    /(?:fine|jail|denda|penjara|transfer|safe\s*account|akaun\s*selamat|bail|jaminan|cuci\s*wang)/i.test(text)
+  ) {
+    return 'police_impersonation_scam';
+  }
+
+  // 7. Family / Friend Emergency Scam
+  if (
+    /(?:mom|dad|mak|ayah|ibu|bapa|son|daughter|anak|hospital|accident|kemalangan|kidnap|culik|phone\s*broken)/i.test(text) &&
+    /(?:money|transfer|wang|duit|pindah|hospital|emergency|kecemasan)/i.test(text)
+  ) {
+    return 'family_emergency_scam';
+  }
+
+  return null;
+}
+
+function areReportsRelated(reportA, reportB) {
+  if (!reportA || !reportB || reportA.id === reportB.id) return false;
+
+  // 1. Explicit reportCode or linkedToReportCode link
+  const codeA = (reportA.reportCode || `#${reportA.id}`).toString().toLowerCase();
+  const codeB = (reportB.reportCode || `#${reportB.id}`).toString().toLowerCase();
+
+  if (reportA.linkedToReportCode && (reportA.linkedToReportCode.toLowerCase() === codeB || reportA.linkedToReportCode.toLowerCase() === (reportB.reportCode || '').toLowerCase())) {
+    return true;
+  }
+  if (reportB.linkedToReportCode && (reportB.linkedToReportCode.toLowerCase() === codeA || reportB.linkedToReportCode.toLowerCase() === (reportA.reportCode || '').toLowerCase())) {
+    return true;
+  }
+
+  // 2. Exact Indicator Matches (Ignoring empty / null values!)
+  const indA = extractIndicators(`${reportA.text || ''} ${reportA.phone || ''} ${reportA.bankAccount || ''}`);
+  const indB = extractIndicators(`${reportB.text || ''} ${reportB.phone || ''} ${reportB.bankAccount || ''}`);
+
+  if (reportA.phone) {
+    const pA = normalizePhone(reportA.phone);
+    if (pA && !indA.normalizedPhones.includes(pA)) indA.normalizedPhones.push(pA);
+  }
+  if (reportB.phone) {
+    const pB = normalizePhone(reportB.phone);
+    if (pB && !indB.normalizedPhones.includes(pB)) indB.normalizedPhones.push(pB);
+  }
+  if (reportA.bankAccount) {
+    const bA = normalizeBankAccount(reportA.bankAccount);
+    if (bA && !indA.bankAccounts.includes(bA)) indA.bankAccounts.push(bA);
+  }
+  if (reportB.bankAccount) {
+    const bB = normalizeBankAccount(reportB.bankAccount);
+    if (bB && !indB.bankAccounts.includes(bB)) indB.bankAccounts.push(bB);
+  }
+
+  // Check matching phones (ignoring empty)
+  const sharedPhones = indA.normalizedPhones.filter(p => Boolean(p) && indB.normalizedPhones.includes(p));
+  if (sharedPhones.length > 0) return true;
+
+  // Check matching bank accounts (ignoring empty)
+  const sharedBanks = indA.bankAccounts.filter(b => Boolean(b) && indB.bankAccounts.includes(b));
+  if (sharedBanks.length > 0) return true;
+
+  // 3. Scam Concept / Pattern Semantic Matching
+  const conceptA = getScamConceptPattern(reportA);
+  const conceptB = getScamConceptPattern(reportB);
+
+  if (conceptA && conceptB && conceptA === conceptB) {
+    return true;
+  }
+
+  return false;
+}
+
   const confirmBroadcast = async () => {
     let catEn = alertCategory;
     let catMs = alertCategory;
@@ -277,14 +395,27 @@ export default function ModeratorDashboard({ onNavigate }) {
     setTimeout(() => setAlertSuccess(false), 3000);
   };
 
-  // Find duplicates of the selected report based on matching text substrings (e.g. pos-laju or job terms)
+  // Find cluster size and reports for a case based on exact indicators & semantic pattern matching
+  const getClusterReports = (report) => {
+    if (!report || !reportsList) return [];
+    return reportsList.filter(r => r.id === report.id || areReportsRelated(report, r));
+  };
+
   const getDuplicateReportsCount = (report) => {
-    if (!report) return 0;
-    return reportsList.filter(r =>
-      r.id !== report.id &&
-      (r.category === report.category ||
-        r.text.substring(0, 20) === report.text.substring(0, 20))
-    ).length;
+    return getClusterReports(report).length;
+  };
+
+  const toggleClusterExpand = (reportId, e) => {
+    if (e) e.stopPropagation();
+    setExpandedClusters(prev => {
+      const next = new Set(prev);
+      if (next.has(reportId)) {
+        next.delete(reportId);
+      } else {
+        next.add(reportId);
+      }
+      return next;
+    });
   };
 
   const availableCategories = Array.from(
@@ -797,6 +928,35 @@ export default function ModeratorDashboard({ onNavigate }) {
                             <span className="badge badge-caution" style={{ fontSize: '0.7rem' }}>{getCategoryLabel(report.category || report.type, t)}</span>
                             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>ID: {report.reportCode ? report.reportCode : `#${report.id.toString().slice(-6)}`}</span>
                             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>• {new Date(report.timestamp).toLocaleTimeString()}</span>
+                            {(() => {
+                              const cluster = getClusterReports(report);
+                              if (cluster.length <= 1) return null;
+                              const isExpanded = expandedClusters.has(report.id);
+                              return (
+                                <button
+                                  onClick={(e) => toggleClusterExpand(report.id, e)}
+                                  style={{
+                                    background: isExpanded ? 'rgba(6, 182, 212, 0.25)' : 'rgba(6, 182, 212, 0.1)',
+                                    border: '1px solid rgba(6, 182, 212, 0.4)',
+                                    color: '#38bdf8',
+                                    borderRadius: '12px',
+                                    padding: '0.15rem 0.55rem',
+                                    fontSize: '0.72rem',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.35rem',
+                                    transition: 'all var(--transition-fast)'
+                                  }}
+                                  title={lang === 'ms' ? 'Klik untuk lihat laporan serupa' : 'Click to view similar reports'}
+                                >
+                                  <span>🔗</span>
+                                  <span>{cluster.length} {lang === 'ms' ? 'Laporan Serupa' : 'Similar Reports'}</span>
+                                  <span style={{ fontSize: '0.65rem' }}>{isExpanded ? '▲' : '▼'}</span>
+                                </button>
+                              );
+                            })()}
                           </div>
                           <p style={{
                             fontSize: '0.9rem',
@@ -831,6 +991,48 @@ export default function ModeratorDashboard({ onNavigate }) {
                           </span>
                         </div>
                       </div>
+
+                      {/* Expanded Cluster Similar Reports List */}
+                      {expandedClusters.has(report.id) && (() => {
+                        const cluster = getClusterReports(report);
+                        if (cluster.length <= 1) return null;
+                        return (
+                          <div style={{
+                            padding: '0.85rem 1.25rem',
+                            background: 'rgba(15, 23, 42, 0.85)',
+                            border: '1px solid rgba(6, 182, 212, 0.3)',
+                            borderTop: 'none',
+                            borderRadius: '0 0 12px 12px',
+                            fontSize: '0.82rem',
+                            color: '#cbd5e1'
+                          }}>
+                            <div style={{ fontWeight: 600, color: '#38bdf8', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                              <span>🔗</span>
+                              <span>{cluster.length} {lang === 'ms' ? 'Laporan Serupa Terkesan (Kluster)' : 'Similar Reports Detected (Cluster)'}</span>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                              {cluster.map(r => {
+                                const code = r.reportCode || `#${r.id.toString().slice(-6)}`;
+                                const snippet = r.text ? `"${r.text.slice(0, 65)}${r.text.length > 65 ? '...' : ''}"` : '';
+                                const isCurrent = r.id === report.id;
+                                return (
+                                  <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', opacity: isCurrent ? 0.75 : 1 }}>
+                                    <span style={{ color: isCurrent ? 'var(--text-muted)' : '#38bdf8', fontWeight: 600 }}>
+                                      • {code}
+                                    </span>
+                                    <span style={{ color: '#e2e8f0' }}>— {snippet}</span>
+                                    {isCurrent && (
+                                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                        ({lang === 'ms' ? 'kes ini' : 'this case'})
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })()}
 
                       {/* Inline Expanded Review UI */}
                       {selectedReport?.id === report.id && (
@@ -898,6 +1100,19 @@ export default function ModeratorDashboard({ onNavigate }) {
                               <h4 style={{ fontSize: '1.2rem', color: 'var(--primary)', marginTop: '0.25rem' }}>
                                 {getDuplicateReportsCount(report)} {t('admin.matching_cases')}
                               </h4>
+                              {(() => {
+                                const cluster = getClusterReports(report);
+                                if (cluster.length <= 1) return null;
+                                return (
+                                  <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.08)', fontSize: '0.78rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                    {cluster.map(r => (
+                                      <div key={r.id} style={{ color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        • <strong style={{ color: '#38bdf8' }}>{r.reportCode || `#${r.id.toString().slice(-6)}`}</strong>: "{r.text}"
+                                      </div>
+                                    ))}
+                                  </div>
+                                );
+                              })()}
                             </div>
                           </div>
 
