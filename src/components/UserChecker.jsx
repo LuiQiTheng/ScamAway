@@ -23,7 +23,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
   const { reportsList, activeAlert, addReport, blacklist, currentUser } = useAppContext();
   const { t, lang } = useLanguage();
   const lastScanRef = useRef(null);
-  const [activeTab, setActiveTab] = useState('text'); // text, url
+  const [activeTab, setActiveTab] = useState('text'); // text, url, screenshot
   useScrollToTop(activeTab);
   const [inputText, setInputText] = useState('');
   const [urlInput, setUrlInput] = useState('');
@@ -39,6 +39,12 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
   const [selectedImage, setSelectedImage] = useState(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef(null);
+  // [N-4] Dedicated screenshot dropzone file input ref
+  const screenshotDropzoneRef = useRef(null);
+
+  // [N-4] OCR Extracted Text editor state
+  const [showOcrEditor, setShowOcrEditor] = useState(false);
+  const [ocrEditText, setOcrEditText] = useState('');
 
   // Text to Speech
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
@@ -224,6 +230,11 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
         if (res.visionForensics?.extractedText && !inputText.trim()) {
           setInputText(res.visionForensics.extractedText);
         }
+        // [N-4] Populate OCR editor with extracted text
+        if (res.visionForensics?.extractedText) {
+          setOcrEditText(res.visionForensics.extractedText);
+          setShowOcrEditor(false); // collapsed by default, user opens it
+        }
       } else {
         res = await analyzeScamRisk(finalText, {
           ...metadata,
@@ -303,12 +314,31 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
     setVtResult(null);
     setVtLoading(false);
     setBankInput('');
+    // [N-4] Reset OCR editor
+    setOcrEditText('');
+    setShowOcrEditor(false);
     stopSpeech();
   };
 
   const handleScanText = () => {
     if (!inputText.trim() && !selectedImage) return;
     triggerScanAnimation(inputText || (lang === 'ms' ? 'Imbasan Tangkapan Skrin' : 'Screenshot Incident Scan'));
+  };
+
+  // [N-4] Dedicated screenshot scan handler (uses selected image with optional user text context)
+  const handleScanScreenshot = () => {
+    if (!selectedImage) return;
+    triggerScanAnimation(inputText || (lang === 'ms' ? 'Imbasan Tangkapan Skrin' : 'Screenshot Incident Scan'));
+  };
+
+  // [N-4] Re-scan using edited OCR text
+  const handleOcrRescan = () => {
+    if (!ocrEditText.trim()) return;
+    setInputText(ocrEditText);
+    handleTabChange('text');
+    setTimeout(() => {
+      triggerScanAnimation(ocrEditText, {}, null);
+    }, 50);
   };
 
   const handleQuickTest = (preset) => {
@@ -599,6 +629,17 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
             >
               <CreditCard size={16} /> {t('scanner.url_btn')}
             </button>
+
+            {/* [N-4] Screenshot Analysis tab */}
+            <button
+              onClick={() => handleTabChange('screenshot')}
+              className={`nav-link scanner-method-tab ${activeTab === 'screenshot' ? 'active' : ''}`}
+              role="tab"
+              aria-selected={activeTab === 'screenshot'}
+              style={{ fontSize: isElderlyMode ? '1.15rem' : '0.9rem' }}
+            >
+              <UploadCloud size={16} /> {t('scanner.tab_screenshot')}
+            </button>
           </div>
 
           {/* Tab Content */}
@@ -850,6 +891,139 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
             </div>
           )}
 
+          {/* [N-4] Screenshot Analysis tab content — Drag & Drop dropzone */}
+          {activeTab === 'screenshot' && (
+            <div role="tabpanel" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* Dropzone */}
+              <div
+                onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+                onDragLeave={(e) => { e.preventDefault(); setIsDragOver(false); }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsDragOver(false);
+                  const file = e.dataTransfer?.files?.[0];
+                  if (file && file.type.startsWith('image/')) processImageFile(file);
+                }}
+                onClick={() => screenshotDropzoneRef.current?.click()}
+                role="button"
+                tabIndex={0}
+                aria-label={t('scanner.dropzone_title')}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') screenshotDropzoneRef.current?.click(); }}
+                style={{
+                  border: `2px dashed ${isDragOver ? 'var(--primary)' : 'rgba(99, 102, 241, 0.4)'}`,
+                  borderRadius: '14px',
+                  background: isDragOver
+                    ? 'rgba(59, 130, 246, 0.1)'
+                    : 'rgba(255, 255, 255, 0.02)',
+                  padding: '2.5rem 1.5rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  boxShadow: isDragOver ? '0 0 18px rgba(59, 130, 246, 0.25)' : 'none',
+                }}
+              >
+                <UploadCloud size={40} color={isDragOver ? 'var(--primary)' : 'rgba(99,102,241,0.7)'} />
+                <div style={{ textAlign: 'center' }}>
+                  <p style={{ margin: 0, fontWeight: 700, color: '#fff', fontSize: isElderlyMode ? '1.2rem' : '1rem' }}>
+                    {t('scanner.dropzone_title')}
+                  </p>
+                  <p style={{ margin: '0.25rem 0 0', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                    {t('scanner.dropzone_subtitle')}
+                  </p>
+                  <p style={{ margin: '0.25rem 0 0', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                    {t('scanner.dropzone_hint')}
+                  </p>
+                </div>
+                <input
+                  ref={screenshotDropzoneRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    if (e.target.files?.[0]) processImageFile(e.target.files[0]);
+                    e.target.value = '';
+                  }}
+                />
+              </div>
+
+              {/* Image preview once uploaded */}
+              {selectedImage && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  background: 'rgba(59, 130, 246, 0.12)',
+                  border: '1px solid rgba(59, 130, 246, 0.35)',
+                  borderRadius: '10px',
+                  padding: '0.75rem 1rem',
+                }}>
+                  <img
+                    src={selectedImage.fileBase64}
+                    alt="Screenshot preview"
+                    style={{
+                      width: '64px',
+                      height: '64px',
+                      objectFit: 'cover',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(255,255,255,0.2)',
+                      flexShrink: 0,
+                    }}
+                  />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      📷 {selectedImage.fileName}
+                    </div>
+                    <div style={{ color: '#93c5fd', fontSize: '0.78rem', marginTop: '0.2rem' }}>
+                      {lang === 'ms' ? 'Sedia untuk analisis AI visual Gemini' : 'Ready for Gemini AI visual analysis'}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setSelectedImage(null); }}
+                    className="btn-secondary"
+                    style={{ padding: '0.3rem 0.5rem', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)', display: 'flex', alignItems: 'center', flexShrink: 0 }}
+                    title={lang === 'ms' ? 'Buang imej' : 'Remove image'}
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              )}
+
+              {/* Optional context message */}
+              <div>
+                <label className="form-label" htmlFor="screenshot-context-input" style={{ marginBottom: '0.4rem', display: 'block' }}>
+                  {lang === 'ms' ? 'Konteks tambahan (pilihan)' : 'Additional context (optional)'}
+                </label>
+                <textarea
+                  id="screenshot-context-input"
+                  className="input-field"
+                  rows={2}
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  placeholder={lang === 'ms'
+                    ? 'Terangkan situasi scam atau tambah maklumat konteks...'
+                    : 'Describe the scam situation or add context...'}
+                  style={{ resize: 'vertical' }}
+                />
+              </div>
+
+              <button
+                onClick={handleScanScreenshot}
+                className="btn-primary scan-primary-action"
+                disabled={!selectedImage || isScanning}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+              >
+                {isScanning ? <RefreshCw className="spinning" size={18} /> : <ShieldAlert size={18} />}
+                {isScanning
+                  ? t('common.loading')
+                  : (lang === 'ms' ? '🔍 Imbas Tangkapan Skrin & Analisis' : '🔍 Scan Screenshot & Analyze')}
+              </button>
+            </div>
+          )}
+
         </div>
 
         {/* Scanning progress log */}
@@ -877,8 +1051,9 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
             {/* Header: Score, Risk level */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '1.25rem', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
               <div>
+                {/* [N-2] For score < 35, override the badge label with responsible zero-day framing */}
                 <span className={`badge badge-${scanResult.bandColor}`} style={{ fontSize: isElderlyMode ? '1.15rem' : '0.8rem', padding: '0.4rem 1rem' }}>
-                  {scanResult.riskBand}
+                  {scanResult.score < 35 ? t('result.zero_day_safe') : scanResult.riskBand}
                 </span>
                 <h3 style={{ fontSize: isElderlyMode ? '2rem' : '1.75rem', marginTop: '0.5rem', color: '#fff' }}>
                   {t('result.risk_score')}: {scanResult.score}/100
@@ -953,29 +1128,137 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                   </p>
                 )}
 
+                {/* [N-4] Enhanced Extracted Text Review with editable textarea and re-scan */}
                 {scanResult.visionForensics.extractedText && (
-                  <details style={{ marginTop: '0.25rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                    <summary style={{ cursor: 'pointer', color: 'var(--primary)', fontWeight: 600 }}>
-                      📝 {lang === 'ms' ? 'Lihat Teks Diekstrak dari Tangkapan Skrin (OCR)' : 'Review Extracted OCR Text'}
-                    </summary>
-                    <pre style={{
-                      marginTop: '0.5rem',
-                      padding: '0.75rem',
-                      background: 'rgba(0, 0, 0, 0.3)',
-                      borderRadius: '6px',
-                      whiteSpace: 'pre-wrap',
-                      fontSize: '0.8rem',
-                      color: 'var(--text-primary)',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      maxHeight: '150px',
-                      overflowY: 'auto'
-                    }}>
-                      {scanResult.visionForensics.extractedText}
-                    </pre>
-                  </details>
+                  <div style={{ marginTop: '0.5rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowOcrEditor(prev => !prev);
+                        if (!showOcrEditor) setOcrEditText(scanResult.visionForensics.extractedText);
+                      }}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: 'var(--primary)',
+                        fontWeight: 600,
+                        fontSize: '0.85rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                        padding: '0.25rem 0',
+                      }}
+                      aria-expanded={showOcrEditor}
+                    >
+                      {showOcrEditor ? '▲' : '▼'}{' '}
+                      📝 {t('scanner.extracted_text_label')}
+                    </button>
+                    {showOcrEditor && (
+                      <div style={{
+                        marginTop: '0.5rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.5rem',
+                      }}>
+                        <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                          {t('scanner.extracted_text_hint')}
+                        </p>
+                        <textarea
+                          value={ocrEditText}
+                          onChange={(e) => setOcrEditText(e.target.value)}
+                          className="input-field"
+                          rows={5}
+                          style={{
+                            fontFamily: 'monospace',
+                            fontSize: '0.8rem',
+                            resize: 'vertical',
+                            background: 'rgba(0, 0, 0, 0.3)',
+                          }}
+                          aria-label={t('scanner.extracted_text_label')}
+                        />
+                        <button
+                          onClick={handleOcrRescan}
+                          className="btn-secondary"
+                          disabled={!ocrEditText.trim() || isScanning}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            fontSize: '0.85rem',
+                            fontWeight: 600,
+                            color: 'var(--primary)',
+                            borderColor: 'rgba(99, 102, 241, 0.4)',
+                            alignSelf: 'flex-start',
+                          }}
+                        >
+                          {t('scanner.edit_rescan_btn')}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             )}
+
+            {/* [N-2] Zero-Day Safety Framing: Disclaimer card for low risk scores */}
+            {scanResult.score < 35 && (
+              <div
+                role="region"
+                aria-label="Zero-Day Safety Advisory"
+                style={{
+                  background: 'rgba(16, 185, 129, 0.07)',
+                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  borderRadius: '12px',
+                  padding: '1.25rem 1.5rem',
+                  marginBottom: '1.5rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.75rem',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                  <ShieldCheck size={22} color="#10b981" />
+                  <strong style={{ color: '#a7f3d0', fontSize: isElderlyMode ? '1.25rem' : '1rem' }}>
+                    {t('result.zero_day_safe')}
+                  </strong>
+                </div>
+                <p style={{
+                  margin: 0,
+                  fontSize: isElderlyMode ? '1.05rem' : '0.88rem',
+                  color: 'var(--text-secondary)',
+                  lineHeight: 1.55,
+                }}>
+                  ⚠️ {t('result.zero_day_disclaimer')}
+                </p>
+                {/* 1-tap Officer Second Opinion button */}
+                <button
+                  onClick={() => {
+                    setTextToReport(inputText || urlInput || (lang === 'ms'
+                      ? `Pengguna masih ragu-ragu walaupun skor risiko adalah ${scanResult.score}/100. Mohon pandangan kedua pegawai.`
+                      : `User is still suspicious despite low risk score of ${scanResult.score}/100. Requesting officer second opinion.`));
+                    setIsReportOpen(true);
+                  }}
+                  className="btn-secondary"
+                  style={{
+                    alignSelf: 'flex-start',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    fontSize: isElderlyMode ? '1.05rem' : '0.85rem',
+                    fontWeight: 600,
+                    color: '#34d399',
+                    borderColor: 'rgba(16, 185, 129, 0.4)',
+                    padding: '0.5rem 1rem',
+                  }}
+                >
+                  <ShieldAlert size={16} />
+                  {t('result.second_opinion_btn')}
+                </button>
+              </div>
+            )}
+
+
 
             {/* Explainable evidence indicators (8.3 Explainability) */}
             <div style={{ marginBottom: '1.5rem' }}>
@@ -1318,7 +1601,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                 {t('result.report_scam_btn')}
               </button>
               <button
-                onClick={() => { setScanResult(null); setInputText(''); setUrlInput(''); setPhoneInput(''); setShowGuardianAlert(false); setShowEmergencyPopup(false); setVtResult(null); setVtLoading(false); }}
+                onClick={() => { setScanResult(null); setInputText(''); setUrlInput(''); setPhoneInput(''); setShowGuardianAlert(false); setShowEmergencyPopup(false); setVtResult(null); setVtLoading(false); setOcrEditText(''); setShowOcrEditor(false); }}
                 className="btn-secondary"
                 style={{ flex: 1 }}
               >

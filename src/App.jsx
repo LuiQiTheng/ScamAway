@@ -12,6 +12,7 @@ import EmergencyHelp from './components/EmergencyHelp';
 import GuardianSetupModal from './components/Guardian/GuardianSetupModal';
 import AdminProfile from './components/AdminProfile';
 import { useScrollToTop } from './utils/useScrollToTop';
+import ErrorBoundary from './components/ErrorBoundary';
 
 export default function App() {
   const { userNotifications, dismissNotification, adminProfile, setAdminProfile, currentUser, setCurrentUser, updateGuardian } = useAppContext();
@@ -242,32 +243,46 @@ export default function App() {
 
       <main className="app-main">
         {activeTab === 'check' && (
-          <UserChecker
-            userMode={activeMode}
-            isElderlyMode={isElderlyMode}
-            isKidMode={isKidMode}
-            isGuest={isGuest}
-            onRegister={() => {
-              setIsGuest(false);
-              setLoginFormType('user-signup');
-            }}
-          />
+          <ErrorBoundary key="check">
+            <UserChecker
+              userMode={activeMode}
+              isElderlyMode={isElderlyMode}
+              isKidMode={isKidMode}
+              isGuest={isGuest}
+              onRegister={() => {
+                setIsGuest(false);
+                setLoginFormType('user-signup');
+              }}
+            />
+          </ErrorBoundary>
         )}
         {activeTab === 'knowledge' && (
-          <KnowledgeCentre
-            isElderlyMode={isElderlyMode}
-            isKidMode={isKidMode}
-          />
+          <ErrorBoundary key="knowledge">
+            <KnowledgeCentre
+              isElderlyMode={isElderlyMode}
+              isKidMode={isKidMode}
+            />
+          </ErrorBoundary>
         )}
         {activeTab === 'profile' && (
-          <UserProfile
-            userMode={activeMode}
-            isElderlyMode={isElderlyMode}
-            isKidMode={isKidMode}
-          />
+          <ErrorBoundary key="profile">
+            <UserProfile
+              userMode={activeMode}
+              isElderlyMode={isElderlyMode}
+              isKidMode={isKidMode}
+            />
+          </ErrorBoundary>
         )}
-        {activeTab === 'moderator' && <ModeratorDashboard onNavigate={setActiveTab} />}
-        {activeTab === 'admin_profile' && <AdminProfile />}
+        {activeTab === 'moderator' && (
+          <ErrorBoundary key="moderator">
+            <ModeratorDashboard onNavigate={setActiveTab} />
+          </ErrorBoundary>
+        )}
+        {activeTab === 'admin_profile' && (
+          <ErrorBoundary key="admin_profile">
+            <AdminProfile />
+          </ErrorBoundary>
+        )}
         
         {/* Force Guardian Setup Modal for Vulnerable Ages */}
         {showGuardianPrompt && (

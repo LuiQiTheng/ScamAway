@@ -231,7 +231,19 @@ const translations = {
     "result.weight": "Signal weight",
     "result.status_clean": "Status: Clean",
     "result.status_advisory": "Advisory Notice",
-    // VirusTotal
+    // [N-2] Zero-Day Safety Framing
+    "result.zero_day_safe": "No Known Threat Indicators Detected",
+    "result.zero_day_disclaimer": "Scammers continuously invent new tactics. If anyone asks you for money, passwords, or OTP — never proceed.",
+    "result.second_opinion_btn": "Still suspicious? Request Officer Second Opinion",
+    // [N-4] Screenshot tab & OCR panel
+    "scanner.tab_screenshot": "Screenshot Analysis",
+    "scanner.dropzone_title": "Drag & Drop Screenshot Here",
+    "scanner.dropzone_subtitle": "or click to browse your files",
+    "scanner.dropzone_hint": "Supports PNG, JPG, WEBP screenshots",
+    "scanner.edit_rescan_btn": "✏️ Edit Extracted Text & Re-Scan",
+    "scanner.extracted_text_label": "Extracted Text Review (OCR)",
+    "scanner.extracted_text_hint": "Review and correct the extracted text before re-scanning.",
+    
     "vt.title": "VirusTotal External Threat Scan",
     "vt.scanning": "Checking URL with VirusTotal...",
     "vt.safe": "No threats detected",
@@ -793,7 +805,19 @@ const translations = {
     "result.weight": "Pemberat isyarat",
     "result.status_clean": "Status: Bersih",
     "result.status_advisory": "Notis Nasihat",
-    // VirusTotal
+    // [N-2] Zero-Day Safety Framing
+    "result.zero_day_safe": "Tiada Penunjuk Ancaman Dikenali Dikesan",
+    "result.zero_day_disclaimer": "Penipu sentiasa mencipta taktik baharu. Jika sesiapa meminta wang, kata laluan, atau OTP daripada anda — jangan teruskan.",
+    "result.second_opinion_btn": "Masih ragu-ragu? Minta Pandangan Kedua Pegawai",
+    // [N-4] Screenshot tab & OCR panel
+    "scanner.tab_screenshot": "Analisis Tangkapan Skrin",
+    "scanner.dropzone_title": "Seret & Lepas Tangkapan Skrin Di Sini",
+    "scanner.dropzone_subtitle": "atau klik untuk pilih fail",
+    "scanner.dropzone_hint": "Sokong PNG, JPG, WEBP",
+    "scanner.edit_rescan_btn": "✏️ Edit Teks Diekstrak & Imbas Semula",
+    "scanner.extracted_text_label": "Semakan Teks Diekstrak (OCR)",
+    "scanner.extracted_text_hint": "Semak dan betulkan teks yang diekstrak sebelum mengimbas semula.",
+    
     "vt.title": "Imbasan Ancaman Luaran VirusTotal",
     "vt.scanning": "Menyemak URL dengan VirusTotal...",
     "vt.safe": "Tiada ancaman dikesan",

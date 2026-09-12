@@ -102,7 +102,7 @@ export const AppProvider = ({ children }) => {
   }, [adminProfile]);
 
   // Auth Helpers
-  const registerUser = async (userData) => {
+  const registerUser = useCallback(async (userData) => {
     const q = query(collection(db, "users"), where("username", "==", userData.username));
     const snapshot = await getDocs(q);
     if (!snapshot.empty) throw new Error("Username already exists");
@@ -113,10 +113,10 @@ export const AppProvider = ({ children }) => {
     const createdUser = sanitizeUserSession({ id: docRef.id, ...userToSave });
     setCurrentUser(createdUser);
     return createdUser;
-  };
+  }, []);
 
   // Combined reset password function (Supports both Users and Admins)
-  const resetPassword = async (identifier, newPassword) => {
+  const resetPassword = useCallback(async (identifier, newPassword) => {
     if (!identifier || !newPassword) {
       throw new Error("Please fill in all fields");
     }
@@ -156,12 +156,12 @@ export const AppProvider = ({ children }) => {
     }
 
     throw new Error("No user or admin account found with this ID/Username/Email");
-  };
+  }, []);
 
   // Keep resetUserPassword as an alias for backward compatibility
   const resetUserPassword = resetPassword;
 
-  const loginUser = async (username, password) => {
+  const loginUser = useCallback(async (username, password) => {
     const q = query(collection(db, "users"), where("username", "==", username));
     const snapshot = await getDocs(q);
     if (snapshot.empty) throw new Error("Invalid username or password");
@@ -184,9 +184,9 @@ export const AppProvider = ({ children }) => {
     const user = sanitizeUserSession({ id: userDoc.id, ...data });
     setCurrentUser(user);
     return user;
-  };
+  }, []);
 
-  const registerAdmin = async (adminData) => {
+  const registerAdmin = useCallback(async (adminData) => {
     const q = query(collection(db, "admins"), where("officerId", "==", adminData.officerId));
     const snapshot = await getDocs(q);
     if (!snapshot.empty) throw new Error("Officer ID already exists");
@@ -197,9 +197,9 @@ export const AppProvider = ({ children }) => {
     const createdAdmin = sanitizeUserSession({ id: docRef.id, ...adminToSave });
     setAdminProfile(createdAdmin);
     return createdAdmin;
-  };
+  }, []);
 
-  const loginAdmin = async (officerId, password) => {
+  const loginAdmin = useCallback(async (officerId, password) => {
     const q = query(collection(db, "admins"), where("officerId", "==", officerId));
     const snapshot = await getDocs(q);
     if (snapshot.empty) throw new Error("Invalid Officer ID or password");
@@ -222,9 +222,9 @@ export const AppProvider = ({ children }) => {
     const admin = sanitizeUserSession({ id: adminDoc.id, ...data });
     setAdminProfile(admin);
     return admin;
-  };
+  }, []);
 
-  const updateAdminProfile = async (adminData) => {
+  const updateAdminProfile = useCallback(async (adminData) => {
     if (!adminProfile?.id) return;
     
     if (adminData.officerId && adminData.officerId !== adminProfile.officerId) {
@@ -240,16 +240,16 @@ export const AppProvider = ({ children }) => {
     const updatedAdmin = sanitizeUserSession({ ...adminProfile, ...dataToUpdate });
     setAdminProfile(updatedAdmin);
     await updateDoc(doc(db, "admins", adminProfile.id), dataToUpdate);
-  };
+  }, [adminProfile]);
 
-  const updateGuardian = async (guardianData) => {
+  const updateGuardian = useCallback(async (guardianData) => {
     if (!currentUser?.id) return;
     const updatedUser = { ...currentUser, guardian: guardianData };
     setCurrentUser(updatedUser);
     await updateDoc(doc(db, "users", currentUser.id), { guardian: guardianData });
-  };
+  }, [currentUser]);
 
-  const updateCurrentUser = async (userData) => {
+  const updateCurrentUser = useCallback(async (userData) => {
     if (!currentUser?.id) return;
     
     // Check if new username is unique if it changed
@@ -266,9 +266,9 @@ export const AppProvider = ({ children }) => {
     const updatedUser = sanitizeUserSession({ ...currentUser, ...dataToUpdate });
     setCurrentUser(updatedUser);
     await updateDoc(doc(db, "users", currentUser.id), dataToUpdate);
-  };
+  }, [currentUser]);
 
-  const deleteCurrentUser = async (password) => {
+  const deleteCurrentUser = useCallback(async (password) => {
     const activeUser = currentUser || adminProfile;
     if (!activeUser?.id) throw new Error("No user logged in");
     
@@ -298,6 +298,7 @@ export const AppProvider = ({ children }) => {
         const snapshot = await getDocs(q);
         const updatePromises = snapshot.docs.map(reportDoc => 
           updateDoc(doc(db, "reports", reportDoc.id), { reporterId: 'deleted-user' })
+
         );
         await Promise.all(updatePromises);
         
@@ -308,7 +309,7 @@ export const AppProvider = ({ children }) => {
     } catch (e) {
       throw new Error("Failed to delete account: " + e.message);
     }
-  };
+  }, [currentUser, adminProfile]);
 
   
   // Persistent Audit Logs State
@@ -321,9 +322,9 @@ export const AppProvider = ({ children }) => {
     }
   });
 
-  const dismissNotification = (id) => {
+  const dismissNotification = useCallback((id) => {
     setUserNotifications(prev => prev.filter(n => n.id !== id));
-  };
+  }, []);
 
   // Fetch initial audit logs from Firestore
   useEffect(() => {
@@ -654,13 +655,18 @@ export const AppProvider = ({ children }) => {
     registerUser, loginUser, registerAdmin, loginAdmin, updateAdminProfile, updateGuardian, updateCurrentUser, deleteCurrentUser,
     resetPassword, resetUserPassword,
     auditLogs, addAuditLog,
-    userNotifications, dismissNotification // <-- 补充补上这两个变量
+    userNotifications, dismissNotification
   }), [
-    reportsList, addReport, activeAlert, auditLogs, userNotifications, dismissNotification,
-    updateReportStatus, addAlert,
-    blacklist, addBlacklistItem, removeBlacklistItem, updateBlacklistItem,
-    adminProfile, currentUser, registerUser, loginUser, registerAdmin, loginAdmin, updateGuardian, updateCurrentUser,
-    resetPassword, resetUserPassword
+    // State values that actually change
+    reportsList, activeAlert, auditLogs, userNotifications,
+    blacklist, adminProfile, currentUser,
+    // Stable useCallback function references (only change when their own deps change)
+    addReport, updateReportStatus, addAlert,
+    addBlacklistItem, removeBlacklistItem, updateBlacklistItem,
+    registerUser, loginUser, registerAdmin, loginAdmin,
+    updateAdminProfile, updateGuardian, updateCurrentUser, deleteCurrentUser,
+    resetPassword, resetUserPassword,
+    addAuditLog, dismissNotification
   ]);
 
   return (
