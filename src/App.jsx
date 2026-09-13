@@ -266,7 +266,7 @@ export default function App() {
             isKidMode={isKidMode}
           />
         )}
-        {activeTab === 'moderator' && <ModeratorDashboard onNavigate={setActiveTab} />}
+        {activeTab === 'moderator' && <ModeratorDashboard />}
         {activeTab === 'admin_profile' && <AdminProfile />}
         
         {/* Force Guardian Setup Modal for Vulnerable Ages */}
