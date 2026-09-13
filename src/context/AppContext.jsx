@@ -160,6 +160,7 @@ export const AppProvider = ({ children }) => {
 
   // Keep resetUserPassword as an alias for backward compatibility
   const resetUserPassword = resetPassword;
+  const resetAdminPassword = resetPassword;
 
   const loginUser = async (username, password) => {
     const q = query(collection(db, "users"), where("username", "==", username));
@@ -652,15 +653,15 @@ export const AppProvider = ({ children }) => {
     adminProfile, setAdminProfile,
     currentUser, setCurrentUser,
     registerUser, loginUser, registerAdmin, loginAdmin, updateAdminProfile, updateGuardian, updateCurrentUser, deleteCurrentUser,
-    resetPassword, resetUserPassword,
+    resetPassword, resetUserPassword, resetAdminPassword, // Export resetAdminPassword
     auditLogs, addAuditLog,
-    userNotifications, dismissNotification // <-- 补充补上这两个变量
+    userNotifications, dismissNotification
   }), [
     reportsList, addReport, activeAlert, auditLogs, userNotifications, dismissNotification,
     updateReportStatus, addAlert,
     blacklist, addBlacklistItem, removeBlacklistItem, updateBlacklistItem,
     adminProfile, currentUser, registerUser, loginUser, registerAdmin, loginAdmin, updateGuardian, updateCurrentUser,
-    resetPassword, resetUserPassword
+    resetPassword, resetUserPassword, resetAdminPassword // Include resetAdminPassword in dependency array
   ]);
 
   return (
