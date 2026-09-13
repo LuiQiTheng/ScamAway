@@ -160,6 +160,7 @@ export const AppProvider = ({ children }) => {
 
   // Keep resetUserPassword as an alias for backward compatibility
   const resetUserPassword = resetPassword;
+  const resetAdminPassword = resetPassword;
 
   const loginUser = useCallback(async (username, password) => {
     const q = query(collection(db, "users"), where("username", "==", username));
@@ -312,11 +313,20 @@ export const AppProvider = ({ children }) => {
   }, [currentUser, adminProfile]);
 
   
+  // Helper to filter out legacy PDRM001 / PDRM002 audit records
+  const isPDRMLegacyRecord = (record) => {
+    const actorId = String(record?.officerId || record?.performedBy || '').toLowerCase();
+    const actorName = String(record?.officerName || record?.performedByName || '').toLowerCase();
+    return actorId.includes('pdrm001') || actorId.includes('pdrm002') || actorName.includes('pdrm001') || actorName.includes('pdrm002');
+  };
+
   // Persistent Audit Logs State
   const [auditLogs, setAuditLogs] = useState(() => {
     try {
       const saved = localStorage.getItem('scam_shield_audit_logs');
-      return saved ? JSON.parse(saved) : [];
+      if (!saved) return [];
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) ? parsed.filter(l => !isPDRMLegacyRecord(l)) : [];
     } catch {
       return [];
     }
@@ -330,8 +340,9 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     const unsubAudit = onSnapshot(collection(db, "auditLogs"), (snapshot) => {
       const logs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      logs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-      setAuditLogs(logs);
+      const cleanLogs = logs.filter(l => !isPDRMLegacyRecord(l));
+      cleanLogs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      setAuditLogs(cleanLogs);
     }, (error) => {
       console.warn("⚠️ [Firestore Audit Listener]", error?.message);
     });
@@ -376,26 +387,13 @@ export const AppProvider = ({ children }) => {
 
   // Helper to add audit log entries with actor identity tracking
   const addAuditLog = useCallback((action, reportId = null, rationale = '', details = '', performedBy = 'System Admin') => {
-    const actorId = adminProfile?.officerId || (typeof performedBy === 'string' && performedBy.startsWith('OFF') ? performedBy : 'OFF001');
-    const actorName = adminProfile?.name || 'Insp. Ahmad Razak';
-    const dept = adminProfile?.department || 'Commercial Crime Investigation Dept (CCID)';
-
-    let rCode = null;
-    if (reportId) {
-      const rep = reportsList.find(r => r.id === reportId);
-      rCode = rep?.reportCode || (typeof reportId === 'string' && reportId.startsWith('REP-') ? reportId : `#${reportId.toString().slice(-6)}`);
-    }
-
+    const actor = adminProfile?.officerId || performedBy;
     const entry = {
       reportId,
-      reportCode: rCode,
       action,
       rationale,
       details,
-      performedBy: actorId,
-      officerId: actorId,
-      officerName: actorName,
-      department: dept,
+      performedBy: actor,
       timestamp: new Date().toISOString()
     };
     
@@ -653,7 +651,7 @@ export const AppProvider = ({ children }) => {
     adminProfile, setAdminProfile,
     currentUser, setCurrentUser,
     registerUser, loginUser, registerAdmin, loginAdmin, updateAdminProfile, updateGuardian, updateCurrentUser, deleteCurrentUser,
-    resetPassword, resetUserPassword,
+    resetPassword, resetUserPassword, resetAdminPassword, // Export resetAdminPassword
     auditLogs, addAuditLog,
     userNotifications, dismissNotification
   }), [
@@ -665,7 +663,7 @@ export const AppProvider = ({ children }) => {
     addBlacklistItem, removeBlacklistItem, updateBlacklistItem,
     registerUser, loginUser, registerAdmin, loginAdmin,
     updateAdminProfile, updateGuardian, updateCurrentUser, deleteCurrentUser,
-    resetPassword, resetUserPassword,
+    resetPassword, resetUserPassword, resetAdminPassword,
     addAuditLog, dismissNotification
   ]);
 

@@ -396,7 +396,12 @@ export default function App() {
       </footer>
 
       {/* Standalone Emergency Help Floating Overlay Component */}
-      {userRole !== 'admin' && <EmergencyHelp />}
+      {userRole !== 'admin' && (
+        <EmergencyHelp
+          isGuest={isGuest}
+          onRequireAuth={() => setShowGuestGateModal(true)}
+        />
+      )}
 
     </div>
   );

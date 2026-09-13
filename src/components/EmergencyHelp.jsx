@@ -7,7 +7,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { emergencyAgencies, officialBankEmergencyPages } from '../data/emergencyContacts';
 import { useScrollToTop } from '../utils/useScrollToTop';
 
-export default function EmergencyHelp() {
+export default function EmergencyHelp({ isGuest = false, onRequireAuth }) {
   const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [activeView, setActiveView] = useState('options'); // 'options' | 'guide_money' | 'guide_otp' | 'guide_link' | 'guide_apk' | 'guide_call' | 'guide_msg' | 'banks' | 'contacts'
@@ -15,6 +15,12 @@ export default function EmergencyHelp() {
   useScrollToTop(activeView, modalContentRef);
 
   const handleOpen = () => {
+    if (isGuest) {
+      if (typeof onRequireAuth === 'function') {
+        onRequireAuth();
+      }
+      return;
+    }
     setIsOpen(true);
     setActiveView('options');
   };
