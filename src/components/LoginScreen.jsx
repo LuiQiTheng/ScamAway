@@ -780,7 +780,7 @@ export default function LoginScreen({ onLogin, onGuestAccess, initialFormType = 
                   </div>
                   <div>
                     <h3 style={{ color: '#fff', fontSize: '1.05rem', fontWeight: 600, marginBottom: '0.2rem' }}>
-                      {lang === 'ms' ? 'Imbasan Pantas / Semakan Kecemasan' : 'Quick Scan / Emergency Check'}
+                      {lang === 'ms' ? 'Imbasan Pantas' : 'Quick Scan'}
                     </h3>
                     <p style={{ color: '#fde047', fontSize: '0.78rem', margin: 0, fontWeight: 500 }}>
                       {lang === 'ms' ? '(Tanpa Pendaftaran)' : '(No Sign Up Needed)'}
