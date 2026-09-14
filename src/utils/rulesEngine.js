@@ -378,6 +378,23 @@ export async function analyzeScamRisk(text, metadata = {}) {
   const indicatorsMatched = [];
   const analysis = extractIndicators(text);
 
+  // For targeted check (phone, bank, url tab), strictly isolate candidates to what was submitted
+  if (metadata?.isTargetCheck) {
+    if (!metadata.targets?.phone) {
+      analysis.normalizedPhones = [];
+    } else {
+      const explicitPhone = normalizePhone(metadata.targets.phone);
+      analysis.normalizedPhones = explicitPhone ? [explicitPhone] : [];
+    }
+
+    if (!metadata.targets?.url) {
+      analysis.urls = [];
+    } else {
+      const explicitUrl = String(metadata.targets.url).trim();
+      analysis.urls = explicitUrl ? [explicitUrl] : [];
+    }
+  }
+
   // Track if we hit a critical blacklist match that forces base high-risk
   let matchedBlacklistIndicator = false;
 
@@ -411,28 +428,48 @@ export async function analyzeScamRisk(text, metadata = {}) {
   }
 
   // Check account blacklist
-  const phoneDigits = new Set(analysis.normalizedPhones.map(normalizeBankAccount));
-  const bankAccountCandidates = extractBankAccountCandidates(text).filter(
-    (account) => !phoneDigits.has(account),
-  );
+  const phoneDigits = new Set();
+  analysis.normalizedPhones.forEach((phone) => {
+    const raw = normalizeBankAccount(phone);
+    if (raw) {
+      phoneDigits.add(raw);
+      if (raw.startsWith('60') && raw.length >= 11) {
+        phoneDigits.add('0' + raw.slice(2));
+      }
+    }
+  });
 
-  // If explicit targets passed via metadata, ensure they are registered
-  if (metadata?.targets?.bank) {
-    const explicitBank = normalizeBankAccount(metadata.targets.bank);
-    if (explicitBank && explicitBank.length >= 8 && !bankAccountCandidates.includes(explicitBank)) {
-      bankAccountCandidates.push(explicitBank);
+  let bankAccountCandidates = [];
+  if (metadata?.isTargetCheck) {
+    if (metadata.targets?.bank) {
+      const explicitBank = normalizeBankAccount(metadata.targets.bank);
+      if (explicitBank && explicitBank.length >= 8) {
+        bankAccountCandidates = [explicitBank];
+      }
     }
-  }
-  if (metadata?.targets?.phone) {
-    const explicitPhone = normalizePhone(metadata.targets.phone);
-    if (explicitPhone && !analysis.normalizedPhones.includes(explicitPhone)) {
-      analysis.normalizedPhones.push(explicitPhone);
+  } else {
+    bankAccountCandidates = extractBankAccountCandidates(text).filter(
+      (account) => !phoneDigits.has(account),
+    );
+
+    // If explicit targets passed via metadata, ensure they are registered
+    if (metadata?.targets?.bank) {
+      const explicitBank = normalizeBankAccount(metadata.targets.bank);
+      if (explicitBank && explicitBank.length >= 8 && !bankAccountCandidates.includes(explicitBank)) {
+        bankAccountCandidates.push(explicitBank);
+      }
     }
-  }
-  if (metadata?.targets?.url) {
-    const explicitUrl = String(metadata.targets.url).trim();
-    if (explicitUrl && !analysis.urls.includes(explicitUrl)) {
-      analysis.urls.push(explicitUrl);
+    if (metadata?.targets?.phone) {
+      const explicitPhone = normalizePhone(metadata.targets.phone);
+      if (explicitPhone && !analysis.normalizedPhones.includes(explicitPhone)) {
+        analysis.normalizedPhones.push(explicitPhone);
+      }
+    }
+    if (metadata?.targets?.url) {
+      const explicitUrl = String(metadata.targets.url).trim();
+      if (explicitUrl && !analysis.urls.includes(explicitUrl)) {
+        analysis.urls.push(explicitUrl);
+      }
     }
   }
 

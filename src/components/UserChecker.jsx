@@ -30,6 +30,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
   const [urlError, setUrlError] = useState('');
   const [isUrlInvalid, setIsUrlInvalid] = useState(false);
   const [phoneInput, setPhoneInput] = useState('');
+  const [phoneError, setPhoneError] = useState('');
   const [bankInput, setBankInput] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const [scanSteps, setScanSteps] = useState([]);
@@ -311,6 +312,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
     lastScanRef.current = null;
     setUrlError('');
     setIsUrlInvalid(false);
+    setPhoneError('');
     setVtResult(null);
     setVtLoading(false);
     setBankInput('');
@@ -357,6 +359,22 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
       setScanResult(null);
       return;
     }
+
+    if (rawPhone) {
+      const cleanPhone = rawPhone.replace(/[-\s]/g, '');
+      const myPhoneRegex = /^(\+?60|0)1\d{8,9}$/;
+      if (!myPhoneRegex.test(cleanPhone)) {
+        setPhoneError(
+          lang === 'ms'
+            ? "Format nombor telefon tidak sah. Sila masukkan nombor bimbit Malaysia yang sah (cth: 012-3456789 atau +60123456789)."
+            : "Invalid phone number format. Please enter a valid Malaysian mobile number (e.g. 012-3456789 or +60123456789)."
+        );
+        setIsScanning(false);
+        setScanResult(null);
+        return;
+      }
+    }
+    setPhoneError('');
 
     // If no URL is provided, scan phone and/or bank account directly without DNS check
     if (!rawUrl) {
@@ -517,7 +535,8 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
   };
 
   const openReportFlow = () => {
-    setTextToReport(inputText || urlInput || "Suspicious Scam Content");
+    const targetText = inputText || [urlInput, phoneInput, bankInput].filter(Boolean).join(' | ') || "Suspicious Scam Content";
+    setTextToReport(targetText);
     setIsReportOpen(true);
   };
 
@@ -819,14 +838,32 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                   value={phoneInput}
                   onChange={(e) => {
                     setPhoneInput(e.target.value);
+                    if (phoneError) setPhoneError("");
                     if (urlError || isUrlInvalid) {
                       setUrlError("");
                       setIsUrlInvalid(false);
                     }
                   }}
                   className="input-field"
+                  style={phoneError ? { borderColor: "#ff4d4d", boxShadow: "0 0 0 2px rgba(255,77,77,.25)" } : {}}
                   placeholder={t("scanner.phone_placeholder")}
                 />
+                {phoneError && (
+                  <div
+                    role="alert"
+                    style={{
+                      color: "#ff4d4d",
+                      fontSize: "0.85rem",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.4rem",
+                      marginTop: "0.25rem",
+                    }}
+                  >
+                    <AlertCircle size={14} />
+                    <span>{phoneError}</span>
+                  </div>
+                )}
               </div>
 
               {/* Website URL Input */}
@@ -1071,6 +1108,54 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                 </button>
               </div>
             </div>
+
+            {/* High Scam Risk (> 50) Prompt Card */}
+            {scanResult.score > 50 && (
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(185, 28, 28, 0.08) 100%)',
+                border: '1px solid rgba(239, 68, 68, 0.4)',
+                borderRadius: '12px',
+                padding: '1.25rem 1.5rem',
+                marginBottom: '1.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '1rem'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: '260px' }}>
+                  <AlertTriangle size={28} color="#ef4444" style={{ flexShrink: 0 }} />
+                  <div>
+                    <h4 style={{ margin: 0, color: '#fca5a5', fontSize: isElderlyMode ? '1.25rem' : '1.05rem', fontWeight: 700 }}>
+                      {lang === 'ms' ? 'Amaran Risiko Scam Tinggi Dikesan!' : 'High Scam Risk Warning Detected!'}
+                    </h4>
+                    <p style={{ margin: '0.25rem 0 0 0', color: 'var(--text-secondary)', fontSize: isElderlyMode ? '1.05rem' : '0.85rem' }}>
+                      {lang === 'ms'
+                        ? 'Kandungan ini menunjukkan skor risiko tinggi. Bantu lindungi komuniti kita dengan melaporkan sasaran ini.'
+                        : 'This scan scored in the high-risk danger zone. Help protect others by submitting an official report.'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={openReportFlow}
+                  className="btn-primary"
+                  style={{
+                    background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                    borderColor: '#ef4444',
+                    color: '#fff',
+                    padding: '0.6rem 1.25rem',
+                    fontSize: isElderlyMode ? '1.1rem' : '0.9rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)'
+                  }}
+                >
+                  <ShieldAlert size={16} />
+                  {lang === 'ms' ? 'Laporkan Scam Ini' : 'Report this Scam'}
+                </button>
+              </div>
+            )}
 
             {/* Multimodal Visual Forensic Card */}
             {scanResult.visionForensics && (
@@ -1453,8 +1538,8 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{t('scanner.numverify_line_type')}:</span>
-                    <strong style={{ fontSize: '0.85rem', color: scanResult.numverifyResults.lineType?.toLowerCase() === 'voip' ? '#fbbf24' : '#fff' }}>
-                      {scanResult.numverifyResults.lineType || 'Unknown'}
+                    <strong style={{ fontSize: '0.85rem', color: scanResult.numverifyResults.lineType?.toLowerCase() === 'voip' ? '#fbbf24' : '#fff', textTransform: 'capitalize' }}>
+                      {scanResult.numverifyResults.lineType === 'voip' ? 'VoIP' : (scanResult.numverifyResults.lineType || 'Unknown')}
                     </strong>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -1467,6 +1552,12 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                       {scanResult.numverifyResults.valid ? t('scanner.numverify_yes') : t('scanner.numverify_no')}
                     </strong>
                   </div>
+                  {scanResult.numverifyResults.source === 'local_fallback' && (
+                    <div style={{ marginTop: '0.25rem', paddingTop: '0.5rem', borderTop: '1px dashed rgba(255,255,255,0.08)', fontSize: '0.78rem', color: '#94a3b8', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>{lang === 'ms' ? 'Mod Pengesahan:' : 'Validation Mode:'}</span>
+                      <span style={{ color: '#38bdf8' }}>{lang === 'ms' ? 'Pangkalan Data Telco Malaysia' : 'Malaysian Telco Registry'}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

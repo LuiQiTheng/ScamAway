@@ -661,6 +661,18 @@ button:active:not(:disabled) {
   .profile-report-table tbody .profile-empty-cell::before {
     display: none;
   }
+
+  .profile-report-table tbody .profile-report-action-cell {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding-top: 0.5rem !important;
+    border-top: 1px dashed rgba(255, 255, 255, 0.08);
+  }
+
+  .profile-report-table tbody .profile-report-action-cell::before {
+    display: none;
+  }
 }
 
 @media (max-width: 479px) {

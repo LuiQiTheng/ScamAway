@@ -5,11 +5,14 @@ import GuardianSetupModal from "../components/Guardian/GuardianSetupModal";
 import EditProfileModal from "../components/EditProfileModal";
 import { Bell, BellOff, CheckCircle, XCircle, Clock, Trash2, Check, MailOpen, ChevronDown, ChevronUp, RotateCcw, User, Edit2 } from 'lucide-react';
 import { getCategoryLabel } from '../config/categories';
+import UndoToast, { useUndoToast } from './UndoToast';
 
 export default function UserProfile({ userMode = 'normal', isElderlyMode = false, isKidMode = false }) {
-  const { reportsList, currentUser, updateGuardian, updateCurrentUser, deleteCurrentUser } = useAppContext();
+  const { reportsList, currentUser, updateGuardian, updateCurrentUser, deleteCurrentUser, cancelUserReport, restoreUserReport } = useAppContext();
   const { t, lang } = useLanguage();
+  const { undoToast, showUndoToast } = useUndoToast();
   const [myReports, setMyReports] = useState([]);
+  const [reportToDelete, setReportToDelete] = useState(null);
   const [isReportsExpanded, setIsReportsExpanded] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [isNotificationsExpanded, setIsNotificationsExpanded] = useState(false);
@@ -62,6 +65,32 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
     }
   };
 
+  const handleConfirmCancelReport = async () => {
+    if (reportToDelete && cancelUserReport) {
+      const targetReport = reportToDelete;
+      await cancelUserReport(targetReport.id);
+      setReportToDelete(null);
+
+      showUndoToast({
+        message: lang === 'ms'
+          ? `Laporan ${targetReport.reportCode || ''} telah dipadam daripada penjejakan.`
+          : `Report ${targetReport.reportCode || ''} removed from tracking.`,
+        onUndo: async () => {
+          if (restoreUserReport) {
+            await restoreUserReport(targetReport.id);
+            showUndoToast({
+              message: lang === 'ms'
+                ? `Laporan ${targetReport.reportCode || ''} berjaya dipulihkan.`
+                : `Report ${targetReport.reportCode || ''} successfully restored.`,
+              icon: <CheckCircle size={16} color="#10b981" />,
+              duration: 3000
+            });
+          }
+        }
+      });
+    }
+  };
+
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
     window.addEventListener('resize', handleResize);
@@ -75,12 +104,16 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
   };
 
   useEffect(() => {
-    // Filter reports for the active user
-    const userReports = reportsList.filter(r => r.reporterId === currentUser?.id);
+    // Filter reports for the active user (Option B: hiddenByReporter hides from tracking, but preserves police report)
+    const userReports = reportsList.filter(r => r.reporterId === currentUser?.id && !r.hiddenByReporter && r.status !== 'cancelled');
     setMyReports(userReports);
 
-    // Get ALL reviewed reports (confirmed or rejected) as notifications
-    const recentReviewed = userReports.filter(r => r.status === 'confirmed' || r.status === 'rejected');
+    // Option B: All reviewed reports remain as notifications even if hidden from the user's tracking list
+    const recentReviewed = reportsList.filter(r => 
+      r.reporterId === currentUser?.id && 
+      (r.status === 'confirmed' || r.status === 'rejected') &&
+      !r.isKnownScam
+    );
     
     // Sort latest first
     recentReviewed.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
@@ -506,15 +539,16 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
             <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
               <th style={{ padding: '1rem', color: '#fff', whiteSpace: 'normal', width: '15%', fontSize: isElderlyMode ? '0.8rem' : '1rem' }}>{lang === 'ms' ? 'ID Laporan' : 'Report ID'}</th>
               <th style={{ padding: '1rem', color: '#fff', whiteSpace: 'normal', width: '15%', fontSize: isElderlyMode ? '0.8rem' : '1rem' }}>{t('profile.table_date')}</th>
-              <th style={{ padding: '1rem', color: '#fff', width: '25%', fontSize: isElderlyMode ? '0.8rem' : '1rem' }}>{t('profile.table_category')}</th>
+              <th style={{ padding: '1rem', color: '#fff', width: '20%', fontSize: isElderlyMode ? '0.8rem' : '1rem' }}>{t('profile.table_category')}</th>
               <th style={{ padding: '1rem', color: '#fff', width: '25%', fontSize: isElderlyMode ? '0.8rem' : '1rem' }}>{t('profile.table_content')}</th>
-              <th style={{ padding: '1rem', color: '#fff', whiteSpace: 'normal', width: '20%', fontSize: isElderlyMode ? '0.8rem' : '1rem' }}>{t('profile.status')}</th>
+              <th style={{ padding: '1rem', color: '#fff', whiteSpace: 'normal', width: '15%', fontSize: isElderlyMode ? '0.8rem' : '1rem' }}>{t('profile.status')}</th>
+              <th style={{ padding: '1rem', width: '8%', textAlign: 'center' }}></th>
             </tr>
           </thead>
           <tbody>
             {myReports.length === 0 ? (
               <tr>
-                <td className="profile-empty-cell" colSpan="5" style={{ textAlign: 'center', padding: '2rem' }}>{t('profile.no_reports')}</td>
+                <td className="profile-empty-cell" colSpan="6" style={{ textAlign: 'center', padding: '2rem' }}>{t('profile.no_reports')}</td>
               </tr>
             ) : (
               (isReportsExpanded ? myReports : myReports.slice(0, isMobile ? 1 : 3)).map(report => (
@@ -567,6 +601,30 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
                       {report.status === 'rejected' && <span style={{ color: 'var(--color-high)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}><XCircle size={14} /> {t('profile.rejected')}</span>}
                       {(report.status === 'unverified' || report.status === 'under_review') && <span style={{ color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Clock size={14} /> {t('profile.pending')}</span>}
                     </div>
+                  </td>
+                  <td className="profile-report-action-cell" style={{ padding: '1rem', whiteSpace: 'normal', textAlign: 'center' }}>
+                    <button
+                      type="button"
+                      onClick={() => setReportToDelete(report)}
+                      style={{
+                        background: isKidMode ? 'rgba(244, 114, 182, 0.12)' : 'rgba(239, 68, 68, 0.1)',
+                        border: isKidMode ? '1px solid rgba(244, 114, 182, 0.35)' : '1px solid rgba(239, 68, 68, 0.25)',
+                        color: isKidMode ? '#f472b6' : '#ef4444',
+                        padding: isElderlyMode ? '0.55rem' : '0.42rem',
+                        borderRadius: isKidMode ? '12px' : '8px',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.2s',
+                        minWidth: isElderlyMode ? '38px' : '30px',
+                        minHeight: isElderlyMode ? '38px' : '30px',
+                      }}
+                      title={lang === 'ms' ? 'Padam laporan' : 'Delete report'}
+                      aria-label={lang === 'ms' ? 'Padam laporan' : 'Delete report'}
+                    >
+                      <Trash2 size={isElderlyMode ? 18 : 14} />
+                    </button>
                   </td>
                 </tr>
               ))
@@ -658,6 +716,70 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
           )}
         </div>
       )}
+
+      {/* Report Deletion Confirmation Modal */}
+      {reportToDelete && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 2000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "1rem",
+            background: "rgba(0, 0, 0, 0.75)",
+            backdropFilter: "blur(6px)",
+          }}
+        >
+          <div
+            className="glass-panel"
+            style={{
+              width: "100%",
+              maxWidth: "420px",
+              padding: "24px",
+              borderRadius: "16px",
+              border: "1px solid rgba(239, 68, 68, 0.3)",
+              background: "rgba(15, 23, 42, 0.95)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px", color: "#ef4444" }}>
+              <Trash2 size={24} />
+              <h3 style={{ margin: 0, color: "#fff", fontSize: "1.2rem" }}>
+                {lang === 'ms' ? 'Padam Laporan?' : 'Delete Report?'}
+              </h3>
+            </div>
+            <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", lineHeight: 1.5, marginBottom: "20px" }}>
+              {lang === 'ms'
+                ? `Adakah anda pasti mahu memadamkan laporan ${reportToDelete.reportCode || ''}? Laporan ini tidak lagi akan dipaparkan dalam senarai penjejakan anda.`
+                : `Are you sure you want to delete report ${reportToDelete.reportCode || ''}? This report will no longer appear in your tracking history.`}
+            </p>
+            <div style={{ display: "flex", gap: "12px" }}>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setReportToDelete(null)}
+                style={{ flex: 1 }}
+              >
+                {lang === 'ms' ? 'Batal' : 'Cancel'}
+              </button>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={handleConfirmCancelReport}
+                style={{ flex: 1, background: "#ef4444", borderColor: "#ef4444", color: "#fff" }}
+              >
+                {lang === 'ms' ? 'Ya, Padam' : 'Yes, Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reusable Undo Toast Notification */}
+      <UndoToast toast={undoToast} lang={lang} isElderlyMode={isElderlyMode} isKidMode={isKidMode} />
     </div>
   );
 }

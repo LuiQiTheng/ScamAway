@@ -49,7 +49,7 @@ export default function EditProfileModal({
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     if (e.target.name === 'password') {
-      setPasswordChanged(e.target.value !== initialData.password);
+      setPasswordChanged(e.target.value.trim().length > 0);
     }
   };
 
@@ -57,23 +57,33 @@ export default function EditProfileModal({
     try {
       setErrorMsg("");
       
-      if (passwordChanged && currentPassword !== initialData.password) {
-        throw new Error(lang === 'ms' ? 'Kata laluan semasa tidak tepat' : 'Current password is incorrect');
+      const isChangingPassword = formData.password.trim().length > 0;
+      if (isChangingPassword) {
+        if (!currentPassword) {
+          throw new Error(lang === 'ms' ? 'Sila masukkan kata laluan semasa untuk menukar kata laluan' : 'Please enter your current password to change password');
+        }
+        if (formData.password.length < 8) {
+          throw new Error(lang === 'ms' ? 'Kata laluan baru mestilah sekurang-kurangnya 8 aksara' : 'New password must be at least 8 characters long');
+        }
       }
 
       if (isAdmin) {
-        if (!formData.name || !formData.officerId || !formData.password || !formData.email) {
+        if (!formData.name || !formData.officerId || !formData.email) {
           throw new Error(lang === 'ms' ? 'Sila isikan semua ruang' : 'Please fill all fields');
         }
         setIsLoading(true);
-        await onSave({
+        const payload = {
           name: formData.name,
           officerId: formData.officerId,
-          password: formData.password,
           email: formData.email
-        });
+        };
+        if (isChangingPassword) {
+          payload.password = formData.password.trim();
+          payload.currentPassword = currentPassword;
+        }
+        await onSave(payload);
       } else {
-        if (!formData.name || !formData.age || !formData.phone || !formData.username || !formData.password) {
+        if (!formData.name || !formData.age || !formData.phone || !formData.username) {
           throw new Error(lang === 'ms' ? 'Sila isikan semua ruang' : 'Please fill all fields');
         }
 
@@ -89,10 +99,17 @@ export default function EditProfileModal({
         }
 
         setIsLoading(true);
-        await onSave({
-          ...formData,
+        const payload = {
+          name: formData.name,
+          username: formData.username,
+          phone: formData.phone,
           age: ageInt
-        });
+        };
+        if (isChangingPassword) {
+          payload.password = formData.password.trim();
+          payload.currentPassword = currentPassword;
+        }
+        await onSave(payload);
       }
     } catch (err) {
       setErrorMsg(err.message);
@@ -195,18 +212,19 @@ export default function EditProfileModal({
             />
           </div>
           <div style={{ flex: 1 }}>
-            <label className="form-label">{lang === 'ms' ? 'Kata Laluan' : 'Password'}</label>
+            <label className="form-label">{lang === 'ms' ? 'Kata Laluan Baru (Pilihan)' : 'New Password (Optional)'}</label>
             <input
               type="password"
               name="password"
               className="input-field"
               value={formData.password}
               onChange={handleChange}
+              placeholder="••••••••"
             />
           </div>
         </div>
         
-        {passwordChanged && (
+        {formData.password.trim().length > 0 && (
           <div>
             <label className="form-label">{lang === 'ms' ? 'Kata Laluan Semasa' : 'Current Password'}</label>
             <input
@@ -214,6 +232,7 @@ export default function EditProfileModal({
               className="input-field"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder={lang === 'ms' ? 'Masukkan kata laluan semasa anda' : 'Enter current password to confirm'}
             />
           </div>
         )}

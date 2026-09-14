@@ -287,7 +287,19 @@ export default function LoginScreen({ onLogin, onGuestAccess, initialFormType = 
       onLogin('user');
 
     } catch (err) {
-      setErrorKey(err.message);
+      if (err.message && err.message.toLowerCase().includes("email")) {
+        setErrorKey({
+          ms: 'Alamat emel ini telah didaftarkan. Sila gunakan emel lain atau log masuk.',
+          en: 'This email address is already registered. Please use another email or log in.'
+        });
+      } else if (err.message && err.message.toLowerCase().includes("username")) {
+        setErrorKey({
+          ms: 'Nama pengguna telah wujud',
+          en: 'Username already exists'
+        });
+      } else {
+        setErrorKey(err.message);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -497,7 +509,19 @@ export default function LoginScreen({ onLogin, onGuestAccess, initialFormType = 
       await registerAdmin({ officerId, password, name, email: adminEmail });
       onLogin('admin');
     } catch (err) {
-      setErrorKey(err.message);
+      if (err.message && err.message.toLowerCase().includes("email")) {
+        setErrorKey({
+          ms: 'Alamat emel ini telah didaftarkan. Sila gunakan emel lain atau log masuk.',
+          en: 'This email address is already registered. Please use another email or log in.'
+        });
+      } else if (err.message && err.message.toLowerCase().includes("officer id")) {
+        setErrorKey({
+          ms: 'ID Pegawai telah wujud',
+          en: 'Officer ID already exists'
+        });
+      } else {
+        setErrorKey(err.message);
+      }
     } finally {
       setIsLoading(false);
     }

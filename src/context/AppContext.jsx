@@ -101,14 +101,37 @@ export const AppProvider = ({ children }) => {
     }
   }, [adminProfile]);
 
+  // Check if an email already exists in users or admins collection
+  const checkEmailExists = async (email) => {
+    if (!email) return false;
+    const lowerEmail = email.trim().toLowerCase();
+
+    // Check in users
+    const qUsers = query(collection(db, "users"), where("email", "==", lowerEmail));
+    const snapUsers = await getDocs(qUsers);
+    if (!snapUsers.empty) return true;
+
+    // Check in admins
+    const qAdmins = query(collection(db, "admins"), where("email", "==", lowerEmail));
+    const snapAdmins = await getDocs(qAdmins);
+    if (!snapAdmins.empty) return true;
+
+    return false;
+  };
+
   // Auth Helpers
   const registerUser = useCallback(async (userData) => {
     const q = query(collection(db, "users"), where("username", "==", userData.username));
     const snapshot = await getDocs(q);
     if (!snapshot.empty) throw new Error("Username already exists");
+
+    if (userData.email) {
+      const emailExists = await checkEmailExists(userData.email);
+      if (emailExists) throw new Error("This email address is already registered.");
+    }
     
     const hashedPassword = await hashPassword(userData.password);
-    const userToSave = { ...userData, password: hashedPassword };
+    const userToSave = { ...userData, email: userData.email ? userData.email.toLowerCase() : '', password: hashedPassword };
     const docRef = await addDoc(collection(db, "users"), userToSave);
     const createdUser = sanitizeUserSession({ id: docRef.id, ...userToSave });
     setCurrentUser(createdUser);
@@ -163,8 +186,11 @@ export const AppProvider = ({ children }) => {
   const resetAdminPassword = resetPassword;
 
   const loginUser = useCallback(async (username, password) => {
-    const q = query(collection(db, "users"), where("username", "==", username));
-    const snapshot = await getDocs(q);
+    const cleanUsername = String(username || '').trim();
+    let snapshot = await getDocs(query(collection(db, "users"), where("username", "==", cleanUsername)));
+    if (snapshot.empty && cleanUsername.includes('@')) {
+      snapshot = await getDocs(query(collection(db, "users"), where("email", "==", cleanUsername.toLowerCase())));
+    }
     if (snapshot.empty) throw new Error("Invalid username or password");
     const userDoc = snapshot.docs[0];
     const data = userDoc.data();
@@ -191,9 +217,14 @@ export const AppProvider = ({ children }) => {
     const q = query(collection(db, "admins"), where("officerId", "==", adminData.officerId));
     const snapshot = await getDocs(q);
     if (!snapshot.empty) throw new Error("Officer ID already exists");
+
+    if (adminData.email) {
+      const emailExists = await checkEmailExists(adminData.email);
+      if (emailExists) throw new Error("This email address is already registered.");
+    }
     
     const hashedPassword = await hashPassword(adminData.password);
-    const adminToSave = { ...adminData, password: hashedPassword };
+    const adminToSave = { ...adminData, email: adminData.email ? adminData.email.toLowerCase() : '', password: hashedPassword };
     const docRef = await addDoc(collection(db, "admins"), adminToSave);
     const createdAdmin = sanitizeUserSession({ id: docRef.id, ...adminToSave });
     setAdminProfile(createdAdmin);
@@ -201,8 +232,11 @@ export const AppProvider = ({ children }) => {
   }, []);
 
   const loginAdmin = useCallback(async (officerId, password) => {
-    const q = query(collection(db, "admins"), where("officerId", "==", officerId));
-    const snapshot = await getDocs(q);
+    const cleanOfficerId = String(officerId || '').trim();
+    let snapshot = await getDocs(query(collection(db, "admins"), where("officerId", "==", cleanOfficerId)));
+    if (snapshot.empty && cleanOfficerId.includes('@')) {
+      snapshot = await getDocs(query(collection(db, "admins"), where("email", "==", cleanOfficerId.toLowerCase())));
+    }
     if (snapshot.empty) throw new Error("Invalid Officer ID or password");
     const adminDoc = snapshot.docs[0];
     const data = adminDoc.data();
@@ -236,8 +270,17 @@ export const AppProvider = ({ children }) => {
 
     const dataToUpdate = { ...adminData };
     if (dataToUpdate.password) {
+      // Verify current password against stored hash in Firestore
+      const adminDocSnap = await getDoc(doc(db, "admins", adminProfile.id));
+      if (!adminDocSnap.exists()) throw new Error("Admin record not found");
+      const storedPassword = adminDocSnap.data()?.password;
+      const hashedCurrent = await hashPassword(adminData.currentPassword || '');
+      if (storedPassword !== hashedCurrent && storedPassword !== adminData.currentPassword) {
+        throw new Error("Current password is incorrect");
+      }
       dataToUpdate.password = await hashPassword(dataToUpdate.password);
     }
+    delete dataToUpdate.currentPassword;
     const updatedAdmin = sanitizeUserSession({ ...adminProfile, ...dataToUpdate });
     setAdminProfile(updatedAdmin);
     await updateDoc(doc(db, "admins", adminProfile.id), dataToUpdate);
@@ -262,8 +305,17 @@ export const AppProvider = ({ children }) => {
 
     const dataToUpdate = { ...userData };
     if (dataToUpdate.password) {
+      // Verify current password against stored hash in Firestore
+      const userDocSnap = await getDoc(doc(db, "users", currentUser.id));
+      if (!userDocSnap.exists()) throw new Error("User record not found");
+      const storedPassword = userDocSnap.data()?.password;
+      const hashedCurrent = await hashPassword(userData.currentPassword || '');
+      if (storedPassword !== hashedCurrent && storedPassword !== userData.currentPassword) {
+        throw new Error("Current password is incorrect");
+      }
       dataToUpdate.password = await hashPassword(dataToUpdate.password);
     }
+    delete dataToUpdate.currentPassword;
     const updatedUser = sanitizeUserSession({ ...currentUser, ...dataToUpdate });
     setCurrentUser(updatedUser);
     await updateDoc(doc(db, "users", currentUser.id), dataToUpdate);
@@ -312,21 +364,15 @@ export const AppProvider = ({ children }) => {
     }
   }, [currentUser, adminProfile]);
 
-  
-  // Helper to filter out legacy PDRM001 / PDRM002 audit records
-  const isPDRMLegacyRecord = (record) => {
-    const actorId = String(record?.officerId || record?.performedBy || '').toLowerCase();
-    const actorName = String(record?.officerName || record?.performedByName || '').toLowerCase();
-    return actorId.includes('pdrm001') || actorId.includes('pdrm002') || actorName.includes('pdrm001') || actorName.includes('pdrm002');
-  };
-
-  // Persistent Audit Logs State
+  // Persistent Audit Logs State (excluding August audit logs)
   const [auditLogs, setAuditLogs] = useState(() => {
     try {
       const saved = localStorage.getItem('scam_shield_audit_logs');
       if (!saved) return [];
       const parsed = JSON.parse(saved);
-      return Array.isArray(parsed) ? parsed.filter(l => !isPDRMLegacyRecord(l)) : [];
+      return Array.isArray(parsed)
+        ? parsed.filter(l => !l.timestamp || (!String(l.timestamp).startsWith('2026-08') && !String(l.timestamp).includes('-08-')))
+        : [];
     } catch {
       return [];
     }
@@ -336,13 +382,14 @@ export const AppProvider = ({ children }) => {
     setUserNotifications(prev => prev.filter(n => n.id !== id));
   }, []);
 
-  // Fetch initial audit logs from Firestore
+  // Fetch initial audit logs from Firestore (excluding August logs)
   useEffect(() => {
     const unsubAudit = onSnapshot(collection(db, "auditLogs"), (snapshot) => {
-      const logs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      const cleanLogs = logs.filter(l => !isPDRMLegacyRecord(l));
-      cleanLogs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-      setAuditLogs(cleanLogs);
+      const logs = snapshot.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter(l => !l.timestamp || (!String(l.timestamp).startsWith('2026-08') && !String(l.timestamp).includes('-08-')));
+      logs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      setAuditLogs(logs);
     }, (error) => {
       console.warn("⚠️ [Firestore Audit Listener]", error?.message);
     });
@@ -354,29 +401,25 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     const migrateLegacyPlaintextPasswords = async () => {
       try {
-        // Upgrade legacy plaintext admin passwords (e.g. admin1)
-        const adminsSnap = await getDocs(collection(db, "admins"));
-        if (!adminsSnap.empty) {
-          adminsSnap.forEach(async (adminDoc) => {
-            const data = adminDoc.data();
-            if (data?.password && !isPasswordHashed(data.password)) {
-              const hashed = await hashPassword(data.password);
-              await updateDoc(doc(db, "admins", adminDoc.id), { password: hashed });
-            }
-          });
-        }
-
-        // Upgrade legacy plaintext user passwords
+        // 1. Check & upgrade users
         const usersSnap = await getDocs(collection(db, "users"));
-        if (!usersSnap.empty) {
-          usersSnap.forEach(async (userDoc) => {
-            const data = userDoc.data();
-            if (data?.password && !isPasswordHashed(data.password)) {
-              const hashed = await hashPassword(data.password);
-              await updateDoc(doc(db, "users", userDoc.id), { password: hashed });
-            }
-          });
-        }
+        usersSnap.docs.forEach(async (uDoc) => {
+          const uData = uDoc.data();
+          if (uData.password && !isPasswordHashed(uData.password)) {
+            const hashed = await hashPassword(uData.password);
+            await updateDoc(doc(db, "users", uDoc.id), { password: hashed });
+          }
+        });
+
+        // 2. Check & upgrade admins
+        const adminsSnap = await getDocs(collection(db, "admins"));
+        adminsSnap.docs.forEach(async (aDoc) => {
+          const aData = aDoc.data();
+          if (aData.password && !isPasswordHashed(aData.password)) {
+            const hashed = await hashPassword(aData.password);
+            await updateDoc(doc(db, "admins", aDoc.id), { password: hashed });
+          }
+        });
       } catch (e) {
         // Silently skip if offline or running in mock test environment
       }
@@ -394,6 +437,9 @@ export const AppProvider = ({ children }) => {
       rationale,
       details,
       performedBy: actor,
+      officerId: adminProfile?.officerId || actor,
+      officerName: adminProfile?.name || adminProfile?.fullName || '',
+      department: adminProfile?.department || '',
       timestamp: new Date().toISOString()
     };
     
@@ -441,7 +487,7 @@ export const AppProvider = ({ children }) => {
           if (prevList.length > 0) {
             reports.forEach(newReport => {
               const oldReport = prevList.find(r => r.id === newReport.id);
-              if (oldReport && oldReport.status !== newReport.status && newReport.reporterId === currentUser?.id) {
+              if (oldReport && oldReport.status !== newReport.status && newReport.reporterId === currentUser?.id && !newReport.skipStatusNotification) {
                 setUserNotifications(prev => {
                   if (prev.some(n => n.reportId === newReport.id && n.newStatus === newReport.status)) return prev;
                   return [{
@@ -550,6 +596,44 @@ export const AppProvider = ({ children }) => {
     }
   }, [reportsList, addAuditLog]);
 
+  // Option B: Hide from user's personal tracking list without canceling police investigation
+  const cancelUserReport = useCallback(async (id) => {
+    setReportsList(prev => prev.map(r => (r.id === id || String(r.id) === String(id) || r.firebaseId === id) ? { ...r, hiddenByReporter: true } : r));
+    try {
+      const report = reportsList.find(r => r.id === id || String(r.id) === String(id) || r.firebaseId === id);
+      if (report && report.firebaseId) {
+        await updateDoc(doc(db, "reports", report.firebaseId), { hiddenByReporter: true });
+      }
+    } catch (e) {
+      console.warn("⚠️ [Firestore] Failed to hide report in cloud:", e?.message);
+    }
+  }, [reportsList]);
+
+  const restoreUserReport = useCallback(async (id) => {
+    setReportsList(prev => prev.map(r => {
+      if (r.id === id || String(r.id) === String(id) || r.firebaseId === id) {
+        return {
+          ...r,
+          hiddenByReporter: false,
+          status: r.status === 'cancelled' ? 'unverified' : r.status
+        };
+      }
+      return r;
+    }));
+    try {
+      const report = reportsList.find(r => r.id === id || String(r.id) === String(id) || r.firebaseId === id);
+      if (report && report.firebaseId) {
+        const updateData = { hiddenByReporter: false };
+        if (report.status === 'cancelled') {
+          updateData.status = 'unverified';
+        }
+        await updateDoc(doc(db, "reports", report.firebaseId), updateData);
+      }
+    } catch (e) {
+      console.warn("⚠️ [Firestore] Failed to restore report in cloud:", e?.message);
+    }
+  }, [reportsList]);
+
   const addAlert = useCallback(async (alert) => {
     setActiveAlert(alert);
     addAuditLog('Broadcast Threat Alert Published', null, alert.category || alert.message, alert.solution || '');
@@ -646,7 +730,7 @@ export const AppProvider = ({ children }) => {
   }, [blacklist, addAuditLog]);
 
   const contextValue = useMemo(() => ({
-    reportsList, addReport, updateReportStatus, addAlert, activeAlert,
+    reportsList, addReport, updateReportStatus, cancelUserReport, restoreUserReport, addAlert, activeAlert,
     blacklist, addBlacklistItem, removeBlacklistItem, updateBlacklistItem,
     adminProfile, setAdminProfile,
     currentUser, setCurrentUser,
@@ -659,7 +743,7 @@ export const AppProvider = ({ children }) => {
     reportsList, activeAlert, auditLogs, userNotifications,
     blacklist, adminProfile, currentUser,
     // Stable useCallback function references (only change when their own deps change)
-    addReport, updateReportStatus, addAlert,
+    addReport, updateReportStatus, cancelUserReport, restoreUserReport, addAlert,
     addBlacklistItem, removeBlacklistItem, updateBlacklistItem,
     registerUser, loginUser, registerAdmin, loginAdmin,
     updateAdminProfile, updateGuardian, updateCurrentUser, deleteCurrentUser,

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Check, X, UserCheck, ShieldAlert, FileText, CheckCircle, XCircle, Search, Filter, ShieldCheck, Mail, Send, Activity, User, BookOpen, BarChart2, Edit2, Trash2, Save } from 'lucide-react';
+import { Shield, Check, X, UserCheck, ShieldAlert, FileText, CheckCircle, XCircle, Search, Filter, Clock, ShieldCheck, Mail, Send, Activity, User, BookOpen, BarChart2, Edit2, Trash2, Save } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { translateText } from '../utils/translateText';
@@ -39,9 +39,10 @@ export default function ModeratorDashboard({ onNavigate }) {
   const [selectedForBulk, setSelectedForBulk] = useState(new Set());
   const [expandedClusters, setExpandedClusters] = useState(new Set());
 
-  // Audit Sub-tab Search & Action Type Filter state
+  // Audit Sub-tab Search, Action Type & Time Range Filter state
   const [auditSearchQuery, setAuditSearchQuery] = useState('');
   const [auditActionFilter, setAuditActionFilter] = useState('all');
+  const [auditTimeFilter, setAuditTimeFilter] = useState('7days'); // '7days' or 'all'
 
   // Blacklist Management State
   const [newBlacklistItem, setNewBlacklistItem] = useState('');
@@ -445,14 +446,19 @@ function areReportsRelated(reportA, reportB) {
   const rawAuditLogs = auditLogs || [];
 
   const filteredAuditLogs = rawAuditLogs.filter(log => {
-    // 0. Exclude legacy PDRM001/PDRM002 test records
-    const actorId = String(log.officerId || log.performedBy || '').toLowerCase();
-    const actorName = String(log.officerName || log.performedByName || '').toLowerCase();
-    if (actorId.includes('pdrm001') || actorId.includes('pdrm002') || actorName.includes('pdrm001') || actorName.includes('pdrm002')) {
+    // 0. Exclude August audit logs completely (per user requirement)
+    if (log.timestamp && (String(log.timestamp).startsWith('2026-08') || String(log.timestamp).includes('-08-'))) {
       return false;
     }
 
-    // 1. Action Type Filter
+    // 1. Time Range Filter (Default: Last 7 Days; 'all' shows full historical archive)
+    if (auditTimeFilter === '7days' && log.timestamp) {
+      const logTime = new Date(log.timestamp).getTime();
+      const cutoff = Date.now() - (7 * 24 * 60 * 60 * 1000);
+      if (logTime < cutoff) return false;
+    }
+
+    // 2. Action Type Filter
     const cat = getAuditCategory(log.action);
     if (auditActionFilter !== 'all' && cat !== auditActionFilter) {
       return false;
@@ -1292,6 +1298,46 @@ function areReportsRelated(reportA, reportB) {
                       </option>
                       <option value="Threat Alerts" style={{ background: '#0f172a', color: '#fff' }}>
                         {lang === 'ms' ? 'Amaran Ancaman' : 'Threat Alerts'}
+                      </option>
+                    </select>
+                    <span style={{ position: 'absolute', right: '0.85rem', pointerEvents: 'none', color: '#94a3b8', fontSize: '0.75rem' }}>▼</span>
+                  </div>
+
+                  {/* Time Range Filter Dropdown */}
+                  <div style={{
+                    position: 'relative',
+                    display: 'flex',
+                    alignItems: 'center',
+                    minWidth: '170px'
+                  }}>
+                    <Clock
+                      size={15}
+                      color="#94a3b8"
+                      style={{ position: 'absolute', left: '0.85rem', pointerEvents: 'none', zIndex: 1 }}
+                    />
+                    <select
+                      value={auditTimeFilter}
+                      onChange={(e) => setAuditTimeFilter(e.target.value)}
+                      aria-label="Filter audit logs by time range"
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem 2rem 0.75rem 2.25rem',
+                        background: 'rgba(15, 23, 42, 0.6)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: '10px',
+                        color: '#fff',
+                        fontSize: '0.88rem',
+                        cursor: 'pointer',
+                        outline: 'none',
+                        appearance: 'none',
+                        WebkitAppearance: 'none'
+                      }}
+                    >
+                      <option value="7days" style={{ background: '#0f172a', color: '#fff' }}>
+                        {lang === 'ms' ? '7 Hari Terkini' : 'Last 7 Days'}
+                      </option>
+                      <option value="all" style={{ background: '#0f172a', color: '#fff' }}>
+                        {lang === 'ms' ? 'Semua Rekod (Arkib)' : 'All Records (Archive)'}
                       </option>
                     </select>
                     <span style={{ position: 'absolute', right: '0.85rem', pointerEvents: 'none', color: '#94a3b8', fontSize: '0.75rem' }}>▼</span>
