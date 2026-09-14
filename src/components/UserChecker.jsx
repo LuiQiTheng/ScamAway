@@ -4,13 +4,14 @@ import {
   Link, AlertTriangle,
   Volume2, VolumeX, Phone, CheckSquare,
   Square, RefreshCw, Send, AlertCircle, Sparkles,
-  UploadCloud, X, CreditCard, User
+  UploadCloud, X, CreditCard, User, CheckCircle
 } from 'lucide-react';
 import {
   analyzeScamRisk,
   findMatchingVerifiedReports,
   analyzeScreenshotRisk,
 } from '../utils/rulesEngine';
+import { findMatchingCaseForScanner } from '../utils/caseGrouping';
 import { checkUrlWithVirusTotal, checkDomainExists } from '../utils/virusTotal';
 import { QUICK_TEST_PRESETS } from '../content/educationalContent';
 import ReportModal from './ReportModal';
@@ -40,8 +41,6 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
   const [selectedImage, setSelectedImage] = useState(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef(null);
-  // [N-4] Dedicated screenshot dropzone file input ref
-  const screenshotDropzoneRef = useRef(null);
 
   // [N-4] OCR Extracted Text editor state
   const [showOcrEditor, setShowOcrEditor] = useState(false);
@@ -284,6 +283,44 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
         setVtLoading(false);
       }
 
+      // Check for Case Match (Confirmed or Rejected) via Case Grouping Engine
+      const caseMatch = findMatchingCaseForScanner(
+        finalText,
+        metadata.targets || { phone: phoneInput, bank: bankInput, url: urlInput },
+        reportsList
+      );
+
+      if (caseMatch.matched) {
+        res.matchedCase = caseMatch;
+        if (caseMatch.status === 'confirmed') {
+          res.score = 100;
+          res.riskBand = lang === 'ms' ? 'Disahkan Rasmi' : 'Officially Confirmed';
+          res.bandColor = 'critical';
+          res.explanations.unshift({
+            category: 'community',
+            label: lang === 'ms'
+              ? `🚨 AMARAN PENIPUAN KOMUNITI (${caseMatch.reportCount} Laporan Diterima)`
+              : `🚨 COMMUNITY SCAM ALERT (${caseMatch.reportCount} ${caseMatch.reportCount === 1 ? 'Report Received' : 'Reports Received'})`,
+            text: lang === 'ms'
+              ? `Sasaran ini telah disahkan rasmi sebagai penipuan dengan ${caseMatch.reportCount} laporan penipuan komuniti difailkan.`
+              : `This target is officially confirmed as a scam with ${caseMatch.reportCount} community scam ${caseMatch.reportCount === 1 ? 'report' : 'reports'} filed.`,
+            weight: 100
+          });
+        } else if (caseMatch.status === 'rejected') {
+          res.score = Math.min(res.score, 20);
+          res.riskBand = lang === 'ms' ? 'Sebelum Ini Disemak' : 'Previously Reviewed';
+          res.bandColor = 'low';
+          res.explanations.unshift({
+            category: 'safe',
+            label: lang === 'ms' ? 'Rekod Semakan Terdahulu: Ditolak' : 'Previously Reviewed: Rejected',
+            text: lang === 'ms'
+              ? `Sasaran ini telah disemak oleh pihak berkuasa dan ditolak dengan alasan: "${caseMatch.rejectionReasonMs || caseMatch.rejectionReason}".`
+              : `This target was previously reviewed by authorities and rejected with rationale: "${caseMatch.rejectionReasonEn || caseMatch.rejectionReason}".`,
+            weight: 0
+          });
+        }
+      }
+
       setScanResult(res);
 
       if (res.score >= 80) {
@@ -324,12 +361,6 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
 
   const handleScanText = () => {
     if (!inputText.trim() && !selectedImage) return;
-    triggerScanAnimation(inputText || (lang === 'ms' ? 'Imbasan Tangkapan Skrin' : 'Screenshot Incident Scan'));
-  };
-
-  // [N-4] Dedicated screenshot scan handler (uses selected image with optional user text context)
-  const handleScanScreenshot = () => {
-    if (!selectedImage) return;
     triggerScanAnimation(inputText || (lang === 'ms' ? 'Imbasan Tangkapan Skrin' : 'Screenshot Incident Scan'));
   };
 
@@ -648,17 +679,6 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
             >
               <CreditCard size={16} /> {t('scanner.url_btn')}
             </button>
-
-            {/* [N-4] Screenshot Analysis tab */}
-            <button
-              onClick={() => handleTabChange('screenshot')}
-              className={`nav-link scanner-method-tab ${activeTab === 'screenshot' ? 'active' : ''}`}
-              role="tab"
-              aria-selected={activeTab === 'screenshot'}
-              style={{ fontSize: isElderlyMode ? '1.15rem' : '0.9rem' }}
-            >
-              <UploadCloud size={16} /> {t('scanner.tab_screenshot')}
-            </button>
           </div>
 
           {/* Tab Content */}
@@ -691,7 +711,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
-                <label className="form-label" htmlFor="scam-message-input" style={{ margin: 0 }}>
+                <label className="form-label" htmlFor="scam-message-input" style={{ margin: 0, fontSize: isElderlyMode ? '1.25rem' : '1.05rem', fontWeight: 600, color: '#f8fafc' }}>
                   {lang === 'ms' ? 'Mesej, tangkapan skrin, atau konteks untuk diperiksa' : 'Message, screenshot, or context to check'}
                 </label>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -699,11 +719,27 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     className="btn-secondary"
-                    style={{ fontSize: '0.8rem', padding: '0.35rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                    style={{
+                      fontSize: isElderlyMode ? '1.15rem' : '0.95rem',
+                      fontWeight: 600,
+                      minWidth: isElderlyMode ? '210px' : '175px',
+                      padding: isElderlyMode ? '0.7rem 2rem' : '0.6rem 1.75rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.6rem',
+                      whiteSpace: 'nowrap',
+                      color: 'var(--primary)',
+                      borderColor: 'rgba(6, 182, 212, 0.4)',
+                      background: 'rgba(6, 182, 212, 0.08)',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      transition: 'all var(--transition-fast)'
+                    }}
                     title={lang === 'ms' ? 'Pilih fail gambar dari peranti anda' : 'Select image file from your device'}
                   >
-                    <UploadCloud size={15} />
-                    {lang === 'ms' ? 'Muat Naik Imej' : 'Upload Image'}
+                    <UploadCloud size={isElderlyMode ? 22 : 18} />
+                    <span>{lang === 'ms' ? 'Muat Naik Imej' : 'Upload Image'}</span>
                   </button>
                   <input
                     type="file"
@@ -756,7 +792,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
               <textarea
                 id="scam-message-input"
                 className="input-field"
-                rows={isElderlyMode ? 5 : 4}
+                rows={isElderlyMode ? 7 : 6}
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 onPaste={handlePaste}
@@ -770,6 +806,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                 maxLength={10000}
                 style={{
                   resize: 'vertical',
+                  minHeight: isElderlyMode ? '190px' : '150px',
                   borderColor: isDragOver ? 'var(--primary)' : undefined,
                   boxShadow: isDragOver ? '0 0 10px rgba(59, 130, 246, 0.4)' : undefined,
                   transition: 'all 0.2s ease'
@@ -928,139 +965,6 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
             </div>
           )}
 
-          {/* [N-4] Screenshot Analysis tab content — Drag & Drop dropzone */}
-          {activeTab === 'screenshot' && (
-            <div role="tabpanel" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {/* Dropzone */}
-              <div
-                onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
-                onDragLeave={(e) => { e.preventDefault(); setIsDragOver(false); }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setIsDragOver(false);
-                  const file = e.dataTransfer?.files?.[0];
-                  if (file && file.type.startsWith('image/')) processImageFile(file);
-                }}
-                onClick={() => screenshotDropzoneRef.current?.click()}
-                role="button"
-                tabIndex={0}
-                aria-label={t('scanner.dropzone_title')}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') screenshotDropzoneRef.current?.click(); }}
-                style={{
-                  border: `2px dashed ${isDragOver ? 'var(--primary)' : 'rgba(99, 102, 241, 0.4)'}`,
-                  borderRadius: '14px',
-                  background: isDragOver
-                    ? 'rgba(59, 130, 246, 0.1)'
-                    : 'rgba(255, 255, 255, 0.02)',
-                  padding: '2.5rem 1.5rem',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  boxShadow: isDragOver ? '0 0 18px rgba(59, 130, 246, 0.25)' : 'none',
-                }}
-              >
-                <UploadCloud size={40} color={isDragOver ? 'var(--primary)' : 'rgba(99,102,241,0.7)'} />
-                <div style={{ textAlign: 'center' }}>
-                  <p style={{ margin: 0, fontWeight: 700, color: '#fff', fontSize: isElderlyMode ? '1.2rem' : '1rem' }}>
-                    {t('scanner.dropzone_title')}
-                  </p>
-                  <p style={{ margin: '0.25rem 0 0', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                    {t('scanner.dropzone_subtitle')}
-                  </p>
-                  <p style={{ margin: '0.25rem 0 0', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-                    {t('scanner.dropzone_hint')}
-                  </p>
-                </div>
-                <input
-                  ref={screenshotDropzoneRef}
-                  type="file"
-                  accept="image/*"
-                  style={{ display: 'none' }}
-                  onChange={(e) => {
-                    if (e.target.files?.[0]) processImageFile(e.target.files[0]);
-                    e.target.value = '';
-                  }}
-                />
-              </div>
-
-              {/* Image preview once uploaded */}
-              {selectedImage && (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  background: 'rgba(59, 130, 246, 0.12)',
-                  border: '1px solid rgba(59, 130, 246, 0.35)',
-                  borderRadius: '10px',
-                  padding: '0.75rem 1rem',
-                }}>
-                  <img
-                    src={selectedImage.fileBase64}
-                    alt="Screenshot preview"
-                    style={{
-                      width: '64px',
-                      height: '64px',
-                      objectFit: 'cover',
-                      borderRadius: '8px',
-                      border: '1px solid rgba(255,255,255,0.2)',
-                      flexShrink: 0,
-                    }}
-                  />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      📷 {selectedImage.fileName}
-                    </div>
-                    <div style={{ color: '#93c5fd', fontSize: '0.78rem', marginTop: '0.2rem' }}>
-                      {lang === 'ms' ? 'Sedia untuk analisis AI visual Gemini' : 'Ready for Gemini AI visual analysis'}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); setSelectedImage(null); }}
-                    className="btn-secondary"
-                    style={{ padding: '0.3rem 0.5rem', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)', display: 'flex', alignItems: 'center', flexShrink: 0 }}
-                    title={lang === 'ms' ? 'Buang imej' : 'Remove image'}
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-              )}
-
-              {/* Optional context message */}
-              <div>
-                <label className="form-label" htmlFor="screenshot-context-input" style={{ marginBottom: '0.4rem', display: 'block' }}>
-                  {lang === 'ms' ? 'Konteks tambahan (pilihan)' : 'Additional context (optional)'}
-                </label>
-                <textarea
-                  id="screenshot-context-input"
-                  className="input-field"
-                  rows={2}
-                  value={inputText}
-                  onChange={(e) => setInputText(e.target.value)}
-                  placeholder={lang === 'ms'
-                    ? 'Terangkan situasi scam atau tambah maklumat konteks...'
-                    : 'Describe the scam situation or add context...'}
-                  style={{ resize: 'vertical' }}
-                />
-              </div>
-
-              <button
-                onClick={handleScanScreenshot}
-                className="btn-primary scan-primary-action"
-                disabled={!selectedImage || isScanning}
-                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-              >
-                {isScanning ? <RefreshCw className="spinning" size={18} /> : <ShieldAlert size={18} />}
-                {isScanning
-                  ? t('common.loading')
-                  : (lang === 'ms' ? '🔍 Imbas Tangkapan Skrin & Analisis' : '🔍 Scan Screenshot & Analyze')}
-              </button>
-            </div>
-          )}
-
         </div>
 
         {/* Scanning progress log */}
@@ -1108,6 +1012,72 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                 </button>
               </div>
             </div>
+
+            {/* Previously Reviewed REJECTED Case Card (Section 14 & 15: No Report Counter) */}
+            {scanResult.matchedCase?.status === 'rejected' && (
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(30, 58, 138, 0.08) 100%)',
+                border: '1px solid rgba(59, 130, 246, 0.4)',
+                borderRadius: '12px',
+                padding: '1.25rem 1.5rem',
+                marginBottom: '1.5rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.75rem'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <CheckCircle size={22} color="#38bdf8" />
+                    <h4 style={{ margin: 0, color: '#93c5fd', fontSize: isElderlyMode ? '1.25rem' : '1.05rem', fontWeight: 700 }}>
+                      {lang === 'ms' ? 'Sebelum Ini Telah Disemak' : 'Previously Reviewed'}
+                    </h4>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ color: '#94a3b8', fontSize: '0.82rem' }}>{scanResult.matchedCase.caseCode}</span>
+                    <span style={{
+                      background: 'rgba(239, 68, 68, 0.2)',
+                      color: '#f87171',
+                      border: '1px solid rgba(239, 68, 68, 0.5)',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      padding: '0.2rem 0.6rem',
+                      borderRadius: '6px'
+                    }}>
+                      {lang === 'ms' ? 'STATUS: DITOLAK' : 'STATUS: REJECTED'}
+                    </span>
+                  </div>
+                </div>
+                <div style={{ color: '#e2e8f0', fontSize: isElderlyMode ? '1.05rem' : '0.9rem', lineHeight: 1.5 }}>
+                  <strong>{lang === 'ms' ? 'Alasan Pegawai / Moderator:' : 'Official Officer / Moderator Rationale:'}</strong>
+                  <blockquote style={{ margin: '0.4rem 0 0 0', paddingLeft: '0.75rem', borderLeft: '3px solid #38bdf8', color: '#cbd5e1', fontStyle: 'italic' }}>
+                    "{lang === 'ms' ? (scanResult.matchedCase.rejectionReasonMs || scanResult.matchedCase.rejectionReason) : (scanResult.matchedCase.rejectionReasonEn || scanResult.matchedCase.rejectionReason)}"
+                  </blockquote>
+                </div>
+                <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.82rem', lineHeight: 1.4 }}>
+                  {lang === 'ms'
+                    ? 'Makluman Keselamatan: Keputusan penolakan ini berasaskan bukti yang dikemukakan sebelum ini. Sekiranya anda mendapati bukti atau corak aktiviti yang mencurigakan, anda masih boleh menghantar laporan baharu.'
+                    : 'Safety Notice: This previous review was based on evidence submitted at the time. If you have encountered suspicious activity or new evidence, you may still submit an independent report.'}
+                </p>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+                  <button
+                    type="button"
+                    onClick={openReportFlow}
+                    className="btn-secondary"
+                    style={{
+                      fontSize: isElderlyMode ? '1rem' : '0.85rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      color: '#38bdf8',
+                      borderColor: 'rgba(56, 189, 248, 0.4)'
+                    }}
+                  >
+                    <ShieldAlert size={15} />
+                    {lang === 'ms' ? 'Hantar Laporan dengan Bukti Baharu' : 'Submit Report with New Evidence'}
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* High Scam Risk (> 50) Prompt Card */}
             {scanResult.score > 50 && (

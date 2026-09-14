@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Check, X, UserCheck, ShieldAlert, FileText, CheckCircle, XCircle, Search, Filter, Clock, ShieldCheck, Mail, Send, Activity, User, BookOpen, BarChart2, Edit2, Trash2, Save } from 'lucide-react';
+import { Shield, Check, X, UserCheck, ShieldAlert, FileText, CheckCircle, XCircle, Search, Filter, Clock, ShieldCheck, Mail, Send, Activity, User, BookOpen, BarChart2, Edit2, Trash2, Save, GitMerge, Split, CornerDownRight } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { translateText } from '../utils/translateText';
@@ -9,6 +9,7 @@ import {
   normalizeHostname,
   normalizePhone,
 } from '../utils/rulesEngine';
+import { getGroupedCases } from '../utils/caseGrouping';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { SCAM_CATEGORIES, getCategoryLabel } from '../config/categories';
 
@@ -17,7 +18,8 @@ export default function ModeratorDashboard({ onNavigate }) {
     reportsList, updateReportStatus, addAlert,
     addBlacklistItem, blacklist,
     removeBlacklistItem, updateBlacklistItem, auditLogs,
-    adminProfile
+    adminProfile,
+    unmergeReportAction, reassignReportAction, mergeCasesAction
   } = useAppContext();
   const { t, lang } = useLanguage();
   const [selectedReport, setSelectedReport] = useState(null);
@@ -38,6 +40,45 @@ export default function ModeratorDashboard({ onNavigate }) {
   const [filterCategory, setFilterCategory] = useState('all');
   const [selectedForBulk, setSelectedForBulk] = useState(new Set());
   const [expandedClusters, setExpandedClusters] = useState(new Set());
+
+  // Case Grouping Correction state
+  const [reassignModalReport, setReassignModalReport] = useState(null);
+  const [mergeModalCase, setMergeModalCase] = useState(null);
+  const [targetCaseIdSelection, setTargetCaseIdSelection] = useState('');
+  const [caseActionFeedback, setCaseActionFeedback] = useState(null);
+
+  const handleUnmerge = async (reportId) => {
+    await unmergeReportAction(reportId);
+    setCaseActionFeedback({
+      type: 'success',
+      message: lang === 'ms' ? 'Laporan berjaya diasingkan ke dalam kes PENDING baharu.' : 'Report successfully unmerged into a new PENDING case.'
+    });
+    setTimeout(() => setCaseActionFeedback(null), 4000);
+  };
+
+  const handleReassign = async () => {
+    if (!reassignModalReport || !targetCaseIdSelection) return;
+    await reassignReportAction(reassignModalReport.id, targetCaseIdSelection);
+    setCaseActionFeedback({
+      type: 'success',
+      message: lang === 'ms' ? 'Laporan berjaya ditugaskan semula ke kes sasaran.' : 'Report successfully reassigned to destination case.'
+    });
+    setReassignModalReport(null);
+    setTargetCaseIdSelection('');
+    setTimeout(() => setCaseActionFeedback(null), 4000);
+  };
+
+  const handleMerge = async () => {
+    if (!mergeModalCase || !targetCaseIdSelection) return;
+    await mergeCasesAction(targetCaseIdSelection, mergeModalCase.caseId);
+    setCaseActionFeedback({
+      type: 'success',
+      message: lang === 'ms' ? 'Kes berjaya digabungkan.' : 'Cases successfully merged.'
+    });
+    setMergeModalCase(null);
+    setTargetCaseIdSelection('');
+    setTimeout(() => setCaseActionFeedback(null), 4000);
+  };
 
   // Audit Sub-tab Search, Action Type & Time Range Filter state
   const [auditSearchQuery, setAuditSearchQuery] = useState('');
@@ -348,30 +389,35 @@ function areReportsRelated(reportA, reportB) {
     ])
   );
 
-  // Ensure duplicate case IDs injected by hot-reloading loops are visually cleaned up
-  const deduplicatedReports = Array.from(new Map(reportsList.map(r => [r.id, r])).values());
+  // Group flat reports into aggregate Cases for case-centric moderation
+  const allGroupedCases = getGroupedCases(reportsList);
 
-  const filteredReports = deduplicatedReports
-    .filter(r => r.status !== 'archived')
-    .filter(r => {
+  const filteredCases = allGroupedCases
+    .filter(c => c.status !== 'archived')
+    .filter(c => {
       if (filterStatus === 'all') return true;
-      if (filterStatus === 'pending') return r.status === 'unverified' || r.status === 'under_review';
-      return r.status === filterStatus;
+      if (filterStatus === 'pending') return c.status === 'unverified' || c.status === 'under_review';
+      return c.status === filterStatus;
     })
-    .filter(r => {
+    .filter(c => {
       if (filterCategory === 'all') return true;
-      return (r.category || r.type || '').toLowerCase() === filterCategory.toLowerCase();
+      return (c.category || '').toLowerCase() === filterCategory.toLowerCase();
     })
-    .filter(r => {
+    .filter(c => {
       if (!searchQuery.trim()) return true;
       const q = searchQuery.toLowerCase();
-      const text = (r.text || '').toLowerCase();
-      const id = (r.id || '').toString().toLowerCase();
-      const category = (r.category || '').toLowerCase();
-      const type = (r.type || '').toLowerCase();
-      const reporter = (r.submittedBy || r.reporterId || '').toLowerCase();
-      return text.includes(q) || id.includes(q) || category.includes(q) || type.includes(q) || reporter.includes(q);
+      const code = (c.caseCode || '').toLowerCase();
+      const id = (c.caseId || '').toLowerCase();
+      const cat = (c.category || '').toLowerCase();
+      const anyTextMatches = c.reports.some(r =>
+        (r.text || '').toLowerCase().includes(q) ||
+        (r.reportCode || '').toLowerCase().includes(q) ||
+        (r.reporterId || '').toLowerCase().includes(q)
+      );
+      return code.includes(q) || id.includes(q) || cat.includes(q) || anyTextMatches;
     });
+
+  const filteredReports = filteredCases.map(c => c.rootReport);
 
   const handleAddManualBlacklist = async (e) => {
     e.preventDefault();
@@ -808,322 +854,428 @@ function areReportsRelated(reportA, reportB) {
 
             {activeSubTab === 'queue' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {filteredReports.length === 0 ? (
+                {caseActionFeedback && (
+                  <div style={{
+                    padding: '0.85rem 1.25rem',
+                    background: caseActionFeedback.type === 'error' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                    border: `1px solid ${caseActionFeedback.type === 'error' ? '#ef4444' : '#10b981'}`,
+                    borderRadius: '10px',
+                    color: caseActionFeedback.type === 'error' ? '#fca5a5' : '#6ee7b7',
+                    fontSize: '0.9rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.65rem'
+                  }}>
+                    <CheckCircle size={18} />
+                    <span>{caseActionFeedback.message}</span>
+                  </div>
+                )}
+
+                {filteredCases.length === 0 ? (
                   <div style={{ padding: '2rem 0', textAlign: 'center', color: 'var(--text-secondary)' }}>
                     {searchQuery.trim() || filterCategory !== 'all' || filterStatus !== 'all' ? t('admin.no_reports_search') : t('admin.no_reports')}
                   </div>
                 ) : (
-                  (isQueueExpanded ? filteredReports : filteredReports.slice(0, 3)).map(report => (
-                    <div key={report.id} className="admin-report-card-container" style={{ display: 'flex', flexDirection: 'column' }}>
-                      <div
-                        onClick={() => setSelectedReport(selectedReport?.id === report.id ? null : report)}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter' || event.key === ' ') {
-                            event.preventDefault();
-                            setSelectedReport(selectedReport?.id === report.id ? null : report);
-                          }
-                        }}
-                        role="button"
-                        tabIndex="0"
-                        aria-pressed={selectedReport?.id === report.id}
-                        className="admin-report-card"
-                        style={{
-                          padding: '1.25rem',
-                          background: selectedReport?.id === report.id ? 'rgba(6, 182, 212, 0.08)' : 'rgba(255, 255, 255, 0.02)',
-                          border: `1px solid ${selectedReport?.id === report.id ? 'var(--primary)' : 'var(--border-color)'}`,
-                          borderRadius: selectedReport?.id === report.id ? '12px 12px 0 0' : '12px',
-                          cursor: 'pointer',
-                          transition: 'all var(--transition-fast)',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          flexWrap: 'wrap',
-                          gap: '1rem'
-                        }}
-                      >
-                        {/* Bulk Selection Checkbox */}
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <input
-                            type="checkbox"
-                            checked={selectedForBulk.has(report.id)}
-                            onChange={(e) => {
-                              e.stopPropagation();
-                              const newSet = new Set(selectedForBulk);
-                              if (e.target.checked) newSet.add(report.id);
-                              else newSet.delete(report.id);
-                              setSelectedForBulk(newSet);
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                            style={{ cursor: 'pointer', width: '1.2rem', height: '1.2rem', accentColor: 'var(--primary)' }}
-                            aria-label={`Select report ${report.id}`}
-                          />
-                        </div>
+                  (isQueueExpanded ? filteredCases : filteredCases.slice(0, 3)).map(caseItem => {
+                    const report = caseItem.rootReport;
+                    const isSelected = selectedReport?.id === report.id;
 
-                        <div className="admin-report-copy" style={{ flex: 1, minWidth: '200px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                            <span className="badge badge-caution" style={{ fontSize: '0.7rem' }}>{getCategoryLabel(report.category || report.type, t)}</span>
-                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>ID: {report.reportCode ? report.reportCode : `#${report.id.toString().slice(-6)}`}</span>
-                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>• {new Date(report.timestamp).toLocaleTimeString()}</span>
-                            {(() => {
-                              const cluster = getClusterReports(report);
-                              if (cluster.length <= 1) return null;
-                              const isExpanded = expandedClusters.has(report.id);
-                              return (
-                                <button
-                                  onClick={(e) => toggleClusterExpand(report.id, e)}
-                                  style={{
-                                    background: isExpanded ? 'rgba(6, 182, 212, 0.25)' : 'rgba(6, 182, 212, 0.1)',
-                                    border: '1px solid rgba(6, 182, 212, 0.4)',
-                                    color: '#38bdf8',
-                                    borderRadius: '12px',
-                                    padding: '0.15rem 0.55rem',
-                                    fontSize: '0.72rem',
-                                    fontWeight: 600,
-                                    cursor: 'pointer',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '0.35rem',
-                                    transition: 'all var(--transition-fast)'
-                                  }}
-                                  title={lang === 'ms' ? 'Klik untuk lihat laporan serupa' : 'Click to view similar reports'}
-                                >
-                                  <span>🔗</span>
-                                  <span>{cluster.length} {lang === 'ms' ? 'Laporan Serupa' : 'Similar Reports'}</span>
-                                  <span style={{ fontSize: '0.65rem' }}>{isExpanded ? '▲' : '▼'}</span>
-                                </button>
-                              );
-                            })()}
-                          </div>
-                          <p style={{
-                            fontSize: '0.9rem',
-                            color: '#fff',
-                            marginTop: '0.5rem',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            display: '-webkit-box',
-                            WebkitLineClamp: 1,
-                            WebkitBoxOrient: 'vertical'
-                          }}>
-                            {report.text}
-                          </p>
-                        </div>
-
-                        <div className="admin-report-status" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                          <div>
-                            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', textAlign: 'right' }}>{t('admin.ai_score')}</span>
-                            <strong style={{
-                              color: report.score >= 80 ? 'var(--color-high)' : report.score >= 30 ? 'var(--color-caution)' : 'var(--color-low)',
-                              fontSize: '1rem',
-                              display: 'block',
-                              textAlign: 'right'
-                            }}>
-                              {report.score}/100
-                            </strong>
-                          </div>
-                          <span className={`badge ${report.status === 'confirmed' ? 'badge-low' :
-                            report.status === 'rejected' ? 'badge-high' : 'badge-caution'
-                            }`} style={{ textTransform: 'capitalize' }}>
-                            {t(`status.${report.status}`) || report.status.replace('_', ' ')}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Expanded Cluster Similar Reports List */}
-                      {expandedClusters.has(report.id) && (() => {
-                        const cluster = getClusterReports(report);
-                        if (cluster.length <= 1) return null;
-                        return (
-                          <div style={{
-                            padding: '0.85rem 1.25rem',
-                            background: 'rgba(15, 23, 42, 0.85)',
-                            border: '1px solid rgba(6, 182, 212, 0.3)',
-                            borderTop: 'none',
-                            borderRadius: '0 0 12px 12px',
-                            fontSize: '0.82rem',
-                            color: '#cbd5e1'
-                          }}>
-                            <div style={{ fontWeight: 600, color: '#38bdf8', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                              <span>🔗</span>
-                              <span>{cluster.length} {lang === 'ms' ? 'Laporan Serupa Terkesan (Kluster)' : 'Similar Reports Detected (Cluster)'}</span>
-                            </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                              {cluster.map(r => {
-                                const code = r.reportCode || `#${r.id.toString().slice(-6)}`;
-                                const snippet = r.text ? `"${r.text.slice(0, 65)}${r.text.length > 65 ? '...' : ''}"` : '';
-                                const isCurrent = r.id === report.id;
-                                return (
-                                  <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', opacity: isCurrent ? 0.75 : 1 }}>
-                                    <span style={{ color: isCurrent ? 'var(--text-muted)' : '#38bdf8', fontWeight: 600 }}>
-                                      • {code}
-                                    </span>
-                                    <span style={{ color: '#e2e8f0' }}>— {snippet}</span>
-                                    {isCurrent && (
-                                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                                        ({lang === 'ms' ? 'kes ini' : 'this case'})
-                                      </span>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        );
-                      })()}
-
-                      {/* Inline Expanded Review UI */}
-                      {selectedReport?.id === report.id && (
-                        <div className="admin-report-details fade-in" style={{ padding: '1.5rem', background: 'rgba(6, 182, 212, 0.04)', border: '1px solid var(--primary)', borderTop: 'none', borderRadius: '0 0 12px 12px', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-
-                          {/* Header and Close Button */}
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.75rem', marginBottom: '0.25rem' }}>
-                            <h4 style={{ fontSize: '1.05rem', color: '#fff', margin: 0, fontWeight: 600 }}>{t('admin.reviewing', 'Incident Report Details')}</h4>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setSelectedReport(null); }}
-                              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', cursor: 'pointer', padding: '0.35rem', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                              aria-label={t('common.close', 'Close')}
-                            >
-                              <X size={16} />
-                            </button>
-                          </div>
-
-                          <div>
-                            <strong style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.5rem' }}>
-                              {t('admin.text_evidence')}
-                            </strong>
-                            <div style={{ background: '#090d16', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.9rem', fontFamily: 'monospace', color: '#f8fafc', whiteSpace: 'pre-wrap' }}>
-                              {report.text}
-                            </div>
-                          </div>
-
-                          {(() => {
-                            const indicators = extractIndicators(report.text);
-                            const hasIndicators = indicators.urls.length > 0 || indicators.phones.length > 0 || indicators.hasPaymentKeywords;
-                            if (!hasIndicators) return null;
-
-                            return (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                <strong style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                                  Extracted Threat Indicators
-                                </strong>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
-                                  {indicators.urls.map(url => (
-                                    <span key={url} className="badge badge-caution" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', padding: '0.35rem 0.75rem' }}>
-                                      🌐 {url}
-                                    </span>
-                                  ))}
-                                  {indicators.phones.map(phone => (
-                                    <span key={phone} className="badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', padding: '0.35rem 0.75rem', background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', border: '1px solid rgba(168, 85, 247, 0.3)' }}>
-                                      📞 {phone}
-                                    </span>
-                                  ))}
-                                  {indicators.hasPaymentKeywords && (
-                                    <span className="badge badge-high" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', padding: '0.35rem 0.75rem' }}>
-                                      💵 {indicators.extractedPayment ? `${indicators.extractedPayment} Requested` : 'Payment Request Detected'}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })()}
-
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
-                            <div style={{ background: 'rgba(255,255,255,0.01)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{t('admin.ai_eval')}</span>
-                              <h4 style={{ fontSize: '1.2rem', color: '#fff', marginTop: '0.25rem' }}>{report.score}/100 ({report.riskBand})</h4>
-                            </div>
-                            <div style={{ background: 'rgba(255,255,255,0.01)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{t('admin.dup_incidents')}</span>
-                              <h4 style={{ fontSize: '1.2rem', color: 'var(--primary)', marginTop: '0.25rem' }}>
-                                {getDuplicateReportsCount(report)} {t('admin.matching_cases')}
-                              </h4>
-                              {(() => {
-                                const cluster = getClusterReports(report);
-                                if (cluster.length <= 1) return null;
-                                return (
-                                  <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.08)', fontSize: '0.78rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                                    {cluster.map(r => (
-                                      <div key={r.id} style={{ color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                        • <strong style={{ color: '#38bdf8' }}>{r.reportCode || `#${r.id.toString().slice(-6)}`}</strong>: "{r.text}"
-                                      </div>
-                                    ))}
-                                  </div>
-                                );
-                              })()}
-                            </div>
-                          </div>
-
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>{t('admin.mod_note')}</label>
-                            
-                            {/* Quick Moderation Notes */}
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.2rem' }}>
-                              {[
-                                { ms: "Scam disahkan. Tambah ke senarai hitam.", en: "Verified scam. Added to blacklist." },
-                                { ms: "Sepadan dengan rekod polis (CCID).", en: "Matches CCID police records." },
-                                { ms: "Bukti tidak mencukupi.", en: "Insufficient evidence provided." },
-                                { ms: "Laporan berganda.", en: "Duplicate report." },
-                                { ms: "Mesej sah/selamat.", en: "Legitimate/safe message." },
-                                { ms: "Perlu semakan manual sekunder.", en: "Requires secondary manual review." }
-                              ].map((note, idx) => (
-                                <button
-                                  key={idx}
-                                  onClick={(e) => { e.preventDefault(); setRationale(lang === 'ms' ? note.ms : note.en); }}
-                                  style={{
-                                    background: 'rgba(255,255,255,0.05)',
-                                    border: '1px solid rgba(255,255,255,0.1)',
-                                    color: '#cbd5e1',
-                                    padding: '0.2rem 0.5rem',
-                                    borderRadius: '4px',
-                                    fontSize: '0.75rem',
-                                    cursor: 'pointer'
-                                  }}
-                                  onMouseEnter={(e) => { e.target.style.background = 'rgba(255,255,255,0.1)'; }}
-                                  onMouseLeave={(e) => { e.target.style.background = 'rgba(255,255,255,0.05)'; }}
-                                >
-                                  {lang === 'ms' ? note.ms : note.en}
-                                </button>
-                              ))}
-                            </div>
-
+                    return (
+                      <div key={caseItem.caseId} className="admin-report-card-container" style={{ display: 'flex', flexDirection: 'column' }}>
+                        <div
+                          onClick={() => setSelectedReport(isSelected ? null : report)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              setSelectedReport(isSelected ? null : report);
+                            }
+                          }}
+                          role="button"
+                          tabIndex="0"
+                          aria-pressed={isSelected}
+                          className="admin-report-card"
+                          style={{
+                            padding: '1.25rem',
+                            background: isSelected ? 'rgba(6, 182, 212, 0.08)' : 'rgba(255, 255, 255, 0.02)',
+                            border: `1px solid ${isSelected ? 'var(--primary)' : 'var(--border-color)'}`,
+                            borderRadius: isSelected ? '12px 12px 0 0' : '12px',
+                            cursor: 'pointer',
+                            transition: 'all var(--transition-fast)',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            flexWrap: 'wrap',
+                            gap: '1rem'
+                          }}
+                        >
+                          {/* Bulk Selection Checkbox */}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <input
-                              type="text"
-                              value={rationale}
-                              onChange={(e) => setRationale(e.target.value)}
-                              placeholder={t('admin.mod_note_placeholder')}
-                              className="input-field"
+                              type="checkbox"
+                              checked={selectedForBulk.has(report.id)}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                const newSet = new Set(selectedForBulk);
+                                if (e.target.checked) newSet.add(report.id);
+                                else newSet.delete(report.id);
+                                setSelectedForBulk(newSet);
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              style={{ cursor: 'pointer', width: '1.2rem', height: '1.2rem', accentColor: 'var(--primary)' }}
+                              aria-label={`Select case ${caseItem.caseCode}`}
                             />
                           </div>
 
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                            <button
-                              onClick={() => { handleAction(report.id, 'confirmed'); setSelectedReport(null); }}
-                              className="btn-primary"
-                              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', background: 'linear-gradient(135deg, var(--color-low), #065f46)', color: '#fff', border: 'none', boxShadow: 'none' }}
-                            >
-                              <Check size={18} /> {t('admin.confirm_btn')}
-                            </button>
-                            <button
-                              onClick={() => { handleAction(report.id, 'rejected'); setSelectedReport(null); }}
-                              className="btn-primary"
-                              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', background: 'linear-gradient(135deg, var(--color-high), #7f1d1d)', color: '#fff', border: 'none', boxShadow: 'none' }}
-                            >
-                              <X size={18} /> {t('admin.reject_btn')}
-                            </button>
-                            <button
-                              onClick={() => { handleAction(report.id, 'under_review'); setSelectedReport(null); }}
-                              className="btn-secondary"
-                              style={{ width: '100%' }}
-                            >
-                              {t('admin.flag_btn')}
-                            </button>
+                          <div className="admin-report-copy" style={{ flex: 1, minWidth: '200px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                              <span className="badge badge-caution" style={{ fontSize: '0.7rem' }}>
+                                {getCategoryLabel(caseItem.category || report.category || report.type, t)}
+                              </span>
+                              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#38bdf8' }}>
+                                {caseItem.caseCode || `CASE-${caseItem.caseId}`}
+                              </span>
+                              <span style={{
+                                background: caseItem.reportCount > 1 ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255, 255, 255, 0.08)',
+                                border: `1px solid ${caseItem.reportCount > 1 ? 'rgba(59, 130, 246, 0.5)' : 'rgba(255, 255, 255, 0.15)'}`,
+                                color: caseItem.reportCount > 1 ? '#60a5fa' : '#cbd5e1',
+                                borderRadius: '12px',
+                                padding: '0.15rem 0.55rem',
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.35rem'
+                              }}>
+                                <span>🔗</span>
+                                <span>{caseItem.reportCount} {lang === 'ms' ? 'Laporan' : (caseItem.reportCount === 1 ? 'Report' : 'Reports')}</span>
+                              </span>
+                              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                • {new Date(report.timestamp).toLocaleTimeString()}
+                              </span>
+                            </div>
+                            <p style={{
+                              fontSize: '0.9rem',
+                              color: '#fff',
+                              marginTop: '0.5rem',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              display: '-webkit-box',
+                              WebkitLineClamp: 1,
+                              WebkitBoxOrient: 'vertical'
+                            }}>
+                              {report.text}
+                            </p>
+                          </div>
+
+                          <div className="admin-report-status" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <div>
+                              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', textAlign: 'right' }}>{t('admin.ai_score')}</span>
+                              <strong style={{
+                                color: report.score >= 80 ? 'var(--color-high)' : report.score >= 30 ? 'var(--color-caution)' : 'var(--color-low)',
+                                fontSize: '1rem',
+                                display: 'block',
+                                textAlign: 'right'
+                              }}>
+                                {report.score}/100
+                              </strong>
+                            </div>
+                            <span className={`badge ${caseItem.status === 'confirmed' ? 'badge-low' :
+                              caseItem.status === 'rejected' ? 'badge-high' : 'badge-caution'
+                              }`} style={{ textTransform: 'capitalize' }}>
+                              {t(`status.${caseItem.status}`) || caseItem.status.replace('_', ' ')}
+                            </span>
                           </div>
                         </div>
-                      )}
-                    </div>
-                  ))
+
+                        {/* Inline Expanded Review UI */}
+                        {isSelected && (
+                          <div className="admin-report-details fade-in" style={{ padding: '1.5rem', background: 'rgba(6, 182, 212, 0.04)', border: '1px solid var(--primary)', borderTop: 'none', borderRadius: '0 0 12px 12px', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+
+                            {/* Header and Close Button */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.75rem', marginBottom: '0.25rem' }}>
+                              <h4 style={{ fontSize: '1.05rem', color: '#fff', margin: 0, fontWeight: 600 }}>
+                                {caseItem.caseCode} — {t('admin.reviewing', 'Case Investigation Details')}
+                              </h4>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setSelectedReport(null); }}
+                                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', cursor: 'pointer', padding: '0.35rem', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                aria-label={t('common.close', 'Close')}
+                              >
+                                <X size={16} />
+                              </button>
+                            </div>
+
+                            <div>
+                              <strong style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.5rem' }}>
+                                {t('admin.text_evidence')}
+                              </strong>
+                              <div style={{ background: '#090d16', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.9rem', fontFamily: 'monospace', color: '#f8fafc', whiteSpace: 'pre-wrap' }}>
+                                {report.text}
+                              </div>
+                            </div>
+
+                            {(() => {
+                              const indicators = extractIndicators(report.text);
+                              const hasIndicators = indicators.urls.length > 0 || indicators.phones.length > 0 || indicators.hasPaymentKeywords;
+                              if (!hasIndicators) return null;
+
+                              return (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                  <strong style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                    Extracted Threat Indicators
+                                  </strong>
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
+                                    {indicators.urls.map(url => (
+                                      <span key={url} className="badge badge-caution" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', padding: '0.35rem 0.75rem' }}>
+                                        🌐 {url}
+                                      </span>
+                                    ))}
+                                    {indicators.phones.map(phone => (
+                                      <span key={phone} className="badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', padding: '0.35rem 0.75rem', background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', border: '1px solid rgba(168, 85, 247, 0.3)' }}>
+                                        📞 {phone}
+                                      </span>
+                                    ))}
+                                    {indicators.hasPaymentKeywords && (
+                                      <span className="badge badge-high" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', padding: '0.35rem 0.75rem' }}>
+                                        💵 {indicators.extractedPayment ? `${indicators.extractedPayment} Requested` : 'Payment Request Detected'}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })()}
+
+                            {/* Case Reports Hierarchy Section (Section 16 & 17) */}
+                            <div style={{
+                              background: 'rgba(15, 23, 42, 0.85)',
+                              border: '1px solid rgba(56, 189, 248, 0.3)',
+                              borderRadius: '10px',
+                              padding: '1rem',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '0.75rem'
+                            }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                  <FileText size={18} color="#38bdf8" />
+                                  <strong style={{ color: '#38bdf8', fontSize: '0.92rem' }}>
+                                    {lang === 'ms'
+                                      ? `Hierarki Laporan Komuniti (${caseItem.reportCount} Laporan)`
+                                      : `Attached Community Reports (${caseItem.reportCount} Reports)`}
+                                  </strong>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setMergeModalCase(caseItem);
+                                    setTargetCaseIdSelection('');
+                                  }}
+                                  className="btn-secondary"
+                                  style={{
+                                    fontSize: '0.75rem',
+                                    padding: '0.3rem 0.65rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.35rem',
+                                    color: '#c084fc',
+                                    borderColor: 'rgba(192, 132, 252, 0.4)'
+                                  }}
+                                  title={lang === 'ms' ? 'Gabungkan kes lain ke dalam kes ini' : 'Merge another case into this case'}
+                                >
+                                  <GitMerge size={14} />
+                                  {lang === 'ms' ? 'Gabung Kes...' : 'Merge with Case...'}
+                                </button>
+                              </div>
+
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
+                                {caseItem.reports.map(r => {
+                                  const isRoot = r.id === caseItem.rootReport.id;
+                                  const type = r.reportType || (isRoot ? 'ORIGINAL' : 'DUPLICATE');
+                                  const typeColor = type === 'ORIGINAL' ? '#3b82f6' : (type === 'DUPLICATE' ? '#f59e0b' : '#a855f7');
+                                  const typeBg = type === 'ORIGINAL' ? 'rgba(59, 130, 246, 0.15)' : (type === 'DUPLICATE' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(168, 85, 247, 0.15)');
+
+                                  return (
+                                    <div
+                                      key={r.id}
+                                      style={{
+                                        background: 'rgba(255, 255, 255, 0.02)',
+                                        border: `1px solid ${isRoot ? 'rgba(59, 130, 246, 0.35)' : 'rgba(255, 255, 255, 0.08)'}`,
+                                        borderRadius: '8px',
+                                        padding: '0.75rem 1rem',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '0.35rem'
+                                      }}
+                                    >
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                          <span style={{ fontWeight: 700, color: '#f8fafc', fontSize: '0.85rem' }}>
+                                            {r.reportCode || `#${String(r.id).slice(-6)}`}
+                                          </span>
+                                          <span style={{
+                                            background: typeBg,
+                                            color: typeColor,
+                                            border: `1px solid ${typeColor}`,
+                                            fontSize: '0.68rem',
+                                            fontWeight: 700,
+                                            padding: '0.12rem 0.5rem',
+                                            borderRadius: '4px',
+                                            textTransform: 'uppercase'
+                                          }}>
+                                            {type}
+                                          </span>
+                                          {r.aiConfidence && (
+                                            <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                                              {r.aiConfidence}% AI Conf.
+                                            </span>
+                                          )}
+                                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                                            • {new Date(r.timestamp).toLocaleDateString()}
+                                          </span>
+                                        </div>
+
+                                        {/* Correction Actions (Section 18 & 19: Unmerge and Reassign) */}
+                                        <div style={{ display: 'flex', gap: '0.4rem' }}>
+                                          {!isRoot && (
+                                            <>
+                                              <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  handleUnmerge(r.id);
+                                                }}
+                                                className="btn-secondary"
+                                                style={{
+                                                  fontSize: '0.72rem',
+                                                  padding: '0.2rem 0.55rem',
+                                                  display: 'flex',
+                                                  alignItems: 'center',
+                                                  gap: '0.3rem',
+                                                  color: '#f59e0b',
+                                                  borderColor: 'rgba(245, 158, 11, 0.4)'
+                                                }}
+                                                title={lang === 'ms' ? 'Asingkan laporan ke dalam kes baharu' : 'Unmerge into new pending case'}
+                                              >
+                                                <Split size={12} />
+                                                {lang === 'ms' ? 'Asingkan' : 'Unmerge'}
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setReassignModalReport(r);
+                                                  setTargetCaseIdSelection('');
+                                                }}
+                                                className="btn-secondary"
+                                                style={{
+                                                  fontSize: '0.72rem',
+                                                  padding: '0.2rem 0.55rem',
+                                                  display: 'flex',
+                                                  alignItems: 'center',
+                                                  gap: '0.3rem',
+                                                  color: '#38bdf8',
+                                                  borderColor: 'rgba(56, 189, 248, 0.4)'
+                                                }}
+                                                title={lang === 'ms' ? 'Tugaskan semula ke kes lain' : 'Reassign to another case'}
+                                              >
+                                                <CornerDownRight size={12} />
+                                                {lang === 'ms' ? 'Tugaskan Semula' : 'Reassign'}
+                                              </button>
+                                            </>
+                                          )}
+                                        </div>
+                                      </div>
+
+                                      <div style={{ fontSize: '0.82rem', color: '#cbd5e1', whiteSpace: 'pre-wrap' }}>
+                                        "{r.text}"
+                                      </div>
+
+                                      {Array.isArray(r.matchingFactors) && r.matchingFactors.length > 0 && (
+                                        <div style={{ fontSize: '0.75rem', color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                          <span>🎯</span>
+                                          <span>{r.matchingFactors.join(' | ')}</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                              <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>{t('admin.mod_note')}</label>
+                              
+                              {/* Quick Moderation Notes */}
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.2rem' }}>
+                                {[
+                                  { ms: "Scam disahkan. Tambah ke senarai hitam.", en: "Verified scam. Added to blacklist." },
+                                  { ms: "Sepadan dengan rekod polis (CCID).", en: "Matches CCID police records." },
+                                  { ms: "Bukti tidak mencukupi.", en: "Insufficient evidence provided." },
+                                  { ms: "Laporan berganda.", en: "Duplicate report." },
+                                  { ms: "Mesej sah/selamat.", en: "Legitimate/safe message." },
+                                  { ms: "Perlu semakan manual sekunder.", en: "Requires secondary manual review." }
+                                ].map((note, idx) => (
+                                  <button
+                                    key={idx}
+                                    onClick={(e) => { e.preventDefault(); setRationale(lang === 'ms' ? note.ms : note.en); }}
+                                    style={{
+                                      background: 'rgba(255,255,255,0.05)',
+                                      border: '1px solid rgba(255,255,255,0.1)',
+                                      color: '#cbd5e1',
+                                      padding: '0.2rem 0.5rem',
+                                      borderRadius: '4px',
+                                      fontSize: '0.75rem',
+                                      cursor: 'pointer'
+                                    }}
+                                    onMouseEnter={(e) => { e.target.style.background = 'rgba(255,255,255,0.1)'; }}
+                                    onMouseLeave={(e) => { e.target.style.background = 'rgba(255,255,255,0.05)'; }}
+                                  >
+                                    {lang === 'ms' ? note.ms : note.en}
+                                  </button>
+                                ))}
+                              </div>
+
+                              <input
+                                type="text"
+                                value={rationale}
+                                onChange={(e) => setRationale(e.target.value)}
+                                placeholder={t('admin.mod_note_placeholder')}
+                                className="input-field"
+                              />
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                              <button
+                                onClick={() => { handleAction(report.id, 'confirmed'); setSelectedReport(null); }}
+                                className="btn-primary"
+                                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', background: 'linear-gradient(135deg, var(--color-low), #065f46)', color: '#fff', border: 'none', boxShadow: 'none' }}
+                              >
+                                <Check size={18} /> {t('admin.confirm_btn')}
+                              </button>
+                              <button
+                                onClick={() => { handleAction(report.id, 'rejected'); setSelectedReport(null); }}
+                                className="btn-primary"
+                                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', background: 'linear-gradient(135deg, var(--color-high), #7f1d1d)', color: '#fff', border: 'none', boxShadow: 'none' }}
+                              >
+                                <X size={18} /> {t('admin.reject_btn')}
+                              </button>
+                              <button
+                                onClick={() => { handleAction(report.id, 'under_review'); setSelectedReport(null); }}
+                                className="btn-secondary"
+                                style={{ width: '100%' }}
+                              >
+                                {t('admin.flag_btn')}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
                 )}
 
-                {filteredReports.length > 3 && (
+                {filteredCases.length > 3 && (
                   <div style={{ textAlign: 'center', marginTop: '0.5rem', marginBottom: '0.5rem' }}>
                     <button
                       onClick={() => setIsQueueExpanded(!isQueueExpanded)}
@@ -1133,8 +1285,8 @@ function areReportsRelated(reportA, reportB) {
                       {isQueueExpanded
                         ? (lang === 'ms' ? 'Tunjuk Kurang' : 'Show Less')
                         : (lang === 'ms'
-                          ? `Tunjuk Lebih (${filteredReports.length - 3} lagi)`
-                          : `Show More (${filteredReports.length - 3} more)`)}
+                          ? `Tunjuk Lebih (${filteredCases.length - 3} lagi)`
+                          : `Show More (${filteredCases.length - 3} more)`)}
                     </button>
                   </div>
                 )}
@@ -1482,8 +1634,251 @@ function areReportsRelated(reportA, reportB) {
 
         </div>
 
-
       </div>
+
+      {/* Reassign Report Modal */}
+      {reassignModalReport && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.85)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '1rem'
+          }}
+        >
+          <div
+            style={{
+              background: '#0d1322',
+              border: '1px solid var(--primary)',
+              borderRadius: '16px',
+              maxWidth: '560px',
+              width: '100%',
+              padding: '1.75rem',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.6)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1.25rem'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <CornerDownRight size={20} color="#38bdf8" />
+                <h3 style={{ margin: 0, color: '#fff', fontSize: '1.1rem', fontWeight: 600 }}>
+                  {lang === 'ms' ? 'Tugaskan Semula Laporan' : 'Reassign Report'}
+                </h3>
+              </div>
+              <button
+                onClick={() => { setReassignModalReport(null); setTargetCaseIdSelection(''); }}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                aria-label={t('common.close', 'Close')}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>
+                {lang === 'ms' ? 'Laporan yang Ditugaskan Semula:' : 'Report Being Reassigned:'}
+              </span>
+              <div style={{ background: '#090d16', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.85rem' }}>
+                <strong style={{ color: '#38bdf8', display: 'block', marginBottom: '0.25rem' }}>
+                  {reassignModalReport.reportCode || `#${String(reassignModalReport.id).slice(-6)}`}
+                </strong>
+                <div style={{ color: '#cbd5e1', fontStyle: 'italic', maxHeight: '60px', overflowY: 'auto' }}>
+                  "{reassignModalReport.text}"
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.85rem', color: '#fff', fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>
+                {lang === 'ms' ? 'Pilih Kes Sasaran:' : 'Select Destination Case:'}
+              </label>
+              <select
+                className="input-field"
+                value={targetCaseIdSelection}
+                onChange={(e) => setTargetCaseIdSelection(e.target.value)}
+                style={{ width: '100%', background: '#0f172a', color: '#fff', fontSize: '0.88rem', padding: '0.65rem' }}
+              >
+                <option value="">
+                  {lang === 'ms' ? '-- Pilih Kes Sasaran --' : '-- Choose Target Case --'}
+                </option>
+                {allGroupedCases
+                  .filter(c => c.caseId !== (reassignModalReport.caseId || reassignModalReport.id))
+                  .map(c => (
+                    <option key={c.caseId} value={c.caseId}>
+                      {c.caseCode || `CASE-${c.caseId}`} — ({c.reportCount} {c.reportCount === 1 ? 'report' : 'reports'}) - {(c.rootReport?.text || '').slice(0, 45)}...
+                    </option>
+                  ))}
+              </select>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '0.4rem', marginBottom: 0 }}>
+                {lang === 'ms'
+                  ? 'Menugaskan semula laporan akan mengemas kini kiraan laporan komuniti secara automatik bagi kedua-dua kes.'
+                  : 'Reassigning transfers this report into the target case, automatically recalculating community report counts for both cases.'}
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => { setReassignModalReport(null); setTargetCaseIdSelection(''); }}
+              >
+                {lang === 'ms' ? 'Batal' : 'Cancel'}
+              </button>
+              <button
+                type="button"
+                className="btn-primary"
+                disabled={!targetCaseIdSelection}
+                onClick={handleReassign}
+                style={{
+                  opacity: !targetCaseIdSelection ? 0.5 : 1,
+                  cursor: !targetCaseIdSelection ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem'
+                }}
+              >
+                <CornerDownRight size={16} />
+                {lang === 'ms' ? 'Sahkan Penugasan' : 'Confirm Reassign'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Merge Case Modal */}
+      {mergeModalCase && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.85)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '1rem'
+          }}
+        >
+          <div
+            style={{
+              background: '#0d1322',
+              border: '1px solid var(--primary)',
+              borderRadius: '16px',
+              maxWidth: '560px',
+              width: '100%',
+              padding: '1.75rem',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.6)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1.25rem'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <GitMerge size={20} color="#c084fc" />
+                <h3 style={{ margin: 0, color: '#fff', fontSize: '1.1rem', fontWeight: 600 }}>
+                  {lang === 'ms' ? 'Gabungkan Kes' : 'Merge Cases'}
+                </h3>
+              </div>
+              <button
+                onClick={() => { setMergeModalCase(null); setTargetCaseIdSelection(''); }}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                aria-label={t('common.close', 'Close')}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>
+                {lang === 'ms' ? 'Kes Sumber (Akan Digabung):' : 'Source Case (Will Be Merged):'}
+              </span>
+              <div style={{ background: '#090d16', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.85rem' }}>
+                <strong style={{ color: '#c084fc', display: 'block', marginBottom: '0.25rem' }}>
+                  {mergeModalCase.caseCode || `CASE-${mergeModalCase.caseId}`} ({mergeModalCase.reportCount} {mergeModalCase.reportCount === 1 ? 'report' : 'reports'})
+                </strong>
+                <div style={{ color: '#cbd5e1', fontStyle: 'italic', maxHeight: '60px', overflowY: 'auto' }}>
+                  "{mergeModalCase.rootReport?.text}"
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.85rem', color: '#fff', fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>
+                {lang === 'ms' ? 'Pilih Kes Sasaran (Kekal Aktif):' : 'Select Target Case (Remains Active):'}
+              </label>
+              <select
+                className="input-field"
+                value={targetCaseIdSelection}
+                onChange={(e) => setTargetCaseIdSelection(e.target.value)}
+                style={{ width: '100%', background: '#0f172a', color: '#fff', fontSize: '0.88rem', padding: '0.65rem' }}
+              >
+                <option value="">
+                  {lang === 'ms' ? '-- Pilih Kes Sasaran --' : '-- Choose Target Case --'}
+                </option>
+                {allGroupedCases
+                  .filter(c => c.caseId !== mergeModalCase.caseId)
+                  .map(c => (
+                    <option key={c.caseId} value={c.caseId}>
+                      {c.caseCode || `CASE-${c.caseId}`} — ({c.reportCount} {c.reportCount === 1 ? 'report' : 'reports'}) - {(c.rootReport?.text || '').slice(0, 45)}...
+                    </option>
+                  ))}
+              </select>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '0.4rem', marginBottom: 0 }}>
+                {lang === 'ms'
+                  ? 'Semua laporan dalam kes sumber akan dipindahkan ke kes sasaran. Kiraan laporan komuniti akan disatukan.'
+                  : 'All reports in the source case will be moved into the target case, and community report counters will be consolidated.'}
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => { setMergeModalCase(null); setTargetCaseIdSelection(''); }}
+              >
+                {lang === 'ms' ? 'Batal' : 'Cancel'}
+              </button>
+              <button
+                type="button"
+                className="btn-primary"
+                disabled={!targetCaseIdSelection}
+                onClick={handleMerge}
+                style={{
+                  background: 'linear-gradient(135deg, #a855f7, #7e22ce)',
+                  opacity: !targetCaseIdSelection ? 0.5 : 1,
+                  cursor: !targetCaseIdSelection ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  border: 'none'
+                }}
+              >
+                <GitMerge size={16} />
+                {lang === 'ms' ? 'Sahkan Penggabungan' : 'Confirm Merge'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

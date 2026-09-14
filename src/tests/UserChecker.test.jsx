@@ -177,21 +177,17 @@ describe('UserChecker Image Paste and Upload', () => {
     });
   });
 
-  // [N-4] Screenshot Analysis tab
-  it('[N-4] renders Screenshot Analysis tab and shows dropzone on click', async () => {
+  // [N-4] Screenshot & Multimodal Analysis in unified 2-tab console
+  it('[N-4] renders unified 2-tab scanner with Upload Image button in Describe Incident tab', async () => {
     renderComponent();
 
-    const screenshotTab = screen.getByRole('tab', { name: /Screenshot Analysis/i });
-    expect(screenshotTab).toBeInTheDocument();
+    // Verify 2 tabs present
+    expect(screen.getByRole('tab', { name: /Describe incident/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Phone, Bank & URL Check/i })).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /Screenshot Analysis/i })).not.toBeInTheDocument();
 
-    await act(async () => {
-      fireEvent.click(screenshotTab);
-    });
-
-    await waitFor(() => {
-      expect(screen.getByText(/Drag & Drop Screenshot Here/i)).toBeInTheDocument();
-      expect(screen.getByText(/or click to browse your files/i)).toBeInTheDocument();
-    });
+    // Verify Upload Image action button is present in Describe Incident tab
+    expect(screen.getByRole('button', { name: /Upload Image/i })).toBeInTheDocument();
   });
 
   // [N-2] Zero-day safe framing — score < 35 shows disclaimer

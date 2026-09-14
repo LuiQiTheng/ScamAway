@@ -4,6 +4,7 @@ import { db } from '../config/firebase';
 import { translateText } from '../utils/translateText';
 import { hashPassword, sanitizeUserSession, isPasswordHashed } from '../utils/cryptoAuth';
 import { normalizePhone, normalizeHostname, normalizeBankAccount } from '../utils/rulesEngine';
+import { evaluateReportGrouping, getGroupedCases, unmergeReport, reassignReport, mergeCases } from '../utils/caseGrouping';
 
 const AppContext = createContext();
 
@@ -562,7 +563,51 @@ export const AppProvider = ({ children }) => {
     }
     
     const reportCode = `#${String(nextNum).padStart(6, '0')}`;
-    const reportData = { ...safeReport, id: Date.now(), reportCode, reporterId: currentUser?.id || 'guest' };
+    const reportId = Date.now();
+
+    // AI & Rules-based Case Grouping Evaluation
+    const groupingEval = evaluateReportGrouping(safeReport, reportsList);
+
+    let caseId;
+    let caseCode;
+    let reportType = groupingEval.reportType;
+    let aiClassification = groupingEval.aiClassification;
+    let aiConfidence = groupingEval.aiConfidence;
+    let matchingFactors = groupingEval.matchingFactors;
+    let status = safeReport.status || 'unverified';
+    let rationale = safeReport.rationale || '';
+
+    if (groupingEval.shouldGroup && groupingEval.targetCaseId) {
+      caseId = groupingEval.targetCaseId;
+      caseCode = groupingEval.targetCase?.caseCode || `CASE-${caseId}`;
+      status = groupingEval.inheritedStatus;
+      if (groupingEval.targetCase?.rationale) {
+        rationale = groupingEval.targetCase.rationale;
+      }
+    } else {
+      caseId = `case_${reportId}`;
+      caseCode = `CASE-${String(nextNum).padStart(6, '0')}`;
+      reportType = 'ORIGINAL';
+      aiClassification = 'ORIGINAL';
+      aiConfidence = 100;
+    }
+
+    const reportData = {
+      ...safeReport,
+      id: reportId,
+      reportCode,
+      caseId,
+      caseCode,
+      reportType,
+      aiClassification,
+      aiConfidence,
+      matchingFactors,
+      status,
+      rationale,
+      isCaseRoot: reportType === 'ORIGINAL',
+      reporterId: currentUser?.id || 'guest',
+      timestamp: safeReport.timestamp || new Date().toISOString()
+    };
     
     setReportsList(prev => [reportData, ...prev]);
     try {
@@ -571,7 +616,7 @@ export const AppProvider = ({ children }) => {
       console.warn("⚠️ [Firestore] Failed to write report to cloud:", e?.message);
     }
     return reportCode;
-  }, [currentUser]);
+  }, [currentUser, reportsList]);
 
   const updateReportStatus = useCallback(async (id, newStatus, rationale) => {
     let rationaleEn = rationale;
@@ -584,15 +629,128 @@ export const AppProvider = ({ children }) => {
       } catch (_e) {}
     }
 
-    setReportsList(prev => prev.map(r => r.id === id ? { ...r, status: newStatus, rationale, rationaleEn, rationaleMs } : r));
+    const targetReport = reportsList.find(r => r.id === id || String(r.id) === String(id) || r.firebaseId === id);
+    const targetCaseId = targetReport ? String(targetReport.caseId || targetReport.id) : null;
+
+    setReportsList(prev => prev.map(r => {
+      const match = (r.id === id || String(r.id) === String(id) || r.firebaseId === id) ||
+                    (targetCaseId && String(r.caseId || r.id) === targetCaseId);
+      return match ? { ...r, status: newStatus, rationale, rationaleEn, rationaleMs } : r;
+    }));
+
     addAuditLog(`Case Status Updated to ${newStatus}`, id, rationale);
     try {
-      const report = reportsList.find(r => r.id === id);
-      if (report && report.firebaseId) {
-        await updateDoc(doc(db, "reports", report.firebaseId), { status: newStatus, rationale, rationaleEn, rationaleMs });
+      const reportsToSync = reportsList.filter(r =>
+        (r.id === id || String(r.id) === String(id) || r.firebaseId === id) ||
+        (targetCaseId && String(r.caseId || r.id) === targetCaseId)
+      );
+      for (const r of reportsToSync) {
+        if (r.firebaseId) {
+          await updateDoc(doc(db, "reports", r.firebaseId), { status: newStatus, rationale, rationaleEn, rationaleMs });
+        }
       }
     } catch (e) {
       console.warn("⚠️ [Firestore] Failed to update status in cloud:", e?.message);
+    }
+  }, [reportsList, addAuditLog]);
+
+  // Admin Case Correction: Unmerge Report
+  const unmergeReportAction = useCallback(async (reportId) => {
+    const result = unmergeReport(reportId, reportsList);
+    if (!result.detachedReport) return;
+    setReportsList(result.updatedReportsList);
+
+    addAuditLog(
+      `Admin Unmerged Report #${result.detachedReport.reportCode || reportId}`,
+      reportId,
+      `Detached from Case ${result.oldCaseId} into new Pending Case ${result.newCaseId}`
+    );
+
+    try {
+      const target = result.detachedReport;
+      if (target.firebaseId) {
+        await updateDoc(doc(db, "reports", target.firebaseId), {
+          caseId: result.newCaseId,
+          caseCode: `CASE-${(target.reportCode || '').replace('#', '')}`,
+          reportType: 'ORIGINAL',
+          aiClassification: 'ORIGINAL',
+          isCaseRoot: true,
+          status: 'unverified',
+          rationale: '',
+          rationaleEn: '',
+          rationaleMs: '',
+          unmergedFromCaseId: result.oldCaseId,
+          unmergedAt: new Date().toISOString()
+        });
+      }
+    } catch (e) {
+      console.warn("⚠️ [Firestore] Failed to unmerge report in cloud:", e?.message);
+    }
+  }, [reportsList, addAuditLog]);
+
+  // Admin Case Correction: Reassign Report
+  const reassignReportAction = useCallback(async (reportId, targetCaseId) => {
+    const result = reassignReport(reportId, targetCaseId, reportsList);
+    if (!result.reassignedReport) return;
+    setReportsList(result.updatedReportsList);
+
+    addAuditLog(
+      `Admin Reassigned Report #${result.reassignedReport.reportCode || reportId}`,
+      reportId,
+      `Moved from Case ${result.oldCaseId} to Case ${result.targetCaseId}`
+    );
+
+    try {
+      const target = result.reassignedReport;
+      if (target.firebaseId) {
+        const destCase = getGroupedCases(reportsList).find(c => c.caseId === String(targetCaseId));
+        await updateDoc(doc(db, "reports", target.firebaseId), {
+          caseId: targetCaseId,
+          caseCode: destCase?.caseCode || `CASE-${targetCaseId}`,
+          status: destCase?.status || 'unverified',
+          rationale: destCase?.rationale || '',
+          rationaleEn: destCase?.rationaleEn || '',
+          rationaleMs: destCase?.rationaleMs || '',
+          reassignedFromCaseId: result.oldCaseId,
+          reassignedAt: new Date().toISOString()
+        });
+      }
+    } catch (e) {
+      console.warn("⚠️ [Firestore] Failed to reassign report in cloud:", e?.message);
+    }
+  }, [reportsList, addAuditLog]);
+
+  // Admin Case Correction: Merge Cases
+  const mergeCasesAction = useCallback(async (sourceCaseId, targetCaseId) => {
+    const result = mergeCases(sourceCaseId, targetCaseId, reportsList);
+    if (result.mergedCount === 0) return;
+    setReportsList(result.updatedReportsList);
+
+    addAuditLog(
+      `Admin Merged Cases`,
+      null,
+      `Merged Case ${sourceCaseId} (${result.mergedCount} reports) into Case ${targetCaseId}`
+    );
+
+    try {
+      const destCase = getGroupedCases(reportsList).find(c => c.caseId === String(targetCaseId));
+      const reportsToUpdate = reportsList.filter(r => String(r.caseId || r.id) === String(sourceCaseId));
+      for (const r of reportsToUpdate) {
+        if (r.firebaseId) {
+          await updateDoc(doc(db, "reports", r.firebaseId), {
+            caseId: targetCaseId,
+            caseCode: destCase?.caseCode || `CASE-${targetCaseId}`,
+            status: destCase?.status || 'unverified',
+            rationale: destCase?.rationale || '',
+            rationaleEn: destCase?.rationaleEn || '',
+            rationaleMs: destCase?.rationaleMs || '',
+            mergedFromCaseId: sourceCaseId,
+            mergedAt: new Date().toISOString()
+          });
+        }
+      }
+    } catch (e) {
+      console.warn("⚠️ [Firestore] Failed to merge cases in cloud:", e?.message);
     }
   }, [reportsList, addAuditLog]);
 
@@ -731,6 +889,7 @@ export const AppProvider = ({ children }) => {
 
   const contextValue = useMemo(() => ({
     reportsList, addReport, updateReportStatus, cancelUserReport, restoreUserReport, addAlert, activeAlert,
+    unmergeReportAction, reassignReportAction, mergeCasesAction,
     blacklist, addBlacklistItem, removeBlacklistItem, updateBlacklistItem,
     adminProfile, setAdminProfile,
     currentUser, setCurrentUser,
@@ -744,6 +903,7 @@ export const AppProvider = ({ children }) => {
     blacklist, adminProfile, currentUser,
     // Stable useCallback function references (only change when their own deps change)
     addReport, updateReportStatus, cancelUserReport, restoreUserReport, addAlert,
+    unmergeReportAction, reassignReportAction, mergeCasesAction,
     addBlacklistItem, removeBlacklistItem, updateBlacklistItem,
     registerUser, loginUser, registerAdmin, loginAdmin,
     updateAdminProfile, updateGuardian, updateCurrentUser, deleteCurrentUser,
