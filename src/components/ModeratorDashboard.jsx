@@ -92,6 +92,149 @@ export default function ModeratorDashboard({ onNavigate }) {
   const [editValue, setEditValue] = useState('');
   const [blacklistFeedback, setBlacklistFeedback] = useState(null);
 
+  // Helper for audit action translation/formatting
+  const formatAuditAction = (action = '', currentLang = 'en') => {
+    if (!action) return '';
+
+    if (currentLang !== 'ms') {
+      let act = action;
+      act = act.replace(/Case Status Updated to confirmed/i, 'Case Status Updated to Confirmed');
+      act = act.replace(/Case Status Updated to rejected/i, 'Case Status Updated to Rejected');
+      act = act.replace(/Case Status Updated to dismissed/i, 'Case Status Updated to Dismissed');
+      act = act.replace(/Case Status Updated to archived/i, 'Case Status Updated to Archived');
+      act = act.replace(/Case Status Updated to under_review/i, 'Case Status Updated to Under Review');
+      act = act.replace(/Case Status Updated to unverified/i, 'Case Status Updated to Unverified');
+      act = act.replace(/Added to Blacklist \(bankAccounts\)/i, 'Added to Blacklist (Bank Accounts)');
+      act = act.replace(/Added to Blacklist \(phoneNumbers\)/i, 'Added to Blacklist (Phone Numbers)');
+      act = act.replace(/Added to Blacklist \(urls\)/i, 'Added to Blacklist (Domain / URL)');
+      act = act.replace(/Removed from Blacklist \(bankAccounts\)/i, 'Removed from Blacklist (Bank Accounts)');
+      act = act.replace(/Removed from Blacklist \(phoneNumbers\)/i, 'Removed from Blacklist (Phone Numbers)');
+      act = act.replace(/Removed from Blacklist \(urls\)/i, 'Removed from Blacklist (Domain / URL)');
+      act = act.replace(/Updated Blacklist Item \(bankAccounts\)/i, 'Updated Blacklist Item (Bank Accounts)');
+      act = act.replace(/Updated Blacklist Item \(phoneNumbers\)/i, 'Updated Blacklist Item (Phone Numbers)');
+      act = act.replace(/Updated Blacklist Item \(urls\)/i, 'Updated Blacklist Item (Domain / URL)');
+      return act;
+    }
+
+    // Bahasa Melayu translations
+    let act = action;
+
+    // 1. Status Update actions
+    if (/Case Status Updated/i.test(act)) {
+      const statusPart = act
+        .replace(/^Case Status Updated\s*(to\s*)?/i, '')
+        .trim()
+        .toLowerCase();
+
+      let translatedStatus = statusPart;
+      if (statusPart === 'archived') {
+        translatedStatus = 'Diarkibkan';
+      } else if (statusPart === 'confirmed') {
+        translatedStatus = 'Disahkan';
+      } else if (statusPart === 'rejected' || statusPart === 'dismissed') {
+        translatedStatus = 'Ditolak';
+      } else if (statusPart === 'under_review' || statusPart === 'under review') {
+        translatedStatus = 'Dalam Semakan';
+      } else if (statusPart === 'unverified' || statusPart === 'pending') {
+        translatedStatus = 'Belum Disahkan';
+      }
+
+      return `Status Laporan Ditukar kepada ${translatedStatus}`;
+    }
+
+    // 2. Merge / Unmerge / Reassign actions
+    if (/Admin Merged Cases/i.test(act)) {
+      return 'Pentadbir Menggabungkan Kes';
+    }
+    if (/Admin Unmerged Report/i.test(act)) {
+      return act.replace(/Admin Unmerged Report/i, 'Pentadbir Mengasingkan Laporan');
+    }
+    if (/Admin Reassigned Report/i.test(act)) {
+      return act.replace(/Admin Reassigned Report/i, 'Pentadbir Menugaskan Semula Laporan');
+    }
+
+    // 3. Broadcast Alert actions
+    if (/Broadcast Threat Alert Published/i.test(act)) {
+      return 'Makluman Ancaman Diterbitkan';
+    }
+
+    // 4. Blacklist actions
+    if (/Added to Blacklist/i.test(act)) {
+      return act
+        .replace(/Added to Blacklist/i, 'Ditambah ke Senarai Hitam')
+        .replace(/\(bankAccounts\)/i, '(Akaun Bank)')
+        .replace(/\(phoneNumbers\)/i, '(Nombor Telefon)')
+        .replace(/\(urls\)/i, '(Domain / URL)');
+    }
+    if (/Removed from Blacklist/i.test(act)) {
+      return act
+        .replace(/Removed from Blacklist/i, 'Dikeluarkan dari Senarai Hitam')
+        .replace(/\(bankAccounts\)/i, '(Akaun Bank)')
+        .replace(/\(phoneNumbers\)/i, '(Nombor Telefon)')
+        .replace(/\(urls\)/i, '(Domain / URL)');
+    }
+    if (/Updated Blacklist Item/i.test(act)) {
+      return act
+        .replace(/Updated Blacklist Item/i, 'Dikemas Kini Item Senarai Hitam')
+        .replace(/\(bankAccounts\)/i, '(Akaun Bank)')
+        .replace(/\(phoneNumbers\)/i, '(Nombor Telefon)')
+        .replace(/\(urls\)/i, '(Domain / URL)');
+    }
+
+    return act;
+  };
+
+  // Helper for audit rationale / note translation
+  const formatAuditNote = (note = '', currentLang = 'en') => {
+    if (!note || note === 'N/A') return 'N/A';
+    if (currentLang !== 'ms') return note;
+
+    let txt = note;
+
+    // Exact string matches
+    const exactTranslations = {
+      'Verified scam. Added to blacklist.': 'Penipuan disahkan. Ditambah ke senarai hitam.',
+      'Scam disahkan. Tambah ke senarai hitam.': 'Penipuan disahkan. Ditambah ke senarai hitam.',
+      'Job & Employment Scam': 'Penipuan Pekerjaan',
+      'Legitimate/safe message.': 'Mesej sah/selamat.',
+      'Insufficient evidence provided.': 'Bukti yang diberikan tidak mencukupi.',
+      'Duplicate report.': 'Laporan ulangan',
+      'No harm at all': 'Tiada kemudaratan sama sekali',
+      'Parcel & Delivery Scam': 'Penipuan Bungkusan & Penghantaran',
+      'Family Emergency & Impersonation Scam': 'Penipuan Kecemasan Keluarga & Penyamaran',
+      'Bank & Financial Impersonation Scam': 'Penipuan Bank & Penyamaran Kewangan',
+      'Online Shopping & E-Commerce Scam': 'Penipuan Membeli-belah Dalam Talian & E-Dagang',
+      'Phishing & Account Takeover Scam': 'Penipuan Phishing & Pengambilalihan Akaun',
+      'Investment & Quick Profit Scam': 'Penipuan Pelaburan & Keuntungan Pantas',
+      'Matches CCID police records.': 'Sepadan dengan rekod polis (CCID).',
+      'Requires secondary manual review.': 'Perlu semakan manual sekunder.'
+    };
+
+    if (exactTranslations[txt.trim()]) {
+      return exactTranslations[txt.trim()];
+    }
+
+    // Pattern & phrase replacements
+    txt = txt.replace(/Verified scam\.?\s*Added to blacklist\.?/gi, 'Penipuan disahkan. Ditambah ke senarai hitam.');
+    txt = txt.replace(/Job & Employment Scam/gi, 'Penipuan Pekerjaan');
+    txt = txt.replace(/Legitimate\/safe message\.?/gi, 'Mesej sah/selamat.');
+    txt = txt.replace(/Insufficient evidence provided\.?/gi, 'Bukti yang diberikan tidak mencukupi.');
+    txt = txt.replace(/Duplicate report\.?/gi, 'Laporan ulangan');
+    txt = txt.replace(/No harm at all/gi, 'Tiada kemudaratan sama sekali');
+    txt = txt.replace(/Parcel & Delivery Scam/gi, 'Penipuan Bungkusan & Penghantaran');
+    txt = txt.replace(/Family Emergency & Impersonation Scam/gi, 'Penipuan Kecemasan Keluarga & Penyamaran');
+    txt = txt.replace(/Bank & Financial Impersonation Scam/gi, 'Penipuan Bank & Penyamaran Kewangan');
+
+    txt = txt.replace(/Merged Case (\S+) \((\d+) reports?\) into Case (\S+)/g, 'Menggabungkan Kes $1 ($2 laporan) ke dalam Kes $3');
+    txt = txt.replace(/Detached from Case (\S+) into new Pending Case (\S+)/g, 'Dikeluarkan dari Kes $1 ke dalam Kes Menunggu baharu $2');
+    txt = txt.replace(/Moved from Case (\S+) to Case (\S+)/g, 'Dipindahkan dari Kes $1 ke Kes $2');
+    txt = txt.replace(/^Value:\s*/i, 'Nilai: ');
+    txt = txt.replace(/^From:\s*(.*)\s*->\s*To:\s*(.*)/i, 'Dari: $1 -> Ke: $2');
+    txt = txt.replace(/Bulk cleared by admin/i, 'Dibersihkan secara pukal oleh pentadbir');
+
+    return txt;
+  };
+
   // Helper for audit categorization
   const getAuditCategory = (action = '') => {
     const act = (action || '').toLowerCase();
@@ -524,6 +667,8 @@ function areReportsRelated(reportA, reportB) {
 
       const rationale = (log.rationale || log.details || '').toLowerCase();
       const action = (log.action || '').toLowerCase();
+      const actionTranslated = formatAuditAction(log.action, lang).toLowerCase();
+      const noteTranslated = formatAuditNote(log.rationale || log.details, lang).toLowerCase();
       const department = (log.department || '').toLowerCase();
 
       const isMatch = officerId.includes(q) ||
@@ -531,6 +676,8 @@ function areReportsRelated(reportA, reportB) {
                       reportCode.includes(q) ||
                       rationale.includes(q) ||
                       action.includes(q) ||
+                      actionTranslated.includes(q) ||
+                      noteTranslated.includes(q) ||
                       department.includes(q);
 
       if (!isMatch) return false;
@@ -1212,7 +1359,7 @@ function areReportsRelated(reportA, reportB) {
                                   { ms: "Scam disahkan. Tambah ke senarai hitam.", en: "Verified scam. Added to blacklist." },
                                   { ms: "Sepadan dengan rekod polis (CCID).", en: "Matches CCID police records." },
                                   { ms: "Bukti tidak mencukupi.", en: "Insufficient evidence provided." },
-                                  { ms: "Laporan berganda.", en: "Duplicate report." },
+                                  { ms: "Laporan ulangan.", en: "Duplicate report." },
                                   { ms: "Mesej sah/selamat.", en: "Legitimate/safe message." },
                                   { ms: "Perlu semakan manual sekunder.", en: "Requires secondary manual review." }
                                 ].map((note, idx) => (
@@ -1510,7 +1657,7 @@ function areReportsRelated(reportA, reportB) {
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                           <span style={{ fontSize: '0.85rem', color: '#fff', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.35rem' }}>
                             <span>{t('admin.action')}</span>
-                            <strong style={{ color: 'var(--primary)', textTransform: 'capitalize' }}>{log.action}</strong>
+                            <strong style={{ color: 'var(--primary)' }}>{formatAuditAction(log.action, lang)}</strong>
                             {(log.reportCode || log.reportId) && (
                               <span style={{ color: 'var(--text-secondary)' }}>
                                 {t('admin.on_report') || (lang === 'ms' ? 'pada Laporan #' : 'on Report #')}
@@ -1523,9 +1670,9 @@ function areReportsRelated(reportA, reportB) {
                               </span>
                             )}
                           </span>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{new Date(log.timestamp).toLocaleString()}</span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{new Date(log.timestamp).toLocaleString(lang === 'ms' ? 'ms-MY' : 'en-US')}</span>
                         </div>
-                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{t('admin.note')} {log.rationale || log.details || 'N/A'}</span>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{t('admin.note')} {formatAuditNote(log.rationale || log.details, lang)}</span>
                       </div>
                     ))}
 

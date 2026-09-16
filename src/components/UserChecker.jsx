@@ -1797,7 +1797,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                   lineHeight: 1.2,
                 }}
               >
-                🚨 High Risk Detected
+                {lang === 'ms' ? '🚨 Risiko Tinggi Dikesan!' : '🚨 High Risk Detected!'}
               </h2>
             </div>
 
@@ -1810,14 +1810,16 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                 lineHeight: 1.5,
               }}
             >
-              If you have transferred money or shared banking information, contact your bank immediately or call the National Scam Response Centre (NSRC) at 997.
+              {lang === 'ms'
+                ? 'Jika anda telah memindahkan wang atau berkongsi OTP perbankan, hubungi Pusat Respons Scam Kebangsaan (NSRC) dengan segera.'
+                : 'If you transferred money or shared banking OTP, contact the National Scam Response Centre (NSRC) immediately.'}
             </p>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginTop: "0.5rem" }}>
               <a
                 href="tel:997"
                 className="btn-primary"
-                aria-label="Call NSRC 997"
+                aria-label={lang === 'ms' ? 'Hubungi NSRC 997' : 'Call NSRC 997'}
                 style={{
                   width: "100%",
                   textAlign: "center",
@@ -1833,17 +1835,18 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                   padding: isElderlyMode ? "0.9rem 1.25rem" : "0.75rem 1rem",
                   borderRadius: "10px",
                   boxShadow: "0 4px 14px rgba(239, 68, 68, 0.4)",
+                  cursor: "pointer",
                 }}
               >
                 <Phone size={20} />
-                Call NSRC 997
+                {lang === 'ms' ? 'Hubungi NSRC 997' : 'Call NSRC 997'}
               </a>
 
               <button
                 type="button"
                 onClick={() => setShowEmergencyPopup(false)}
                 className="btn-secondary"
-                aria-label="I haven't transferred money"
+                aria-label={lang === 'ms' ? 'Saya belum memindahkan wang' : "I haven't transferred money"}
                 style={{
                   width: "100%",
                   fontSize: isElderlyMode ? "1.15rem" : "0.9rem",
@@ -1852,7 +1855,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                   color: "var(--text-secondary)",
                 }}
               >
-                I haven't transferred money
+                {lang === 'ms' ? 'Saya belum memindahkan wang' : "I haven't transferred money"}
               </button>
             </div>
           </div>
