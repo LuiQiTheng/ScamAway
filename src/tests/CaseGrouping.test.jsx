@@ -6,6 +6,7 @@ import {
   getGroupedCases,
   evaluateReportGrouping,
   findMatchingCaseForScanner,
+  findSimilarReportsForConfirmation,
   unmergeReport,
   reassignReport,
   mergeCases
@@ -492,5 +493,141 @@ describe('Duplicate & Similar Case Grouping System (Section 29)', () => {
     expect(evaluation).toBeDefined();
     expect(evaluation.shouldGroup).toBe(true);
     expect(evaluation.targetCaseId).toBe('case-140');
+  });
+
+  // Test 15: Scanner matches confirmed case via pattern/concept matching without phone/bank/URL
+  it('Test 15: Scanner matches confirmed case via pattern/concept matching without indicators', () => {
+    const reports = [
+      {
+        id: 1789426462237,
+        caseId: 'case_1789426462237',
+        caseCode: 'CASE-000022',
+        reportCode: '#000022',
+        category: 'parcel',
+        text: 'NinjaVan rider arrives at my house with a parcel demanding RM150 Cash-On-Delivery. I have no record of ordering anything.',
+        status: 'confirmed',
+        reportType: 'ORIGINAL',
+        timestamp: '2026-09-14T22:54:22.046Z'
+      }
+    ];
+
+    // User types exact text into Scanner (Describe incident tab) with NO phone, bank, or URL
+    const query = 'NinjaVan rider arrives at my house with a parcel demanding RM150 Cash-On-Delivery. I have no record of ordering anything.';
+    const result = findMatchingCaseForScanner(query, {}, reports);
+
+    expect(result.matched).toBe(true);
+    expect(result.status).toBe('confirmed');
+    expect(result.caseCode).toBe('CASE-000022');
+    expect(result.reportCount).toBe(1);
+
+    // User types slight variation of the same COD scam pattern
+    const variantQuery = 'NinjaVan courier guy came asking RM150 COD payment for parcel delivery I never ordered';
+    const variantResult = findMatchingCaseForScanner(variantQuery, {}, reports);
+
+    expect(variantResult.matched).toBe(true);
+    expect(variantResult.status).toBe('confirmed');
+    expect(variantResult.caseCode).toBe('CASE-000022');
+  });
+
+  // Test 16: findSimilarReportsForConfirmation finds pending reports to auto-confirm
+  it('Test 16: findSimilarReportsForConfirmation finds pending reports matching confirmed case', () => {
+    const confirmedReports = [
+      {
+        id: 'rep-conf-1',
+        caseId: 'case-conf-1',
+        caseCode: 'CASE-000100',
+        text: 'NinjaVan rider arrives demanding RM150 Cash-On-Delivery for unknown parcel.',
+        category: 'parcel',
+        status: 'confirmed',
+        reportType: 'ORIGINAL'
+      }
+    ];
+
+    const allReports = [
+      ...confirmedReports,
+      // Pending report 1: shares exact same scam pattern
+      {
+        id: 'rep-pend-1',
+        caseId: 'case-pend-1',
+        text: 'NinjaVan rider arrives demanding RM150 Cash-On-Delivery for unknown parcel.',
+        category: 'parcel',
+        status: 'unverified',
+        reportType: 'ORIGINAL'
+      },
+      // Pending report 2: completely unrelated job scam
+      {
+        id: 'rep-pend-2',
+        caseId: 'case-pend-2',
+        text: 'Telegram like youtube video task earn RM 300 per day',
+        category: 'job',
+        status: 'unverified',
+        reportType: 'ORIGINAL'
+      },
+      // Pending report 3: already rejected case (must NOT auto-confirm)
+      {
+        id: 'rep-rej-1',
+        caseId: 'case-rej-1',
+        text: 'NinjaVan delivery fee query',
+        category: 'parcel',
+        status: 'rejected',
+        reportType: 'ORIGINAL'
+      }
+    ];
+
+    const similarCandidates = findSimilarReportsForConfirmation(confirmedReports, allReports);
+    expect(similarCandidates.length).toBe(1);
+    expect(similarCandidates[0].report.id).toBe('rep-pend-1');
+    expect(similarCandidates[0].matchType).toBe('DUPLICATE');
+  });
+
+  // Test 17: Semantic Duplicate Classification for Paraphrased / Reordered Reports
+  it('Test 17: Evaluates paraphrased and reordered incident descriptions as DUPLICATE', () => {
+    const existingReports = [
+      {
+        id: 'rep-022',
+        caseId: 'case-022',
+        caseCode: 'CASE-000022',
+        reportCode: '#000022',
+        text: 'NinjaVan rider arrives at my house with a parcel demanding RM150 Cash-On-Delivery. I have no record of ordering anything.',
+        category: 'parcel',
+        status: 'confirmed',
+        reportType: 'ORIGINAL',
+        timestamp: '2026-09-15T10:00:00Z'
+      }
+    ];
+
+    // Variant 2: Inverted sentence clauses
+    const variant2 = {
+      id: 'rep-023-a',
+      text: 'I have no record of ordering anything, but just now NinjaVan rider arrived at my house with a parcel demanding RM150 Cash-On-Delivery',
+      category: 'parcel',
+      timestamp: '2026-09-17T10:00:00Z'
+    };
+
+    // Variant 3: Synonyms and phrasing variations (didn't order, ask for)
+    const variant3 = {
+      id: 'rep-023-b',
+      text: "I didn't order anything but just now a NinjaVan rider arrived at my house with a parcel and ask for RM150 Cash-On-Delivery",
+      category: 'parcel',
+      timestamp: '2026-09-17T11:00:00Z'
+    };
+
+    const eval2 = evaluateReportGrouping(variant2, existingReports);
+    expect(eval2.shouldGroup).toBe(true);
+    expect(eval2.targetCaseId).toBe('case-022');
+    expect(eval2.reportType).toBe('DUPLICATE');
+    expect(eval2.aiConfidence).toBeGreaterThanOrEqual(95);
+
+    const eval3 = evaluateReportGrouping(variant3, existingReports);
+    expect(eval3.shouldGroup).toBe(true);
+    expect(eval3.targetCaseId).toBe('case-022');
+    expect(eval3.reportType).toBe('DUPLICATE');
+    expect(eval3.aiConfidence).toBeGreaterThanOrEqual(95);
+
+    // Scanner match verification for Variant 3
+    const scannerResult = findMatchingCaseForScanner(variant3.text, {}, existingReports);
+    expect(scannerResult.matched).toBe(true);
+    expect(scannerResult.status).toBe('confirmed');
+    expect(scannerResult.caseCode).toBe('CASE-000022');
   });
 });

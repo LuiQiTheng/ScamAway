@@ -109,6 +109,7 @@ Context rules:
 - "Urgent Hiring" used as a job-post title is not urgency pressure by itself.
 - Only classify urgency when the recipient is told to act within a deadline or is threatened for delaying.
 - A wa.me or WhatsApp link is a contact method, not proof of phishing.
+- A Google Forms link (forms.gle, forms.google.com, docs.google.com/forms) is an online survey/form tool, not a dangerous or external phishing link by itself. Do not treat it as a risk unless it asks for sensitive banking credentials, OTP, or payments. Advise the user to only open the link if they trust the sender.
 - A normal job advertisement stays low risk or needs verification unless there is an advance fee, deposit, impossible income, credential request, impersonation, malicious domain, or transfer pressure.
 - Do not claim a phone number is unregistered unless a trusted reputation source confirms it.
 - If authenticity cannot be confirmed, say "unverified"; never claim "safe" or "scam" without evidence.

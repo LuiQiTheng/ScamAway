@@ -176,8 +176,8 @@ button:active:not(:disabled) {
 }
 
 .quick-test-button {
-  min-height: var(--control-height);
-  border-radius: 12px;
+  min-height: 38px;
+  border-radius: 8px;
   text-align: center;
 }
 

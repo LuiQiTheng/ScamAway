@@ -75,11 +75,22 @@ function initSignatures() {
 
 
 const WHATSAPP_DOMAINS = new Set(['wa.me', 'api.whatsapp.com', 'whatsapp.com']);
+export const GOOGLE_FORM_DOMAINS = new Set(['forms.gle', 'forms.google.com']);
 const NON_UNIQUE_COMMUNITY_DOMAINS = new Set([
   ...WHATSAPP_DOMAINS,
+  ...GOOGLE_FORM_DOMAINS,
   't.me',
   'telegram.me',
 ]);
+
+export function isGoogleFormDomain(domain = '', rawText = '') {
+  const host = normalizeHostname(domain);
+  if (GOOGLE_FORM_DOMAINS.has(host)) return true;
+  if (host === 'docs.google.com' || host === 'google.com') {
+    return /(?:docs\.google\.com\/forms|google\.com\/forms)/i.test(rawText || domain);
+  }
+  return false;
+}
 
 function getIndicatorValue(entry) {
   if (typeof entry === 'string') return entry;
@@ -645,14 +656,26 @@ export async function analyzeScamRisk(text, metadata = {}) {
     }
 
     if (analysis.urls.length > 0) {
-      explanations.push({
-        category: 'safe',
-        label: lang === 'ms' ? "Reputasi Domain: Tiada Ancaman Dikenali" : "Domain Reputation: No Known Threats",
-        text: lang === 'ms'
-          ? `Alamat web (${analysis.urls[0]}) telah disemak dan tiada rekod pancingan data atau ancaman keselamatan.`
-          : `The web address (${analysis.urls[0]}) was checked against known threat databases and is not listed.`,
-        weight: 0
-      });
+      const isGForm = isGoogleFormDomain(analysis.urls[0], text);
+      if (isGForm) {
+        explanations.push({
+          category: 'safe_advisory',
+          label: lang === 'ms' ? "Pautan Google Form Dikesan" : "Google Form Link Detected",
+          text: lang === 'ms'
+            ? `Alamat web (${analysis.urls[0]}) adalah borang dalam talian Google Form. Pautan ini tidak dianggap sebagai risiko keselamatan secara automatik, tetapi hanya buka pautan dan hantar maklumat jika anda mempercayai penghantar tersebut.`
+            : `The web address (${analysis.urls[0]}) is an online Google Form. It is not considered a security risk by itself, but only open the link and submit information if you trust the sender.`,
+          weight: 0
+        });
+      } else {
+        explanations.push({
+          category: 'safe',
+          label: lang === 'ms' ? "Reputasi Domain: Tiada Ancaman Dikenali" : "Domain Reputation: No Known Threats",
+          text: lang === 'ms'
+            ? `Alamat web (${analysis.urls[0]}) telah disemak dan tiada rekod pancingan data atau ancaman keselamatan.`
+            : `The web address (${analysis.urls[0]}) was checked against known threat databases and is not listed.`,
+          weight: 0
+        });
+      }
     }
 
     explanations.push({
@@ -832,9 +855,11 @@ export async function analyzeScamRisk(text, metadata = {}) {
   const whatsappDomains = analysis.urls.filter(isWhatsAppDomain);
   const hasWhatsAppLink = whatsappDomains.length > 0;
   const hasOnlyWhatsAppLinks = analysis.urls.length > 0 && analysis.urls.every(isWhatsAppDomain);
+  const googleFormDomains = analysis.urls.filter((domain) => isGoogleFormDomain(domain, text));
+  const hasGoogleFormLink = googleFormDomains.length > 0 || /(?:forms\.gle|forms\.google\.com|docs\.google\.com\/forms|google\.com\/forms)/i.test(text);
   const hasCorporateEmail = /[\w.+-]+@(?!gmail\.com|yahoo\.com|hotmail\.com|outlook\.com|protonmail\.com)[\w.-]+\.[a-z]{2,}/i.test(text);
   const hasNamedBusinessEntity = /\b(?:sdn\.?\s*bhd\.?|berhad|enterprise|plc|ltd\.?|inc\.?)\b/i.test(text);
-  const hasNonWhatsAppWebSource = analysis.urls.some((domain) => !isWhatsAppDomain(domain));
+  const hasNonWhatsAppWebSource = analysis.urls.some((domain) => !isWhatsAppDomain(domain) && !isGoogleFormDomain(domain, text));
   const hasEmployerIdentitySource = hasCorporateEmail || hasNamedBusinessEntity || hasNonWhatsAppWebSource;
   const hasRiskyPressure = hasDirectPressure && (
     hasPaymentRequest ||
@@ -895,7 +920,7 @@ export async function analyzeScamRisk(text, metadata = {}) {
 
   const hasUntrustedBankLink = analysis.urls.some((url) => {
     const host = normalizeHostname(url);
-    return host && !OFFICIAL_BANK_DOMAINS.has(host) && !isWhatsAppDomain(host);
+    return host && !OFFICIAL_BANK_DOMAINS.has(host) && !isWhatsAppDomain(host) && !isGoogleFormDomain(host, text);
   });
 
   // Legitimate bank notifications (especially SMS) have NO clickable links or OTP requests.
@@ -1121,7 +1146,7 @@ export async function analyzeScamRisk(text, metadata = {}) {
       });
     }
 
-    const otherDomains = analysis.urls.filter((domain) => !isWhatsAppDomain(domain));
+    const otherDomains = analysis.urls.filter((domain) => !isWhatsAppDomain(domain) && !isGoogleFormDomain(domain, text));
     if (otherDomains.length > 0) {
       ruleContribution += 12;
       explanations.push({
@@ -1131,6 +1156,18 @@ export async function analyzeScamRisk(text, metadata = {}) {
           ? `Pautan (${otherDomains[0]}) perlu dibandingkan dengan laman rasmi organisasi sebelum dibuka.`
           : `The link (${otherDomains[0]}) should be compared with the organisation's official website before it is opened.`,
         weight: 12
+      });
+    }
+
+    if (hasGoogleFormLink) {
+      const displayDomain = googleFormDomains[0] || (text.includes('docs.google.com') ? 'docs.google.com/forms' : 'forms.gle');
+      explanations.push({
+        category: "safe_advisory",
+        label: lang === 'ms' ? "Pautan Google Form Dikesan" : "Google Form Link Detected",
+        text: lang === 'ms'
+          ? `Pautan (${displayDomain}) adalah borang dalam talian Google Form. Pautan ini tidak dianggap sebagai risiko secara automatik, tetapi hanya buka pautan dan hantar maklumat jika anda mempercayai penghantar tersebut.`
+          : `The link (${displayDomain}) is an online Google Form. It is not considered a risk by itself, but only open the link and submit information if you trust the sender.`,
+        weight: 0
       });
     }
 

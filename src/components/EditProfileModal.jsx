@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { User, ShieldAlert, X } from "lucide-react";
+import { User, ShieldAlert, ShieldCheck, X } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 
 export default function EditProfileModal({
@@ -26,6 +26,7 @@ export default function EditProfileModal({
   const [isLoading, setIsLoading] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [passwordChanged, setPasswordChanged] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
 
   useEffect(() => {
     if (initialData && isOpen) {
@@ -41,6 +42,7 @@ export default function EditProfileModal({
       setErrorMsg("");
       setCurrentPassword("");
       setPasswordChanged(false);
+      setPasswordFocused(false);
     }
   }, [initialData, isOpen]);
 
@@ -219,8 +221,54 @@ export default function EditProfileModal({
               className="input-field"
               value={formData.password}
               onChange={handleChange}
+              onFocus={() => setPasswordFocused(true)}
+              onBlur={() => setPasswordFocused(false)}
               placeholder="••••••••"
             />
+            {passwordFocused && (
+              <div style={{
+                marginTop: '0.35rem',
+                padding: '0.55rem 0.75rem',
+                borderRadius: '8px',
+                background: 'rgba(59, 130, 246, 0.07)',
+                border: '1px solid rgba(59, 130, 246, 0.25)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.3rem',
+                fontSize: '0.78rem'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#93c5fd', fontWeight: 600 }}>
+                  <ShieldCheck size={14} color="#60a5fa" />
+                  <span>{lang === 'ms' ? 'Panduan Keselamatan Kata Laluan:' : 'Password Security Guide:'}</span>
+                </div>
+                <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                  {lang === 'ms'
+                    ? 'Sila masukkan simbol / aksara khas (cth: !@#$%^&*) bersama gabungan huruf dan nombor untuk meningkatkan keselamatan.'
+                    : 'Include special characters/symbols (e.g. !@#$%^&*) along with letters and numbers to increase password security.'}
+                </p>
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  flexWrap: 'wrap', 
+                  gap: '0.25rem 0.65rem', 
+                  marginTop: '0.1rem', 
+                  fontSize: '0.74rem' 
+                }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: (formData.password || '').length >= 8 ? '#34d399' : 'var(--text-muted)' }}>
+                    <span style={{ fontWeight: 700 }}>{(formData.password || '').length >= 8 ? '✓' : '○'}</span> {lang === 'ms' ? 'Min 8 aksara' : 'Min 8 chars'}
+                  </span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: /[A-Za-z]/.test(formData.password || '') ? '#34d399' : 'var(--text-muted)' }}>
+                    <span style={{ fontWeight: 700 }}>{/[A-Za-z]/.test(formData.password || '') ? '✓' : '○'}</span> {lang === 'ms' ? 'Huruf' : 'Letters'}
+                  </span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: /\d/.test(formData.password || '') ? '#34d399' : 'var(--text-muted)' }}>
+                    <span style={{ fontWeight: 700 }}>{/\d/.test(formData.password || '') ? '✓' : '○'}</span> {lang === 'ms' ? 'Nombor' : 'Numbers'}
+                  </span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: /[!@#$%^&*()_+\-=\[\]{}|;:,.<>?/~`]/.test(formData.password || '') ? '#34d399' : 'var(--text-muted)' }}>
+                    <span style={{ fontWeight: 700 }}>{/[!@#$%^&*()_+\-=\[\]{}|;:,.<>?/~`]/.test(formData.password || '') ? '✓' : '○'}</span> {lang === 'ms' ? 'Aksara khas' : 'Special characters'}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
         

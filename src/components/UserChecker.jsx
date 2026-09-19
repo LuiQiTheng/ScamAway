@@ -587,7 +587,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
         }}>
           {activeAlert.category ? (
             /* New Rich Format */
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -613,7 +613,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                 )}
               </div>
 
-              <div style={{ marginTop: '1rem' }}>
+              <div style={{ marginTop: '0.15rem' }}>
                 <h2 style={{ fontSize: '1.4rem', fontWeight: '800', color: '#fca5a5', marginTop: 0, marginBottom: 0, lineHeight: 1.3 }}>
                   {lang === 'ms' ? (activeAlert.category_ms || activeAlert.category) : activeAlert.category}
                 </h2>
@@ -646,8 +646,6 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
           )}
         </div>
       )}
-
-
 
       <div className="scanner-content-grid" style={{ gap: '2rem' }}>
 
@@ -686,15 +684,8 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
             <div role="tabpanel" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div className="quick-test-panel">
                 <div className="quick-test-heading">
-                  <Sparkles size={17} aria-hidden="true" />
-                  <div>
-                    <strong>{lang === 'ms' ? 'Ujian Pantas Demo' : 'Demo Quick Tests'}</strong>
-                    <span>
-                      {lang === 'ms'
-                        ? 'Pilih contoh untuk mengisi pengimbas secara automatik.'
-                        : 'Choose an example to fill the scanner automatically.'}
-                    </span>
-                  </div>
+                  <Sparkles size={16} aria-hidden="true" />
+                  <strong>{lang === 'ms' ? 'Ujian Pantas Demo' : 'Demo Quick Tests'}</strong>
                 </div>
                 <div className="quick-test-grid">
                   {QUICK_TEST_PRESETS.map((preset) => (
@@ -792,7 +783,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
               <textarea
                 id="scam-message-input"
                 className="input-field"
-                rows={isElderlyMode ? 7 : 6}
+                rows={isElderlyMode ? 5 : 4}
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 onPaste={handlePaste}
@@ -806,7 +797,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                 maxLength={10000}
                 style={{
                   resize: 'vertical',
-                  minHeight: isElderlyMode ? '190px' : '150px',
+                  minHeight: isElderlyMode ? '150px' : '115px',
                   borderColor: isDragOver ? 'var(--primary)' : undefined,
                   boxShadow: isDragOver ? '0 0 10px rgba(59, 130, 246, 0.4)' : undefined,
                   transition: 'all 0.2s ease'
@@ -1097,12 +1088,18 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                   <AlertTriangle size={28} color="#ef4444" style={{ flexShrink: 0 }} />
                   <div>
                     <h4 style={{ margin: 0, color: '#fca5a5', fontSize: isElderlyMode ? '1.25rem' : '1.05rem', fontWeight: 700 }}>
-                      {lang === 'ms' ? 'Amaran Risiko Scam Tinggi Dikesan!' : 'High Scam Risk Warning Detected!'}
+                      {scanResult.matchedCase?.status === 'confirmed'
+                        ? (lang === 'ms' ? 'Amaran Penipuan Disahkan Rasmi!' : 'Officially Confirmed Scam Alert!')
+                        : (lang === 'ms' ? 'Amaran Risiko Scam Tinggi Dikesan!' : 'High Scam Risk Warning Detected!')}
                     </h4>
                     <p style={{ margin: '0.25rem 0 0 0', color: 'var(--text-secondary)', fontSize: isElderlyMode ? '1.05rem' : '0.85rem' }}>
-                      {lang === 'ms'
-                        ? 'Kandungan ini menunjukkan skor risiko tinggi. Bantu lindungi komuniti kita dengan melaporkan sasaran ini.'
-                        : 'This scan scored in the high-risk danger zone. Help protect others by submitting an official report.'}
+                      {scanResult.matchedCase?.status === 'confirmed'
+                        ? (lang === 'ms'
+                            ? 'Sasaran ini telah disahkan secara rasmi sebagai penipuan. Jangan buat bayaran, pindahan wang, atau klik pautan yang diberikan.'
+                            : 'This target is officially confirmed as a scam. Do not make any payments, transfers, or share confidential credentials.')
+                        : (lang === 'ms'
+                            ? 'Kandungan ini menunjukkan skor risiko tinggi. Bantu lindungi komuniti kita dengan melaporkan sasaran ini.'
+                            : 'This scan scored in the high-risk danger zone. Help protect others by submitting an official report.')}
                     </p>
                   </div>
                 </div>
@@ -1122,7 +1119,9 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                   }}
                 >
                   <ShieldAlert size={16} />
-                  {lang === 'ms' ? 'Laporkan Scam Ini' : 'Report this Scam'}
+                  {scanResult.matchedCase?.status === 'confirmed'
+                    ? (lang === 'ms' ? 'Bantu Beri Amaran' : 'Help Warn Others')
+                    : (lang === 'ms' ? 'Laporkan Scam Ini' : 'Report this Scam')}
                 </button>
               </div>
             )}

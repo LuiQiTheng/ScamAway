@@ -509,6 +509,32 @@ describe('Context-aware scam detection engine', () => {
       expect(result.score).toBeGreaterThanOrEqual(90);
       expect(result.explanations.some(exp => exp.label.includes('CCID Record Found'))).toBe(true);
     });
+
+    it('excludes Google Form link from risk penalties and adds trusted sender advisory', async () => {
+      const gFormText = 'Hi team, please submit your feedback via our survey: https://forms.gle/abc123xyz. Thank you!';
+      const result = await analyzeScamRisk(gFormText, { lang: 'en' });
+
+      // Must NOT include the +12 external link risk penalty
+      expect(result.explanations.some(exp => exp.label === 'External Link Requires Verification')).toBe(false);
+      expect(result.score).toBeLessThan(35);
+
+      // Must include the Google Form advisory with weight 0
+      const gFormExp = result.explanations.find(exp => exp.label === 'Google Form Link Detected');
+      expect(gFormExp).toBeDefined();
+      expect(gFormExp.weight).toBe(0);
+      expect(gFormExp.text).toContain('only open the link and submit information if you trust the sender');
+    });
+
+    it('handles Google Form link in Malay with appropriate advisory', async () => {
+      const gFormText = 'Sila isi borang maklum balas: https://forms.gle/abc123xyz';
+      const result = await analyzeScamRisk(gFormText, { lang: 'ms' });
+
+      expect(result.explanations.some(exp => exp.label === 'Pautan Luar Perlu Disahkan')).toBe(false);
+      const gFormExp = result.explanations.find(exp => exp.label === 'Pautan Google Form Dikesan');
+      expect(gFormExp).toBeDefined();
+      expect(gFormExp.weight).toBe(0);
+      expect(gFormExp.text).toContain('hanya buka pautan dan hantar maklumat jika anda mempercayai penghantar tersebut');
+    });
   });
 });
 

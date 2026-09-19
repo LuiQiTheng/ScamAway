@@ -4,7 +4,7 @@ import { db } from '../config/firebase';
 import { translateText } from '../utils/translateText';
 import { hashPassword, sanitizeUserSession, isPasswordHashed } from '../utils/cryptoAuth';
 import { normalizePhone, normalizeHostname, normalizeBankAccount } from '../utils/rulesEngine';
-import { evaluateReportGrouping, getGroupedCases, unmergeReport, reassignReport, mergeCases } from '../utils/caseGrouping';
+import { evaluateReportGrouping, getGroupedCases, unmergeReport, reassignReport, mergeCases, findSimilarReportsForConfirmation } from '../utils/caseGrouping';
 
 const AppContext = createContext();
 
@@ -631,22 +631,91 @@ export const AppProvider = ({ children }) => {
 
     const targetReport = reportsList.find(r => r.id === id || String(r.id) === String(id) || r.firebaseId === id);
     const targetCaseId = targetReport ? String(targetReport.caseId || targetReport.id) : null;
+    const targetCaseCode = targetReport?.caseCode || (targetReport?.reportCode ? `CASE-${targetReport.reportCode.replace('#', '')}` : `CASE-${targetCaseId}`);
+
+    // Reports directly belonging to this target case
+    const directlyTargetedReports = reportsList.filter(r =>
+      (r.id === id || String(r.id) === String(id) || r.firebaseId === id) ||
+      (targetCaseId && String(r.caseId || r.id) === targetCaseId)
+    );
+
+    // If an admin confirms a case, find and auto-confirm all similar/duplicate pending reports
+    const autoConfirmedCandidates = new Map();
+    if (newStatus === 'confirmed' && directlyTargetedReports.length > 0) {
+      const similarMatches = findSimilarReportsForConfirmation(directlyTargetedReports, reportsList);
+      similarMatches.forEach(({ report: cand, matchType, matchReason }) => {
+        const candId = String(cand.id || cand.firebaseId);
+        autoConfirmedCandidates.set(candId, {
+          candidate: cand,
+          matchType,
+          matchReason
+        });
+      });
+    }
 
     setReportsList(prev => prev.map(r => {
-      const match = (r.id === id || String(r.id) === String(id) || r.firebaseId === id) ||
-                    (targetCaseId && String(r.caseId || r.id) === targetCaseId);
-      return match ? { ...r, status: newStatus, rationale, rationaleEn, rationaleMs } : r;
+      const rId = String(r.id || r.firebaseId);
+      const isDirectMatch = (r.id === id || String(r.id) === String(id) || r.firebaseId === id) ||
+                            (targetCaseId && String(r.caseId || r.id) === targetCaseId);
+      if (isDirectMatch) {
+        return { ...r, status: newStatus, rationale, rationaleEn, rationaleMs };
+      }
+
+      if (autoConfirmedCandidates.has(rId)) {
+        const { matchType } = autoConfirmedCandidates.get(rId);
+        return {
+          ...r,
+          status: 'confirmed',
+          caseId: targetCaseId,
+          caseCode: targetCaseCode,
+          reportType: matchType,
+          aiClassification: matchType,
+          rationale,
+          rationaleEn,
+          rationaleMs
+        };
+      }
+
+      return r;
     }));
 
     addAuditLog(`Case Status Updated to ${newStatus}`, id, rationale);
-    try {
-      const reportsToSync = reportsList.filter(r =>
-        (r.id === id || String(r.id) === String(id) || r.firebaseId === id) ||
-        (targetCaseId && String(r.caseId || r.id) === targetCaseId)
+
+    // Audit log for auto-confirmed similar/duplicate cases
+    autoConfirmedCandidates.forEach(({ candidate: cand, matchType, matchReason }) => {
+      addAuditLog(
+        `Auto-Confirmed ${matchType === 'DUPLICATE' ? 'Duplicate' : 'Similar'} Report #${cand.reportCode || cand.id}`,
+        cand.id,
+        `Auto-grouped into Case ${targetCaseCode} (${matchReason})`
       );
-      for (const r of reportsToSync) {
+    });
+
+    try {
+      // Sync direct reports to Firestore
+      for (const r of directlyTargetedReports) {
         if (r.firebaseId) {
-          await updateDoc(doc(db, "reports", r.firebaseId), { status: newStatus, rationale, rationaleEn, rationaleMs });
+          await updateDoc(doc(db, "reports", r.firebaseId), {
+            status: newStatus,
+            rationale,
+            rationaleEn,
+            rationaleMs
+          });
+        }
+      }
+
+      // Sync auto-confirmed reports to Firestore
+      for (const { candidate: cand, matchType } of autoConfirmedCandidates.values()) {
+        if (cand.firebaseId) {
+          await updateDoc(doc(db, "reports", cand.firebaseId), {
+            status: 'confirmed',
+            caseId: targetCaseId,
+            caseCode: targetCaseCode,
+            reportType: matchType,
+            aiClassification: matchType,
+            rationale,
+            rationaleEn,
+            rationaleMs
+          });
         }
       }
     } catch (e) {

@@ -10,9 +10,23 @@ const isPasswordValid = (pwd) => {
   return passwordRegex.test(pwd);
 };
 
-// Reusable Password Input Component with Toggle Visibility
-function PasswordInput({ value, onChange, placeholder = "••••••••", required = true, label }) {
+// Reusable Password Input Component with Toggle Visibility & Security Guidance
+function PasswordInput({ 
+  value, 
+  onChange, 
+  placeholder = "••••••••", 
+  required = true, 
+  label,
+  showGuide = false,
+  lang = 'en'
+}) {
   const [show, setShow] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+
+  const hasMinLength = (value || '').length >= 8;
+  const hasLetter = /[A-Za-z]/.test(value || '');
+  const hasNumber = /\d/.test(value || '');
+  const hasSymbol = /[!@#$%^&*()_+\-=\[\]{}|;:,.<>?/~`]/.test(value || '');
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
@@ -23,6 +37,8 @@ function PasswordInput({ value, onChange, placeholder = "•••••••�
           className="input-field"
           value={value}
           onChange={onChange}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
           required={required}
           placeholder={placeholder}
           style={{ paddingRight: "45px", width: "100%" }}
@@ -30,6 +46,7 @@ function PasswordInput({ value, onChange, placeholder = "•••••••�
         <button
           type="button"
           onClick={() => setShow(!show)}
+          onMouseDown={(e) => e.preventDefault()}
           aria-label={show ? "Hide password" : "Show password"}
           style={{
             position: "absolute",
@@ -47,6 +64,52 @@ function PasswordInput({ value, onChange, placeholder = "•••••••�
           {show ? <EyeOff size={18} /> : <Eye size={18} />}
         </button>
       </div>
+
+      {showGuide && isFocused && (
+        <div style={{
+          marginTop: '0.35rem',
+          padding: '0.6rem 0.8rem',
+          borderRadius: '8px',
+          background: 'rgba(59, 130, 246, 0.07)',
+          border: '1px solid rgba(59, 130, 246, 0.25)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.35rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#93c5fd', fontSize: '0.8rem', fontWeight: 600 }}>
+            <ShieldCheck size={14} color="#60a5fa" />
+            <span>{lang === 'ms' ? 'Panduan Keselamatan Kata Laluan:' : 'Password Security Guide:'}</span>
+          </div>
+
+          <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.78rem', lineHeight: 1.4 }}>
+            {lang === 'ms'
+              ? 'Sila masukkan simbol / aksara khas (cth: !@#$%^&*) bersama gabungan huruf dan nombor untuk meningkatkan tahap keselamatan.'
+              : 'Include special characters/symbols (e.g. !@#$%^&*) along with letters and numbers to increase password security.'}
+          </p>
+
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            flexWrap: 'wrap', 
+            gap: '0.25rem 0.65rem', 
+            marginTop: '0.15rem',
+            fontSize: '0.74rem' 
+          }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: hasMinLength ? '#34d399' : 'var(--text-muted)' }}>
+              <span style={{ fontWeight: 700 }}>{hasMinLength ? '✓' : '○'}</span> {lang === 'ms' ? 'Min 8 aksara' : 'Min 8 chars'}
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: hasLetter ? '#34d399' : 'var(--text-muted)' }}>
+              <span style={{ fontWeight: 700 }}>{hasLetter ? '✓' : '○'}</span> {lang === 'ms' ? 'Huruf' : 'Letters'}
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: hasNumber ? '#34d399' : 'var(--text-muted)' }}>
+              <span style={{ fontWeight: 700 }}>{hasNumber ? '✓' : '○'}</span> {lang === 'ms' ? 'Nombor' : 'Numbers'}
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: hasSymbol ? '#34d399' : 'var(--text-muted)' }}>
+              <span style={{ fontWeight: 700 }}>{hasSymbol ? '✓' : '○'}</span> {lang === 'ms' ? 'Aksara khas' : 'Special characters'}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -825,7 +888,7 @@ export default function LoginScreen({ onLogin, onGuestAccess, initialFormType = 
               </div>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{lang === 'ms' ? 'Nama Pengguna (Unik)' : 'Username (Unique)'}</label>
+                <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{lang === 'ms' ? 'Nama Pengguna' : 'Username'}</label>
                 <input type="text" className="input-field" value={username} onChange={(e) => setUsername(e.target.value)} required placeholder="e.g. user123" />
               </div>
 
@@ -854,6 +917,8 @@ export default function LoginScreen({ onLogin, onGuestAccess, initialFormType = 
                 label={lang === 'ms' ? 'Kata Laluan' : 'Password'} 
                 value={password} 
                 onChange={(e) => setPassword(e.target.value)} 
+                showGuide={true}
+                lang={lang}
               />
 
               <PasswordInput 
@@ -998,6 +1063,8 @@ export default function LoginScreen({ onLogin, onGuestAccess, initialFormType = 
                     label={lang === 'ms' ? 'Kata Laluan Baharu' : 'New Password'} 
                     value={password} 
                     onChange={(e) => setPassword(e.target.value)} 
+                    showGuide={true}
+                    lang={lang}
                   />
 
                   <PasswordInput 
@@ -1084,6 +1151,8 @@ export default function LoginScreen({ onLogin, onGuestAccess, initialFormType = 
                 label={lang === 'ms' ? 'Kata Laluan' : 'Password'} 
                 value={password} 
                 onChange={(e) => setPassword(e.target.value)} 
+                showGuide={true}
+                lang={lang}
               />
 
               <PasswordInput 
@@ -1185,6 +1254,8 @@ export default function LoginScreen({ onLogin, onGuestAccess, initialFormType = 
                     label={lang === 'ms' ? 'Kata Laluan Baharu' : 'New Password'} 
                     value={password} 
                     onChange={(e) => setPassword(e.target.value)} 
+                    showGuide={true}
+                    lang={lang}
                   />
 
                   <PasswordInput 

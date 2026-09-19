@@ -39,7 +39,13 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
   };
 
   // Quiz State
-  const [dailyQuestions, setDailyQuestions] = useState([]);
+  const [dailyQuestions, setDailyQuestions] = useState(() => {
+    const saved = getInitialState('questions', null);
+    if (saved && Array.isArray(saved) && saved.length > 0) {
+      return saved;
+    }
+    return getDailyQuestions();
+  });
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState(() => getInitialState('idx', 0));
   const [selectedAnswer, setSelectedAnswer] = useState(() => getInitialState('ans', null));
   const [showExplanation, setShowExplanation] = useState(() => getInitialState('exp', false));
@@ -55,6 +61,7 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
 
   // Sync to session storage on change
   useEffect(() => {
+    sessionStorage.setItem('scam_away_quiz_questions', JSON.stringify(dailyQuestions));
     sessionStorage.setItem('scam_away_quiz_idx', JSON.stringify(currentQuestionIdx));
     sessionStorage.setItem('scam_away_quiz_ans', JSON.stringify(selectedAnswer));
     sessionStorage.setItem('scam_away_quiz_exp', JSON.stringify(showExplanation));
@@ -65,11 +72,7 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
     sessionStorage.setItem('scam_away_quiz_longestStreak', JSON.stringify(longestStreak));
     sessionStorage.setItem('scam_away_quiz_wrongQ', JSON.stringify(wrongQuestions));
     sessionStorage.setItem('scam_away_quiz_correction', JSON.stringify(isCorrectionPhase));
-  }, [currentQuestionIdx, selectedAnswer, showExplanation, score, quizFinished, isQuizStarted, streak, longestStreak, wrongQuestions, isCorrectionPhase]);
-
-  useEffect(() => {
-    setDailyQuestions(getDailyQuestions());
-  }, []);
+  }, [dailyQuestions, currentQuestionIdx, selectedAnswer, showExplanation, score, quizFinished, isQuizStarted, streak, longestStreak, wrongQuestions, isCorrectionPhase]);
 
   // Library State
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -196,6 +199,7 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
   };
 
   const handleRestart = () => {
+    // Challenge was completed: change the questions for the next challenge
     setDailyQuestions(getDailyQuestions(true));
     setCurrentQuestionIdx(0);
     setSelectedAnswer(null);
@@ -206,7 +210,50 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
     setWrongQuestions([]);
     setIsCorrectionPhase(false);
     setQuizFinished(false);
+    setIsQuizStarted(true);
+  };
+
+  const handleStartChallenge = () => {
+    // Only after they have completed the challenge, the questions will be changed
+    if (quizFinished) {
+      setDailyQuestions(getDailyQuestions(true));
+      setQuizFinished(false);
+    }
+    // Always start from question 1
+    setCurrentQuestionIdx(0);
+    setSelectedAnswer(null);
+    setShowExplanation(false);
+    setScore(0);
+    setStreak(0);
+    setWrongQuestions([]);
+    setIsCorrectionPhase(false);
+    setIsQuizStarted(true);
+  };
+
+  const handleExitChallenge = () => {
+    // When user exits the challenge, next time they start they start from question 1 again.
+    // The questions themselves will NOT be changed.
     setIsQuizStarted(false);
+    setCurrentQuestionIdx(0);
+    setSelectedAnswer(null);
+    setShowExplanation(false);
+    setScore(0);
+    setStreak(0);
+    setWrongQuestions([]);
+    setIsCorrectionPhase(false);
+  };
+
+  const handleExitAfterCompletion = () => {
+    // Return to challenge menu after completing.
+    // quizFinished remains true so that the next time they start, questions will be changed.
+    setIsQuizStarted(false);
+    setCurrentQuestionIdx(0);
+    setSelectedAnswer(null);
+    setShowExplanation(false);
+    setScore(0);
+    setStreak(0);
+    setWrongQuestions([]);
+    setIsCorrectionPhase(false);
   };
 
   const getRank = () => {
@@ -414,7 +461,7 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
           </h2>
           {isQuizStarted && !quizFinished && (
             <button 
-              onClick={() => setIsQuizStarted(false)} 
+              onClick={handleExitChallenge} 
               style={{
                 background: 'transparent',
                 border: 'none',
@@ -463,7 +510,7 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
               </div>
             </div>
             <button 
-              onClick={() => setIsQuizStarted(true)} 
+              onClick={handleStartChallenge} 
               className="btn-primary" 
               style={{ 
                 display: 'flex', 
@@ -518,9 +565,18 @@ export default function KnowledgeCentre({ userMode = 'normal', isElderlyMode = f
               </div>
             </div>
 
-            <button onClick={handleRestart} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1rem' }}>
-              <RefreshCw size={16} /> {t('knowledge.play_another')}
-            </button>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center', marginTop: '1rem' }}>
+              <button onClick={handleRestart} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <RefreshCw size={16} /> {t('knowledge.play_another')}
+              </button>
+              <button 
+                onClick={handleExitAfterCompletion} 
+                className="btn-secondary" 
+                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)' }}
+              >
+                <XCircle size={16} /> {t("knowledge.exit_challenge")}
+              </button>
+            </div>
           </div>
         ) : currentQ ? (
           <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>

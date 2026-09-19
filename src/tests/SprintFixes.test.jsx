@@ -3,6 +3,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { analyzeScamRisk } from '../utils/rulesEngine';
 import EditProfileModal from '../components/EditProfileModal';
+import KnowledgeCentre from '../components/KnowledgeCentre';
 import { LanguageProvider } from '../context/LanguageContext';
 
 vi.mock('../utils/aiEngine', () => ({
@@ -285,6 +286,121 @@ describe('Sprint Fixes & Enhancements', () => {
       const invalidRes = getMalaysianCarrierFallback('012345');
       expect(invalidRes.valid).toBe(false);
       expect(invalidRes.lineType).toBe('unknown');
+    });
+  });
+
+  describe('Item 13: Password Security Guidance with Special Characters/Symbols', () => {
+    it('renders password security guide only when password box is clicked/focused in EditProfileModal', () => {
+      render(
+        <LanguageProvider>
+          <EditProfileModal
+            isOpen={true}
+            onClose={() => {}}
+            initialData={{ username: 'testuser', name: 'Test User', age: 25, phone: '0123456789' }}
+            onSave={() => {}}
+          />
+        </LanguageProvider>
+      );
+
+      // Verify guide text is initially NOT displayed when user hasn't clicked/focused
+      expect(screen.queryByText(/Password Security Guide|Panduan Keselamatan Kata Laluan/i)).toBeNull();
+
+      // Click / focus the password input
+      const pwdInput = screen.getByPlaceholderText('••••••••');
+      fireEvent.focus(pwdInput);
+
+      // Guide text and checklist items are now displayed
+      expect(screen.getByText(/Password Security Guide|Panduan Keselamatan Kata Laluan/i)).toBeDefined();
+      expect(screen.getAllByText(/special characters|aksara khas/i).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText(/!@#\$%\^&\*/i).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText(/Min 8 chars|Min 8 aksara/i)).toBeDefined();
+      expect(screen.getAllByText(/Letters|Huruf/i).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText(/Numbers|Nombor/i).length).toBeGreaterThanOrEqual(1);
+
+      // On blur, guide is hidden again
+      fireEvent.blur(pwdInput);
+      expect(screen.queryByText(/Password Security Guide|Panduan Keselamatan Kata Laluan/i)).toBeNull();
+    });
+  });
+
+  describe('Item 14: KnowledgeCentre Challenge Lifecycle', () => {
+    it('starts from question 1 with identical questions when exiting before completion', () => {
+      sessionStorage.clear();
+      render(
+        <LanguageProvider>
+          <KnowledgeCentre />
+        </LanguageProvider>
+      );
+
+      // 1. Start Challenge
+      const startBtn = screen.getByRole('button', { name: /start challenge/i });
+      fireEvent.click(startBtn);
+
+      // Verify Question 1 is displayed
+      expect(screen.getByText(/question 1 of/i)).toBeDefined();
+
+      // Read Question 1 example snippet from the quiz card
+      const exampleLabels = screen.getAllByText(/example message/i);
+      const q1Card = exampleLabels[exampleLabels.length - 1].parentElement;
+      const firstQText = q1Card.textContent;
+
+      // Answer Question 1
+      const answerButtons = screen.getAllByRole('button');
+      const scamBtn = answerButtons.find(b => /scam|legitimate/i.test(b.textContent));
+      fireEvent.click(scamBtn);
+
+      // Advance to Question 2
+      const nextBtn = screen.getByRole('button', { name: /next question/i });
+      fireEvent.click(nextBtn);
+      expect(screen.getByText(/question 2 of/i)).toBeDefined();
+
+      // 2. Exit Challenge
+      const exitBtn = screen.getByRole('button', { name: /exit challenge/i });
+      fireEvent.click(exitBtn);
+
+      // Intro screen is shown
+      expect(screen.getByRole('button', { name: /start challenge/i })).toBeDefined();
+
+      // 3. Start challenge again
+      fireEvent.click(screen.getByRole('button', { name: /start challenge/i }));
+
+      // Must be back on Question 1
+      expect(screen.getByText(/question 1 of/i)).toBeDefined();
+
+      // The question text must be identical to the original Question 1 (questions not changed!)
+      const restartedLabels = screen.getAllByText(/example message/i);
+      const restartedQ1Card = restartedLabels[restartedLabels.length - 1].parentElement;
+      expect(restartedQ1Card.textContent).toBe(firstQText);
+    });
+
+    it('changes questions after completing the challenge and starting another round', () => {
+      sessionStorage.clear();
+      // Pre-set sessionStorage to completed challenge state with a distinct old question
+      const initialQuestions = [{ id: 'old_q1', text: 'Old Custom Question For Test Verification', isScam: true, category: 'Job & Task Scams', explanation: 'Old Exp' }];
+      sessionStorage.setItem('scam_away_quiz_questions', JSON.stringify(initialQuestions));
+      sessionStorage.setItem('scam_away_quiz_finished', JSON.stringify(true));
+      sessionStorage.setItem('scam_away_quiz_started', JSON.stringify(true));
+
+      render(
+        <LanguageProvider>
+          <KnowledgeCentre />
+        </LanguageProvider>
+      );
+
+      // Challenge completed screen is visible
+      expect(screen.getByText(/challenge completed/i)).toBeDefined();
+
+      // Click Play Another Round
+      const playAnotherBtn = screen.getByRole('button', { name: /play another/i });
+      fireEvent.click(playAnotherBtn);
+
+      // Verify new challenge has started at Question 1
+      expect(screen.getByText(/question 1 of/i)).toBeDefined();
+
+      // Verify the new question is changed and NOT the old question
+      const newLabels = screen.getAllByText(/example message/i);
+      const newQ1Card = newLabels[newLabels.length - 1].parentElement;
+      expect(newQ1Card.textContent).not.toContain('Old Custom Question For Test Verification');
     });
   });
 });

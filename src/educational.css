@@ -1,52 +1,51 @@
 /* Member 2: Scanner demo presets */
 .quick-test-panel {
-  padding: 1rem;
+  padding: 0.6rem 0.85rem;
   border: 1px dashed rgba(6, 182, 212, 0.34);
-  border-radius: 12px;
+  border-radius: 10px;
   background: linear-gradient(135deg, rgba(6, 182, 212, 0.07), rgba(99, 102, 241, 0.04));
 }
 
 .quick-test-heading {
   display: flex;
-  align-items: flex-start;
-  gap: 0.65rem;
-  margin-bottom: 0.85rem;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.45rem;
   color: var(--primary);
-}
-
-.quick-test-heading div {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
 }
 
 .quick-test-heading strong {
   color: var(--text-primary);
-  font-size: 0.88rem;
-}
-
-.quick-test-heading span {
-  color: var(--text-secondary);
-  font-size: 0.76rem;
+  font-size: 0.85rem;
 }
 
 .quick-test-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.65rem;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+@media (max-width: 900px) {
+  .quick-test-grid {
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  }
 }
 
 .quick-test-button {
-  min-height: 42px;
-  padding: 0.65rem 0.8rem;
+  min-height: 38px;
+  padding: 0.45rem 0.5rem;
   border: 1px solid var(--border-color);
-  border-radius: 9px;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.055);
   color: var(--text-primary);
   font: inherit;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  text-align: left;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.25;
   cursor: pointer;
   transition: transform var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
 }
@@ -55,18 +54,6 @@
   transform: translateY(-1px);
   border-color: var(--primary);
   background: rgba(6, 182, 212, 0.12);
-}
-
-.quick-test-button.safe {
-  border-color: rgba(16, 185, 129, 0.28);
-}
-
-.quick-test-button.danger {
-  border-color: rgba(239, 68, 68, 0.24);
-}
-
-.quick-test-button.caution {
-  border-color: rgba(245, 158, 11, 0.38);
 }
 
 /* Member 2: Focused Safe-or-Scam quiz */
