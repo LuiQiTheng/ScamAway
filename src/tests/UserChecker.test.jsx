@@ -6,35 +6,40 @@ import { AppProvider } from '../context/AppContext';
 import { LanguageProvider } from '../context/LanguageContext';
 
 // Hoist-safe mock: imported at module level for mockResolvedValueOnce usage
-vi.mock('../utils/rulesEngine', () => ({
-  analyzeScamRisk: vi.fn().mockResolvedValue({
-    score: 85,
-    riskBand: 'Critical',
-    bandColor: 'critical',
-    explanations: [],
-    recommendedActions: [],
-    indicators: { urls: [], phones: [] }
-  }),
-  findMatchingVerifiedReports: vi.fn().mockReturnValue([]),
-  analyzeScreenshotRisk: vi.fn().mockResolvedValue({
-    score: 88,
-    riskBand: 'Critical',
-    bandColor: 'critical',
-    explanations: [
-      { category: 'impersonation', label: 'Visual Red Flags Detected', text: 'Forged crest', weight: 25 }
-    ],
-    recommendedActions: ['Do not send money'],
-    indicators: { urls: [], phones: [] },
-    visionForensics: {
-      platform: 'WhatsApp',
-      sender: '+2348012345678',
-      senderIsOverseas: true,
-      visualRedFlags: ['Forged police crest'],
-      extractedText: 'Extracted police warning message',
-      explanation: 'Suspicious screenshot'
-    }
-  })
-}));
+vi.mock('../utils/rulesEngine', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    analyzeScamRisk: vi.fn().mockResolvedValue({
+      score: 85,
+      riskBand: 'Critical',
+      bandColor: 'critical',
+      explanations: [],
+      recommendedActions: [],
+      indicators: { urls: [], phones: [] }
+    }),
+    findMatchingVerifiedReports: vi.fn().mockReturnValue([]),
+    simplifyExplanations: vi.fn((exps) => exps || []),
+    analyzeScreenshotRisk: vi.fn().mockResolvedValue({
+      score: 88,
+      riskBand: 'Critical',
+      bandColor: 'critical',
+      explanations: [
+        { category: 'impersonation', label: 'Visual Red Flags Detected', text: 'Forged crest', weight: 25 }
+      ],
+      recommendedActions: ['Do not send money'],
+      indicators: { urls: [], phones: [] },
+      visionForensics: {
+        platform: 'WhatsApp',
+        sender: '+2348012345678',
+        senderIsOverseas: true,
+        visualRedFlags: ['Forged police crest'],
+        extractedText: 'Extracted police warning message',
+        explanation: 'Suspicious screenshot'
+      }
+    })
+  };
+});
 
 // Import the MOCKED module so we can configure it per-test
 import * as rulesEngine from '../utils/rulesEngine';
@@ -70,11 +75,11 @@ describe('UserChecker Image Paste and Upload', () => {
     rulesEngine.findMatchingVerifiedReports.mockReturnValue([]);
   });
 
-  const renderComponent = () => {
+  const renderComponent = (props = {}) => {
     return render(
       <LanguageProvider>
         <AppProvider>
-          <UserChecker />
+          <UserChecker {...props} />
         </AppProvider>
       </LanguageProvider>
     );
@@ -265,6 +270,54 @@ describe('UserChecker Image Paste and Upload', () => {
       await waitFor(() => {
         expect(screen.getByRole('dialog')).toBeInTheDocument();
       });
+    } finally {
+      vi.useRealTimers();
+    }
+  }, 15000);
+
+  it('blocks report submission and prompts to register an account when in Quick Scan (guest mode)', async () => {
+    rulesEngine.analyzeScamRisk.mockResolvedValueOnce({
+      score: 65,
+      riskBand: 'High risk',
+      bandColor: 'high',
+      explanations: [],
+      recommendedActions: [],
+      indicators: { urls: [], phones: [] }
+    });
+
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const onRegister = vi.fn();
+      renderComponent({ isGuest: true, onRegister });
+
+      const textarea = screen.getByPlaceholderText(/Type, paste text, or paste a screenshot/i);
+      fireEvent.change(textarea, { target: { value: 'Severe tax evasion warning. Pay now.' } });
+
+      const analyzeBtn = screen.getByRole('button', { name: /Analyze Risk/i });
+      fireEvent.click(analyzeBtn);
+
+      await act(async () => {
+        vi.runAllTimers();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /Report this Scam/i })).toBeInTheDocument();
+      });
+
+      // Click report button in guest mode
+      fireEvent.click(screen.getByRole('button', { name: /Report this Scam/i }));
+
+      // Account registration prompt dialog should be shown
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+        expect(screen.getByText(/Account Registration Required/i)).toBeInTheDocument();
+        expect(screen.getByText(/Quick Scan Mode \(Guest\)/i)).toBeInTheDocument();
+      });
+
+      // Clicking Register Account Now triggers onRegister callback
+      const registerBtn = screen.getByRole('button', { name: /Register Account Now/i });
+      fireEvent.click(registerBtn);
+      expect(onRegister).toHaveBeenCalled();
     } finally {
       vi.useRealTimers();
     }

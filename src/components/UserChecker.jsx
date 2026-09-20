@@ -10,6 +10,7 @@ import {
   analyzeScamRisk,
   findMatchingVerifiedReports,
   analyzeScreenshotRisk,
+  simplifyExplanations
 } from '../utils/rulesEngine';
 import { findMatchingCaseForScanner } from '../utils/caseGrouping';
 import { checkUrlWithVirusTotal, checkDomainExists } from '../utils/virusTotal';
@@ -53,6 +54,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
   // Report Modal
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [textToReport, setTextToReport] = useState('');
+  const [showGuestRegisterPrompt, setShowGuestRegisterPrompt] = useState(false);
 
   // Checklist state
   const [checkedActions, setCheckedActions] = useState({});
@@ -82,8 +84,9 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
     if (!scanResult || !lastScanRef.current) return;
 
     const rerun = async () => {
+      let res;
       if (lastScanRef.current?.imageToScan) {
-        const res = await analyzeScreenshotRisk(
+        res = await analyzeScreenshotRisk(
           lastScanRef.current.imageToScan.fileBase64,
           {
             ...lastScanRef.current.metadata,
@@ -93,9 +96,8 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
             lang
           }
         );
-        setScanResult(res);
       } else {
-        const res = await analyzeScamRisk(
+        res = await analyzeScamRisk(
           lastScanRef.current.text,
           {
             ...lastScanRef.current.metadata,
@@ -104,8 +106,52 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
             lang
           }
         );
-        setScanResult(res);
       }
+
+      // Check for Case Match (Confirmed or Rejected) via Case Grouping Engine
+      const targets = lastScanRef.current.metadata?.targets || { phone: phoneInput, bank: bankInput, url: urlInput };
+      const caseMatch = findMatchingCaseForScanner(
+        lastScanRef.current.text || '',
+        targets,
+        reportsList
+      );
+
+      if (caseMatch.matched) {
+        res.matchedCase = caseMatch;
+        if (caseMatch.status === 'confirmed') {
+          res.score = 100;
+          res.riskBand = lang === 'ms' ? 'Disahkan Rasmi' : 'Officially Confirmed';
+          res.bandColor = 'critical';
+          res.explanations = (res.explanations || []).filter(
+            exp => !/OFFICIALLY CONFIRMED|DISAHKAN RASMI/i.test(exp.label || '')
+          );
+          res.explanations.unshift({
+            category: 'community',
+            label: lang === 'ms'
+              ? `🚨 AMARAN PENIPUAN KOMUNITI (${caseMatch.reportCount} Laporan Diterima)`
+              : `🚨 COMMUNITY SCAM ALERT (${caseMatch.reportCount} ${caseMatch.reportCount === 1 ? 'Report Received' : 'Reports Received'})`,
+            text: lang === 'ms'
+              ? `Sasaran ini telah disahkan rasmi sebagai penipuan dengan ${caseMatch.reportCount} laporan penipuan komuniti difailkan.`
+              : `This target is officially confirmed as a scam with ${caseMatch.reportCount} community scam ${caseMatch.reportCount === 1 ? 'report' : 'reports'} filed.`,
+            weight: 100
+          });
+        } else if (caseMatch.status === 'rejected') {
+          res.score = Math.min(res.score, 20);
+          res.riskBand = lang === 'ms' ? 'Sebelum Ini Disemak' : 'Previously Reviewed';
+          res.bandColor = 'low';
+          res.explanations.unshift({
+            category: 'safe',
+            label: lang === 'ms' ? 'Rekod Semakan Terdahulu: Ditolak' : 'Previously Reviewed: Rejected',
+            text: lang === 'ms'
+              ? `Sasaran ini telah disemak oleh pihak berkuasa dan ditolak dengan alasan: "${caseMatch.rejectionReasonMs || caseMatch.rejectionReason}".`
+              : `This target was previously reviewed by authorities and rejected with rationale: "${caseMatch.rejectionReasonEn || caseMatch.rejectionReason}".`,
+            weight: 0
+          });
+        }
+      }
+
+      res.explanations = simplifyExplanations(res.explanations);
+      setScanResult(res);
     };
 
     rerun();
@@ -321,6 +367,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
         }
       }
 
+      res.explanations = simplifyExplanations(res.explanations);
       setScanResult(res);
 
       if (res.score >= 80) {
@@ -510,20 +557,20 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
       return;
     }
 
-    const intro = t('engine.speech_done').replace('{band}', scanResult.riskBand).replace('{score}', scanResult.score);
-    const low = scanResult.bandColor === 'low' ? t('engine.speech_low') : '';
-    const caution = scanResult.bandColor === 'caution' ? t('engine.speech_caution') : '';
-    const high = (scanResult.bandColor === 'high' || scanResult.bandColor === 'critical') ? t('engine.speech_high') : '';
-    const recommended = t('engine.speech_intro');
-
-    const textToSpeak = `
-      ${intro}
-      ${low}
-      ${caution}
-      ${high}
-      ${recommended}
-      ${scanResult.recommendedActions.join('. ')}
-    `;
+    let textToSpeak = '';
+    if (scanResult.score >= 50 || scanResult.bandColor === 'high' || scanResult.bandColor === 'critical') {
+      textToSpeak = (t('engine.speech_high') || '')
+        .replace('{score}', scanResult.score)
+        .replace('{band}', scanResult.riskBand);
+    } else if (scanResult.bandColor === 'caution' || scanResult.score >= 35) {
+      textToSpeak = (t('engine.speech_caution') || '')
+        .replace('{score}', scanResult.score)
+        .replace('{band}', scanResult.riskBand);
+    } else {
+      textToSpeak = (t('engine.speech_low') || '')
+        .replace('{score}', scanResult.score)
+        .replace('{band}', scanResult.riskBand);
+    }
 
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel(); // Cancel any existing speech
@@ -546,7 +593,7 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
         utterance.voice = selectedVoice;
       }
       
-      utterance.rate = isElderlyMode ? 0.85 : 1.0; // Slower for elderly
+      utterance.rate = isElderlyMode ? 0.85 : (lang === 'en' ? 1.15 : 1.0); // Slightly faster & crisper for English
       utterance.onend = () => setIsPlayingAudio(false);
       utterance.onerror = () => setIsPlayingAudio(false);
 
@@ -565,8 +612,12 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
     setIsPlayingAudio(false);
   };
 
-  const openReportFlow = () => {
-    const targetText = inputText || [urlInput, phoneInput, bankInput].filter(Boolean).join(' | ') || "Suspicious Scam Content";
+  const openReportFlow = (customText) => {
+    if (isGuest) {
+      setShowGuestRegisterPrompt(true);
+      return;
+    }
+    const targetText = customText || inputText || [urlInput, phoneInput, bankInput].filter(Boolean).join(' | ') || "Suspicious Scam Content";
     setTextToReport(targetText);
     setIsReportOpen(true);
   };
@@ -1288,10 +1339,10 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                 {/* 1-tap Officer Second Opinion button */}
                 <button
                   onClick={() => {
-                    setTextToReport(inputText || urlInput || (lang === 'ms'
+                    const secondOpinionText = inputText || urlInput || (lang === 'ms'
                       ? `Pengguna masih ragu-ragu walaupun skor risiko adalah ${scanResult.score}/100. Mohon pandangan kedua pegawai.`
-                      : `User is still suspicious despite low risk score of ${scanResult.score}/100. Requesting officer second opinion.`));
-                    setIsReportOpen(true);
+                      : `User is still suspicious despite low risk score of ${scanResult.score}/100. Requesting officer second opinion.`);
+                    openReportFlow(secondOpinionText);
                   }}
                   className="btn-secondary"
                   style={{
@@ -1725,6 +1776,8 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
         scanResult={scanResult}
         originalText={textToReport}
         onSubmitReport={addReport}
+        isGuest={isGuest}
+        onRegister={onRegister}
       />
 
       <GuardianAlertModal
@@ -1855,6 +1908,134 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
                 }}
               >
                 {lang === 'ms' ? 'Saya belum memindahkan wang' : "I haven't transferred money"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Guest Account Registration Required Modal */}
+      {showGuestRegisterPrompt && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="guest-register-title"
+          aria-describedby="guest-register-desc"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 3000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+            background: 'rgba(0, 0, 0, 0.8)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+          }}
+        >
+          <div
+            className="glass-panel fade-in"
+            style={{
+              width: '100%',
+              maxWidth: '460px',
+              padding: isElderlyMode ? '2.25rem 2rem' : '2rem 1.75rem',
+              borderRadius: '20px',
+              border: '1px solid rgba(59, 130, 246, 0.35)',
+              background: 'rgba(15, 23, 42, 0.96)',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '1.25rem'
+            }}
+          >
+            <div style={{
+              width: '60px',
+              height: '60px',
+              borderRadius: '18px',
+              background: 'rgba(59, 130, 246, 0.15)',
+              border: '1px solid rgba(59, 130, 246, 0.35)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <ShieldAlert size={32} color="#3b82f6" />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              <h2
+                id="guest-register-title"
+                style={{
+                  fontSize: isElderlyMode ? '1.6rem' : '1.35rem',
+                  fontWeight: 700,
+                  color: '#fff',
+                  margin: 0
+                }}
+              >
+                {lang === 'ms' ? 'Pendaftaran Akaun Diperlukan' : 'Account Registration Required'}
+              </h2>
+              <span style={{ fontSize: '0.82rem', color: '#60a5fa', fontWeight: 600 }}>
+                {lang === 'ms' ? '🔒 Mod Imbasan Pantas (Tetamu)' : '🔒 Quick Scan Mode (Guest)'}
+              </span>
+            </div>
+
+            <p
+              id="guest-register-desc"
+              style={{
+                fontSize: isElderlyMode ? '1.15rem' : '0.92rem',
+                color: 'var(--text-secondary)',
+                lineHeight: 1.55,
+                margin: 0
+              }}
+            >
+              {lang === 'ms'
+                ? 'Untuk mengekalkan integriti komuniti dan mengelakkan laporan palsu, pengguna perlu mendaftar akaun sebelum menghantar laporan scam atau memohon semakan pegawai.'
+                : 'To maintain community integrity and prevent spam reports, users must register an account before submitting scam reports or requesting officer reviews.'}
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', marginTop: '0.5rem' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowGuestRegisterPrompt(false);
+                  if (onRegister) onRegister();
+                }}
+                className="btn-primary"
+                style={{
+                  width: '100%',
+                  padding: isElderlyMode ? '1rem' : '0.8rem',
+                  fontSize: isElderlyMode ? '1.2rem' : '1rem',
+                  fontWeight: 600,
+                  borderRadius: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                  boxShadow: '0 4px 14px rgba(59, 130, 246, 0.4)',
+                  cursor: 'pointer'
+                }}
+              >
+                <User size={18} />
+                {lang === 'ms' ? 'Daftar Akaun Sekarang' : 'Register Account Now'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowGuestRegisterPrompt(false)}
+                className="btn-secondary"
+                style={{
+                  width: '100%',
+                  padding: isElderlyMode ? '0.85rem' : '0.65rem',
+                  borderRadius: '12px',
+                  fontSize: isElderlyMode ? '1.1rem' : '0.9rem',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer'
+                }}
+              >
+                {lang === 'ms' ? 'Mungkin Nanti' : 'Maybe Later'}
               </button>
             </div>
           </div>

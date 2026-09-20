@@ -472,10 +472,10 @@ const translations = {
     "knowledge.rank_4": "Beginner Learner",
 
     // Engine
-    "engine.speech_done": "Risk assessment complete. The result is {band} with a risk score of {score} percent.",
-    "engine.speech_low": "No strong scam indicators were detected. However, please verify independently.",
-    "engine.speech_caution": "Caution. Suspicious elements were found. Please pause and verify.",
-    "engine.speech_high": "Warning. High risk elements detected. Do not pay or share credentials.",
+    "engine.speech_done": "Warning! High-risk scam detected with a score of {score} percent. Do not click any links, do not transfer any money, and never share your banking credentials or OTP. Please pause and verify through official channels.",
+    "engine.speech_low": "No strong scam indicators were detected with a score of {score} percent. However, please verify independently.",
+    "engine.speech_caution": "Caution! Suspicious elements detected with a risk score of {score} percent. Please pause and verify before taking any action.",
+    "engine.speech_high": "Warning! High-risk scam detected with a score of {score} percent. Do not click any links, do not transfer any money, and never share your banking credentials or OTP. Please pause and verify through official channels.",
     "engine.speech_intro": "Here are the recommended safety actions.",
 
     // General
@@ -1061,10 +1061,10 @@ const translations = {
     "knowledge.rank_4": "Pelajar Baru",
 
     // Engine
-    "engine.speech_done": "Penilaian risiko selesai. Keputusannya adalah {band} dengan skor risiko sebanyak {score} peratus.",
-    "engine.speech_low": "Tiada penunjuk scam kuat dikesan. Walau bagaimanapun, sila sahkan secara bebas.",
-    "engine.speech_caution": "Berhati-hati. Elemen mencurigakan ditemui. Sila berhenti sebentar dan sahkan.",
-    "engine.speech_high": "Amaran. Elemen berisiko tinggi dikesan. Jangan bayar atau kongsi kelayakan.",
+    "engine.speech_done": "Amaran! Risiko penipuan tinggi dikesan dengan skor {score} peratus. Jangan klik sebarang pautan, jangan buat pindahan wang, dan jangan kongsi kelayakan perbankan atau OTP anda. Sila berhenti sebentar dan sahkan melalui saluran rasmi.",
+    "engine.speech_low": "Tiada penunjuk penipuan kuat dikesan dengan skor {score} peratus. Walau bagaimanapun, sila sahkan secara bebas.",
+    "engine.speech_caution": "Awas! Elemen mencurigakan dikesan dengan skor risiko {score} peratus. Sila berhenti sebentar dan buat pengesahan sebelum mengambil sebarang tindakan.",
+    "engine.speech_high": "Amaran! Risiko penipuan tinggi dikesan dengan skor {score} peratus. Jangan klik sebarang pautan, jangan buat pindahan wang, dan jangan kongsi kelayakan perbankan atau OTP anda. Sila berhenti sebentar dan sahkan melalui saluran rasmi.",
     "engine.speech_intro": "Berikut ialah tindakan keselamatan yang disyorkan.",
 
     // General
@@ -1163,10 +1163,10 @@ const translations = {
     "emergency.disclaimer_text": "Saranan ini disediakan untuk membantu pengguna bertindak pantas menangani insiden penipuan. Sentiasa ikuti arahan yang diberikan oleh bank anda dan pihak berkuasa Malaysia yang berkaitan.",
 
     // Engine
-    "engine.speech_done": "Penilaian risiko selesai. Keputusannya adalah {band} dengan skor risiko sebanyak {score} peratus.",
-    "engine.speech_low": "Tiada penunjuk penipuan yang kuat dikesan. Walau bagaimanapun, sila buat pengesahan secara bebas.",
-    "engine.speech_caution": "Awas. Elemen mencurigakan telah ditemui. Sila berhenti sebentar dan buat pengesahan.",
-    "engine.speech_high": "Amaran. Elemen berisiko tinggi dikesan. Jangan bayar atau kongsi maklumat keselamatan.",
+    "engine.speech_done": "Amaran! Risiko penipuan tinggi dikesan dengan skor {score} peratus. Jangan klik sebarang pautan, jangan buat pindahan wang, dan jangan kongsi kelayakan perbankan atau OTP anda. Sila berhenti sebentar dan sahkan melalui saluran rasmi.",
+    "engine.speech_low": "Tiada penunjuk penipuan kuat dikesan dengan skor {score} peratus. Walau bagaimanapun, sila sahkan secara bebas.",
+    "engine.speech_caution": "Awas! Elemen mencurigakan dikesan dengan skor risiko {score} peratus. Sila berhenti sebentar dan buat pengesahan sebelum mengambil sebarang tindakan.",
+    "engine.speech_high": "Amaran! Risiko penipuan tinggi dikesan dengan skor {score} peratus. Jangan klik sebarang pautan, jangan buat pindahan wang, dan jangan kongsi kelayakan perbankan atau OTP anda. Sila berhenti sebentar dan sahkan melalui saluran rasmi.",
     "engine.speech_intro": "Berikut adalah tindakan keselamatan yang disyorkan.",
 
     // Statuses

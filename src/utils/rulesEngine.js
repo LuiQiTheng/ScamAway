@@ -958,7 +958,7 @@ export async function analyzeScamRisk(text, metadata = {}) {
       ruleContribution += 55;
       explanations.push({
         category: "payment",
-        label: lang === 'ms' ? "Penipuan Pendahuluan Tugasan" : "Advance Fee Task Scam",
+        label: lang === 'ms' ? "Bayaran Pendahuluan Untuk Mendapat Kerja" : "Advance Fee to Start a Job",
         text: lang === 'ms' 
           ? "Tawaran tidak sah yang memerlukan anda mendeposit wang untuk 'membuka' tugas atau gaji." 
           : "Illegitimate offer requiring you to deposit money to 'unlock' tasks or payouts.",
@@ -1416,7 +1416,7 @@ export async function analyzeScamRisk(text, metadata = {}) {
     evidenceStrength,
     // Compatibility alias for reports created before Phase 2.
     confidence: evidenceStrength,
-    explanations,
+    explanations: simplifyExplanations(explanations),
     indicators: analysis,
     indicatorsMatched,
     context: {
@@ -1428,6 +1428,212 @@ export async function analyzeScamRisk(text, metadata = {}) {
     ccidMatches,
     numverifyResults
   };
+}
+
+/**
+ * Simplifies and deduplicates risk explanations by grouping similar threat themes
+ * and selecting the item with the highest signal weight in each theme.
+ * Ensures the breakdown remains concise, distinct, and non-redundant.
+ *
+ * @param {Array} explanations - Raw list of explanation objects { label, text, category, weight }
+ * @param {number} [maxItems=5] - Maximum number of top distinct items to display (default 5)
+ * @returns {Array} Consolidated list of distinct, highest-impact explanations
+ */
+export function simplifyExplanations(explanations = [], maxItems = 6) {
+  if (!Array.isArray(explanations) || explanations.length <= 1) return explanations || [];
+
+  const getClusterKey = (exp) => {
+    const rawLabel = String(exp.label || '').toLowerCase();
+    const rawCat = String(exp.category || '').toLowerCase();
+
+    // 1. Visual Forensics & Screenshot Signals
+    if (/visual red flag|tanda amaran visual|forensik visual/i.test(rawLabel)) {
+      return 'cluster_visual_forensics';
+    }
+
+    // 2. Overseas Contact Origin
+    if (/overseas sender|pengirim luar negara/i.test(rawLabel)) {
+      return 'cluster_overseas_contact';
+    }
+
+    // 3. Officially Confirmed / Community Scam Alert
+    if (
+      /community.*(?:scam|alert|report)|amaran.*komuniti|officially confirmed|disahkan rasmi|kes penipuan disahkan/i.test(rawLabel)
+    ) {
+      return 'cluster_confirmed_scam';
+    }
+
+    // 4. Authority / Government / Macau Scam Impersonation
+    if (
+      (rawCat === 'impersonation' || /impersonat|penyamaran/i.test(rawLabel)) &&
+      /authority|government|macau|pihak berkuasa|kerajaan|official agency|pdrm|police|polis|court|mahkamah|lhdn|sprm|hasil/i.test(rawLabel)
+    ) {
+      return 'cluster_authority_impersonation';
+    }
+
+    // 5. Family Emergency Impersonation
+    if (/family impersonation|penyamaran keluarga/i.test(rawLabel)) {
+      return 'cluster_family_impersonation';
+    }
+
+    // 6. Urgency / Severe Time Pressure / Immediate Action
+    if (
+      rawCat === 'urgency' ||
+      /immediate action|time pressure|severe time pressure|tekanan masa|tindakan segera|urgency/i.test(rawLabel)
+    ) {
+      return 'cluster_urgency_pressure';
+    }
+
+    // 7. Legal / Arrest / Account Freeze / Warrant Threat
+    if (
+      rawCat === 'threat' ||
+      /legal.*threat|ancaman undang|account freeze|sekat akaun|warrant|waran|extortion|pemerasan|ugutan/i.test(rawLabel)
+    ) {
+      return 'cluster_legal_threat';
+    }
+
+    // 8. Job Advance Fee / Deposit to Start
+    if (
+      /advance fee.*job|bayaran pendahuluan.*kerja|advance fee task|penipuan pendahuluan tugasan/i.test(rawLabel)
+    ) {
+      return 'cluster_job_advance_fee';
+    }
+
+    // 9. Job Income Claim / Unrealistic Earnings
+    if (
+      rawCat === 'job' ||
+      /unrealistic.*job|pendapatan.*tidak realistik|income claim|tawaran kerja|job offer/i.test(rawLabel)
+    ) {
+      return 'cluster_job_scam';
+    }
+
+    // 10. Direct Payment / Unexpected Transfer Demand
+    if (
+      rawCat === 'payment' ||
+      /direct payment|payment request|payment demand|tuntutan bayaran|permintaan bayaran|unexpected payment/i.test(rawLabel)
+    ) {
+      return 'cluster_payment_demand';
+    }
+
+    // 11. Phishing / Malicious Domain / VirusTotal
+    if (
+      rawCat === 'phishing' ||
+      /virustotal|threats detected|ancaman dikesan|malicious url|phishing domain|suspicious url|pautan pancingan|pautan mencurigakan|banking phishing/i.test(rawLabel)
+    ) {
+      return 'cluster_phishing_link';
+    }
+
+    // 12. Delivery / Parcel / Courier / COD Scam
+    if (
+      /parcel|poslaju|ninjavan|courier|kurier|cash[-_\s]*on[-_\s]*delivery|\bcod\b|bungkusan/i.test(rawLabel)
+    ) {
+      return 'cluster_courier_scam';
+    }
+
+    // 13. Investment / High Return / Bursa / Crypto Fraud
+    if (
+      /investment|pelaburan|syariah invest|high return|pulangan tinggi|bursa insider|crypto/i.test(rawLabel)
+    ) {
+      return 'cluster_investment_scam';
+    }
+
+    // 14. Blacklisted / Listed Bank Account
+    if (
+      /listed bank account|akaun bank tersenarai|semakmule|ccid record/i.test(rawLabel)
+    ) {
+      return 'cluster_bank_indicator';
+    }
+
+    // 15. Blacklisted / Listed Phone Number
+    if (
+      /listed phone number|nombor telefon tersenarai/i.test(rawLabel)
+    ) {
+      return 'cluster_phone_indicator';
+    }
+
+    // 16. Safe / Clean / Precautionary Advisory
+    if (
+      rawCat === 'safe' || rawCat === 'safe_advisory' || /verified safe|disahkan selamat|precautionary advisory|nasihat berjaga|google form/i.test(rawLabel)
+    ) {
+      return `cluster_safe_${rawLabel.replace(/[^\w]/g, '_')}`;
+    }
+
+    // Fallback: Use clean normalized label
+    const cleanLabel = rawLabel.replace(/^ai:\s*/i, '').replace(/[^\w\s]/g, '').trim();
+    return `cluster_custom_${cleanLabel || rawCat}`;
+  };
+
+  const clusters = new Map();
+
+  for (const exp of explanations) {
+    const key = getClusterKey(exp);
+    const weight = typeof exp.weight === 'number' ? exp.weight : 0;
+
+    if (!clusters.has(key)) {
+      clusters.set(key, exp);
+    } else {
+      const existing = clusters.get(key);
+      const existingWeight = typeof existing.weight === 'number' ? existing.weight : 0;
+
+      // Choose the higher signal weight one
+      if (weight > existingWeight) {
+        clusters.set(key, exp);
+      } else if (weight === existingWeight) {
+        // Tie-breaker:
+        // 1. Prefer community alert with report count over generic confirmed
+        const hasCount = (e) => /\d+\s+(?:report|laporan)/i.test(e.label || '');
+        if (hasCount(exp) && !hasCount(existing)) {
+          clusters.set(key, exp);
+        } else if (!hasCount(exp) && hasCount(existing)) {
+          // Keep existing with count
+        } else if (!String(exp.label || '').startsWith('AI:') && String(existing.label || '').startsWith('AI:')) {
+          // Prefer grounded heuristic over generic AI prefix if same weight
+          clusters.set(key, exp);
+        }
+      }
+    }
+  }
+
+  // Secondary pass: fuzzy token similarity to catch any other similar custom/AI labels
+  const deduplicated = Array.from(clusters.values());
+  const finalResults = [];
+
+  const tokenize = (s) => new Set(String(s).toLowerCase().replace(/^ai:\s*/i, '').replace(/[^\w\s]/g, ' ').split(/\s+/).filter(w => w.length > 2));
+  const calcSim = (s1, s2) => {
+    const t1 = tokenize(s1), t2 = tokenize(s2);
+    if (!t1.size || !t2.size) return 0;
+    let match = 0;
+    t1.forEach(t => { if (t2.has(t)) match++; });
+    return match / (t1.size + t2.size - match);
+  };
+
+  for (const exp of deduplicated) {
+    const isDuplicate = finalResults.some((kept) => {
+      const sim = calcSim(exp.label, kept.label);
+      if (sim >= 0.50) {
+        if ((exp.weight || 0) > (kept.weight || 0)) {
+          const idx = finalResults.indexOf(kept);
+          finalResults[idx] = exp;
+        }
+        return true;
+      }
+      return false;
+    });
+
+    if (!isDuplicate) {
+      finalResults.push(exp);
+    }
+  }
+
+  // Sort by weight descending so the strongest signals appear first
+  finalResults.sort((a, b) => (b.weight || 0) - (a.weight || 0));
+
+  // Cap at maxItems to prevent cluttered output, but keep safe explanations intact if <= 2
+  if (finalResults.length > maxItems) {
+    return finalResults.slice(0, maxItems);
+  }
+
+  return finalResults;
 }
 
 /**
@@ -1516,7 +1722,7 @@ export async function analyzeScreenshotRisk(screenshotData, metadata = {}) {
     riskIndex: finalScore,
     riskBand: updatedBand.label,
     bandColor: updatedBand.color,
-    explanations: updatedExplanations,
+    explanations: simplifyExplanations(updatedExplanations),
     visionForensics: {
       platform: visionResult.platform,
       sender: visionResult.sender,

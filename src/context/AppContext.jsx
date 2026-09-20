@@ -541,6 +541,11 @@ export const AppProvider = ({ children }) => {
   }, []);
 
   const addReport = useCallback(async (newReport) => {
+    if (newReport?.isGuest) {
+      console.warn("⚠️ Unauthenticated guest attempted to submit report.");
+      throw new Error("Registration required to submit reports.");
+    }
+
     // SEC-02: Omit originalText to halt global PII leakage across Firestore and client state
     const { originalText: _unneededOriginalText, ...safeReport } = newReport;
 

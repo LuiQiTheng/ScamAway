@@ -136,9 +136,11 @@ export default function ReportModal({
   scanResult,
   originalText = '',
   onSubmitReport,
+  isGuest = false,
+  onRegister,
 }) {
   const { t, lang } = useLanguage();
-  const { reportsList = [], blacklist = {} } = useAppContext();
+  const { reportsList = [], blacklist = {}, currentUser } = useAppContext();
   const [category, setCategory] = useState('phishing');
   const [message, setMessage] = useState(originalText);
   const [consent, setConsent] = useState(false);
@@ -257,9 +259,146 @@ export default function ReportModal({
 
   if (!isOpen) return null;
 
+  if (isGuest) {
+    return (
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="guest-report-modal-title"
+        aria-describedby="guest-report-modal-desc"
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 2500,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1rem',
+          background: 'rgba(0, 0, 0, 0.8)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+        }}
+      >
+        <div
+          className="glass-panel fade-in"
+          style={{
+            width: '100%',
+            maxWidth: '440px',
+            padding: '2rem 1.5rem',
+            borderRadius: '20px',
+            border: '1px solid rgba(59, 130, 246, 0.35)',
+            background: 'rgba(15, 23, 42, 0.95)',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '1.25rem',
+          }}
+        >
+          <div
+            style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '16px',
+              background: 'rgba(59, 130, 246, 0.15)',
+              border: '1px solid rgba(59, 130, 246, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <ShieldAlert size={30} color="#3b82f6" />
+          </div>
+
+          <h2
+            id="guest-report-modal-title"
+            style={{ fontSize: '1.4rem', fontWeight: 700, color: '#fff', margin: 0 }}
+          >
+            {lang === 'ms' ? 'Pendaftaran Akaun Diperlukan' : 'Account Registration Required'}
+          </h2>
+
+          <p
+            id="guest-report-modal-desc"
+            style={{
+              fontSize: '0.9rem',
+              color: 'var(--text-secondary)',
+              lineHeight: 1.5,
+              margin: 0,
+            }}
+          >
+            {lang === 'ms'
+              ? 'Untuk mengelakkan laporan palsu dan menjaga integriti data komuniti, anda perlu mendaftar akaun sebelum menghantar laporan scam.'
+              : 'To prevent spam and maintain community data integrity, you must register an account before submitting scam reports.'}
+          </p>
+
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.75rem',
+              width: '100%',
+              marginTop: '0.5rem',
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                if (onRegister) onRegister();
+              }}
+              className="btn-primary"
+              style={{
+                width: '100%',
+                padding: '0.8rem',
+                fontSize: '1rem',
+                fontWeight: 600,
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                boxShadow: '0 4px 14px rgba(59, 130, 246, 0.4)',
+                cursor: 'pointer',
+              }}
+            >
+              <Shield size={18} />
+              {lang === 'ms' ? 'Daftar Akaun Sekarang' : 'Register Account Now'}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn-secondary"
+              style={{
+                width: '100%',
+                padding: '0.65rem',
+                borderRadius: '12px',
+                fontSize: '0.9rem',
+                color: 'var(--text-secondary)',
+                cursor: 'pointer',
+              }}
+            >
+              {lang === 'ms' ? 'Tutup' : 'Close'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const handleSubmit = async (event) => {
     if (event) event.preventDefault();
     setSubmitError('');
+
+    if (isGuest) {
+      setSubmitError(
+        lang === 'ms'
+          ? 'Pendaftaran akaun diperlukan untuk menghantar laporan.'
+          : 'Account registration is required to submit a report.'
+      );
+      return;
+    }
 
     // Duplicate report submission block (terminated via ENABLE_DUPLICATE_REPORT_BLOCK = false)
     if (ENABLE_DUPLICATE_REPORT_BLOCK && isAlreadyFlagged) return;
@@ -282,6 +421,7 @@ export default function ReportModal({
         status: isKnownConfirmed ? 'confirmed' : 'unverified',
         isKnownScam: !!isKnownConfirmed,
         skipStatusNotification: !!isKnownConfirmed,
+        isGuest,
         rationale: isKnownConfirmed
           ? (lang === 'ms' ? 'Disahkan secara automatik melalui rekod senarai hitam pihak berkuasa.' : 'Automatically verified against verified authorities blacklist database.')
           : '',
