@@ -107,10 +107,13 @@ export default function EmergencyHelp({ isGuest = false, onRequireAuth }) {
                 </h3>
               </div>
               <button 
+                type="button"
                 onClick={handleClose}
-                style={{ background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: '50%', width: '36px', height: '36px', color: '#cbd5e1', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                className="emergency-close-btn modal-close-btn"
+                aria-label={t('emergency.close') || 'Close'}
+                style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '50%', width: '40px', height: '40px', color: '#ffffff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0 }}
               >
-                <X size={20} />
+                <X size={22} color="#ffffff" style={{ strokeWidth: 2.5 }} />
               </button>
             </div>
 

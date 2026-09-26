@@ -797,33 +797,72 @@ export default function UserChecker({ userMode = 'normal', isElderlyMode = false
               </div>
 
               {selectedImage && (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  background: 'rgba(59, 130, 246, 0.12)',
-                  border: '1px solid rgba(59, 130, 246, 0.35)',
-                  borderRadius: '10px',
-                  padding: '0.65rem 0.85rem'
-                }}>
+                <div 
+                  className="screenshot-attachment-banner"
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    background: 'rgba(59, 130, 246, 0.12)',
+                    border: '1px solid rgba(59, 130, 246, 0.35)',
+                    borderRadius: '10px',
+                    padding: '0.65rem 0.85rem',
+                    width: '100%',
+                    maxWidth: '100%',
+                    boxSizing: 'border-box'
+                  }}
+                >
                   <img
                     src={selectedImage.fileBase64}
                     alt="Attached screenshot preview"
-                    style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.2)' }}
+                    style={{
+                      width: '48px',
+                      height: '48px',
+                      objectFit: 'cover',
+                      borderRadius: '6px',
+                      border: '1px solid rgba(255,255,255,0.2)',
+                      flexShrink: 0
+                    }}
                   />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ color: '#fff', fontSize: '0.85rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{ flex: '1 1 auto', minWidth: 0 }}>
+                    <div style={{
+                      color: '#fff',
+                      fontSize: isElderlyMode ? '1.05rem' : '0.85rem',
+                      fontWeight: 600,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}>
                       📷 {selectedImage.fileName}
                     </div>
-                    <div style={{ color: '#93c5fd', fontSize: '0.75rem' }}>
+                    <div style={{
+                      color: '#93c5fd',
+                      fontSize: isElderlyMode ? '0.9rem' : '0.75rem',
+                      lineHeight: 1.35,
+                      whiteSpace: 'normal',
+                      wordBreak: 'normal',
+                      overflowWrap: 'normal'
+                    }}>
                       {lang === 'ms' ? 'Tangkapan skrin dikesan (Ctrl+V) • Sedia untuk analisis visual AI' : 'Screenshot attached (Ctrl+V) • Ready for AI vision analysis'}
                     </div>
                   </div>
                   <button
                     type="button"
                     onClick={() => setSelectedImage(null)}
-                    className="btn-secondary"
-                    style={{ padding: '0.3rem 0.5rem', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)', display: 'flex', alignItems: 'center' }}
+                    className="btn-secondary screenshot-remove-btn"
+                    style={{
+                      padding: '0.3rem 0.5rem',
+                      color: '#ef4444',
+                      borderColor: 'rgba(239, 68, 68, 0.3)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      width: 'auto',
+                      minWidth: 'auto',
+                      maxWidth: 'max-content'
+                    }}
                     title={lang === 'ms' ? 'Buang imej' : 'Remove image'}
                   >
                     <X size={16} />

@@ -534,15 +534,15 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
         </h2>
         
         <div className="profile-report-table-wrap" role="region" aria-label={t('profile.title')} tabIndex="0">
-        <table className="profile-report-table" style={{ color: 'var(--text-secondary)', tableLayout: 'fixed', width: '96%', margin: '0 auto' }}>
+        <table className="profile-report-table" style={{ color: 'var(--text-secondary)', tableLayout: 'fixed', width: '100%', margin: '0 auto' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left' }}>
-              <th style={{ padding: '1rem', color: '#fff', whiteSpace: 'normal', width: '15%', fontSize: isElderlyMode ? '0.8rem' : '1rem' }}>{lang === 'ms' ? 'ID Laporan' : 'Report ID'}</th>
-              <th style={{ padding: '1rem', color: '#fff', whiteSpace: 'normal', width: '15%', fontSize: isElderlyMode ? '0.8rem' : '1rem' }}>{t('profile.table_date')}</th>
-              <th style={{ padding: '1rem', color: '#fff', width: '20%', fontSize: isElderlyMode ? '0.8rem' : '1rem' }}>{t('profile.table_category')}</th>
-              <th style={{ padding: '1rem', color: '#fff', width: '25%', fontSize: isElderlyMode ? '0.8rem' : '1rem' }}>{t('profile.table_content')}</th>
-              <th style={{ padding: '1rem', color: '#fff', whiteSpace: 'normal', width: '15%', fontSize: isElderlyMode ? '0.8rem' : '1rem' }}>{t('profile.status')}</th>
-              <th style={{ padding: '1rem', width: '8%', textAlign: 'center' }}></th>
+              <th style={{ padding: '1rem', color: '#fff', whiteSpace: 'nowrap', width: isElderlyMode ? '12%' : '14%', fontSize: isElderlyMode ? '1.15rem' : '1rem' }}>{lang === 'ms' ? 'ID Laporan' : 'Report ID'}</th>
+              <th style={{ padding: '1rem', color: '#fff', whiteSpace: 'nowrap', width: isElderlyMode ? '14%' : '14%', fontSize: isElderlyMode ? '1.15rem' : '1rem' }}>{t('profile.table_date')}</th>
+              <th style={{ padding: '1rem', color: '#fff', width: isElderlyMode ? '18%' : '18%', fontSize: isElderlyMode ? '1.15rem' : '1rem' }}>{t('profile.table_category')}</th>
+              <th style={{ padding: '1rem', color: '#fff', width: isElderlyMode ? '18%' : '24%', fontSize: isElderlyMode ? '1.15rem' : '1rem' }}>{t('profile.table_content')}</th>
+              <th style={{ padding: '1rem', color: '#fff', whiteSpace: 'nowrap', width: isElderlyMode ? '24%' : '22%', fontSize: isElderlyMode ? '1.15rem' : '1rem' }}>{t('profile.status')}</th>
+              <th style={{ padding: '1rem', width: isElderlyMode ? '14%' : '8%', textAlign: isElderlyMode ? 'left' : 'center' }}></th>
             </tr>
           </thead>
           <tbody>
@@ -553,38 +553,38 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
             ) : (
               (isReportsExpanded ? myReports : myReports.slice(0, isMobile ? 1 : 3)).map(report => (
                 <tr key={report.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                  <td data-label="Report ID" style={{ padding: '1rem', fontSize: isElderlyMode ? '0.8rem' : '0.85rem', fontWeight: 600, color: 'var(--primary)', whiteSpace: 'normal' }}>
+                  <td data-label="Report ID" style={{ padding: '1rem', fontSize: isElderlyMode ? '1.25rem' : '0.85rem', fontWeight: 700, color: 'var(--primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {report.reportCode || `#${report.id.toString().slice(-6)}`}
                   </td>
-                  <td data-label={t('profile.table_date')} style={{ padding: '1rem', fontSize: isElderlyMode ? '0.8rem' : '0.85rem', whiteSpace: 'normal' }}>
+                  <td data-label={t('profile.table_date')} style={{ padding: '1rem', fontSize: isElderlyMode ? '1.25rem' : '0.85rem', whiteSpace: 'nowrap' }}>
                     {new Date(report.timestamp).toLocaleDateString()}
                   </td>
-                  <td data-label={t('profile.table_category')} style={{ padding: '1rem', fontSize: isElderlyMode ? '0.8rem' : '0.85rem', whiteSpace: 'normal' }}>
+                  <td data-label={t('profile.table_category')} style={{ padding: '1rem', fontSize: isElderlyMode ? '1.25rem' : '0.85rem', fontWeight: 600, whiteSpace: 'normal', wordBreak: 'normal', overflowWrap: 'normal' }}>
                     {getCategoryLabel(report.category, t)}
                   </td>
-                  <td data-label={t('profile.table_content')} style={{ padding: '1rem', fontSize: isElderlyMode ? '0.8rem' : '0.85rem' }}>
+                  <td data-label={t('profile.table_content')} style={{ padding: '1rem', fontSize: isElderlyMode ? '1.2rem' : '0.85rem' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
                       <div style={{
                         whiteSpace: expandedSnippets.has(report.id) ? 'normal' : 'nowrap',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
-                        maxWidth: '100%'
+                        maxWidth: (!expandedSnippets.has(report.id) && isElderlyMode) ? '120px' : '100%'
                       }}>
                         "{report.text}"
                       </div>
-                      {report.text.length > 40 && (
+                      {report.text.length > (isElderlyMode ? 20 : 40) && (
                         <button 
                           onClick={() => toggleSnippet(report.id)}
                           style={{
                             background: 'none',
                             border: 'none',
                             color: 'var(--primary)',
-                            fontSize: '0.75rem',
+                            fontSize: isElderlyMode ? '1.2rem' : '0.75rem',
+                            fontWeight: isElderlyMode ? 700 : 500,
                             cursor: 'pointer',
                             padding: '0.35rem 0 0 0',
                             marginTop: '0.2rem',
-                            fontWeight: 500,
-                            whiteSpace: 'normal',
+                            whiteSpace: 'nowrap',
                             alignSelf: 'flex-start'
                           }}
                         >
@@ -595,14 +595,38 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
                       )}
                     </div>
                   </td>
-                  <td data-label={t('profile.status')} style={{ padding: '1rem', whiteSpace: 'normal', fontSize: isElderlyMode ? '0.8rem' : '0.85rem' }}>
+                  <td data-label={t('profile.status')} style={{ padding: isElderlyMode ? '1rem 0.15rem 1rem 0.85rem' : '1rem', whiteSpace: 'nowrap', fontSize: isElderlyMode ? '1.25rem' : '0.85rem' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                      {report.status === 'confirmed' && <span style={{ color: 'var(--color-low)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}><CheckCircle size={14} /> {t('profile.confirmed')}</span>}
-                      {report.status === 'rejected' && <span style={{ color: 'var(--color-high)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}><XCircle size={14} /> {t('profile.rejected')}</span>}
-                      {(report.status === 'unverified' || report.status === 'under_review') && <span style={{ color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Clock size={14} /> {t('profile.pending')}</span>}
+                      {report.status === 'confirmed' && (
+                        isElderlyMode ? (
+                          <span style={{ color: 'var(--color-low)', display: 'inline-flex', alignItems: 'flex-start', gap: '0.35rem', whiteSpace: 'nowrap' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', height: '1.25em' }}>
+                              <CheckCircle size={18} style={{ flexShrink: 0 }} />
+                            </span>
+                            <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.25 }}>
+                              <span style={{ whiteSpace: 'nowrap' }}>{lang === 'ms' ? 'Disahkan' : 'Confirmed'}</span>
+                              <span style={{ whiteSpace: 'nowrap' }}>{lang === 'ms' ? 'Scam' : 'Scam'}</span>
+                            </span>
+                          </span>
+                        ) : (
+                          <span style={{ color: 'var(--color-low)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', whiteSpace: 'nowrap' }}>
+                            <CheckCircle size={14} style={{ flexShrink: 0 }} /> {t('profile.confirmed')}
+                          </span>
+                        )
+                      )}
+                      {report.status === 'rejected' && (
+                        <span style={{ color: 'var(--color-high)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', whiteSpace: 'nowrap' }}>
+                          <XCircle size={14} style={{ flexShrink: 0 }} /> {t('profile.rejected')}
+                        </span>
+                      )}
+                      {(report.status === 'unverified' || report.status === 'under_review') && (
+                        <span style={{ color: '#f59e0b', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', whiteSpace: 'nowrap' }}>
+                          <Clock size={14} style={{ flexShrink: 0 }} /> {t('profile.pending')}
+                        </span>
+                      )}
                     </div>
                   </td>
-                  <td className="profile-report-action-cell" style={{ padding: '1rem', whiteSpace: 'normal', textAlign: 'center' }}>
+                  <td className="profile-report-action-cell" style={{ padding: isElderlyMode ? '1rem 1rem 1rem 0.25rem' : '1rem', whiteSpace: 'normal', textAlign: isElderlyMode ? 'left' : 'center' }}>
                     <button
                       type="button"
                       onClick={() => setReportToDelete(report)}
@@ -610,20 +634,20 @@ export default function UserProfile({ userMode = 'normal', isElderlyMode = false
                         background: isKidMode ? 'rgba(244, 114, 182, 0.12)' : 'rgba(239, 68, 68, 0.1)',
                         border: isKidMode ? '1px solid rgba(244, 114, 182, 0.35)' : '1px solid rgba(239, 68, 68, 0.25)',
                         color: isKidMode ? '#f472b6' : '#ef4444',
-                        padding: isElderlyMode ? '0.55rem' : '0.42rem',
-                        borderRadius: isKidMode ? '12px' : '8px',
+                        padding: isElderlyMode ? '0.9rem 1.1rem' : '0.42rem',
+                        borderRadius: isElderlyMode ? '14px' : '8px',
                         cursor: 'pointer',
                         display: 'inline-flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         transition: 'all 0.2s',
-                        minWidth: isElderlyMode ? '38px' : '30px',
-                        minHeight: isElderlyMode ? '38px' : '30px',
+                        minWidth: isElderlyMode ? '72px' : '30px',
+                        minHeight: isElderlyMode ? '64px' : '30px',
                       }}
                       title={lang === 'ms' ? 'Padam laporan' : 'Delete report'}
                       aria-label={lang === 'ms' ? 'Padam laporan' : 'Delete report'}
                     >
-                      <Trash2 size={isElderlyMode ? 18 : 14} />
+                      <Trash2 size={isElderlyMode ? 30 : 14} />
                     </button>
                   </td>
                 </tr>
